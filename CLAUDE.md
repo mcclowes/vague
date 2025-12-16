@@ -12,6 +12,7 @@ src/
 ├── interpreter/ # Generator - produces JSON from AST
 ├── validator/   # Schema validation against OpenAPI/JSON Schema
 ├── openapi/     # OpenAPI schema import support
+├── infer/       # Schema inference from JSON data
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -502,11 +503,79 @@ Benefits:
 - Complex relationships handled automatically
 - TypeScript types keep fixtures aligned with code
 
+### Schema Inference from Data
+
+Reverse-engineer Vague schemas from existing JSON data:
+
+```typescript
+import { inferSchema } from 'vague';
+
+const data = {
+  invoices: [
+    { id: 1001, status: 'paid', total: 250.50, customer: 'Acme Corp' },
+    { id: 1002, status: 'draft', total: 89.99, customer: 'Beta Inc' },
+    { id: 1003, status: 'paid', total: 1250.00, customer: 'Acme Corp' },
+  ]
+};
+
+const vagueCode = inferSchema(data);
+// Generates:
+// schema Invoice {
+//   id: unique int in 1001..1003,
+//   status: 0.67: "paid" | 0.33: "draft",
+//   total: decimal in 89.99..1250,
+//   customer: "Acme Corp" | "Beta Inc"
+// }
+//
+// dataset Generated {
+//   invoices: 3 * Invoice
+// }
+```
+
+**CLI Usage:**
+```bash
+# Infer schema from JSON file
+node dist/cli.js --infer data.json -o schema.vague
+
+# With custom dataset name
+node dist/cli.js --infer data.json --dataset-name TestFixtures
+
+# Disable format detection (uuid, email, etc.)
+node dist/cli.js --infer data.json --no-formats
+
+# Disable weighted superpositions (use equal weights)
+node dist/cli.js --infer data.json --no-weights
+```
+
+**Options:**
+```typescript
+inferSchema(data, {
+  datasetName: 'Generated',      // Name for the dataset
+  detectFormats: true,           // Detect uuid, email, phone patterns
+  weightedSuperpositions: true,  // Include weights in superpositions
+  maxEnumValues: 10,             // Max unique values for enum detection
+  detectUnique: true,            // Detect unique fields
+});
+```
+
+**Detection Capabilities:**
+| Feature | Detection Method | Vague Output |
+|---------|-----------------|--------------|
+| Types | Value analysis | `int`, `decimal`, `string`, `date`, `boolean` |
+| Ranges | Min/max values | `int in 18..65` |
+| Enums | Distinct value count | `"a" \| "b" \| "c"` |
+| Weights | Value frequency | `0.7: "paid" \| 0.3: "draft"` |
+| Nullable | Null presence | `string?` |
+| Unique | All values distinct | `unique int in 1..100` |
+| Formats | Pattern matching | `uuid()`, `email()`, etc. |
+| Arrays | Array lengths | `1..5 * Item` |
+| Nested | Object structure | Separate schema definitions |
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 179 tests covering lexer, parser, generator, validator, OpenAPI populator, and examples.
+Currently 262 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, and examples.
 
 ## Architecture Notes
 
@@ -622,6 +691,7 @@ See `src/plugins/faker.ts` for a complete example of plugin implementation.
 - [x] OpenAPI example population (`--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`)
 - [x] Tagged template API (`vague\`...\``, `vague({ seed: 42 })\`...\``)
 - [x] String transformations (`uppercase`, `lowercase`, `capitalize`, `kebabCase`, `snakeCase`, `camelCase`, `trim`, `concat`, `substring`, `replace`, `length`)
+- [x] Schema inference from JSON data (`inferSchema()`, `--infer` CLI option)
 
 See TODO.md for planned features.
 

@@ -18,6 +18,13 @@ export {
   setFakerLocale,
   setFakerSeed,
 } from './plugins/index.js';
+export {
+  inferSchema,
+  inferSchemaOnly,
+  type InferOptions,
+  type InferredField,
+  type InferredSchema,
+} from './infer/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
