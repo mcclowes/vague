@@ -81,7 +81,7 @@
         {
           "comment": "Other keywords",
           "name": "keyword.other.vague",
-          "match": "\\b(let|with|where|in|per|any|of|affects)\\b"
+          "match": "\\b(let|with|where|in|per|any|of|affects|unique)\\b"
         }
       ]
     },
@@ -104,7 +104,7 @@
         {
           "comment": "Aggregate functions",
           "name": "support.function.builtin.vague",
-          "match": "\\b(sum|count|min|max|avg)\\b"
+          "match": "\\b(sum|count|min|max|avg|round|floor|ceil)\\b"
         },
         {
           "comment": "Faker namespace prefix",

@@ -65,6 +65,7 @@ export interface GeneratorContext {
   current?: Record<string, unknown>;
   currentSchemaName?: string;
   violating?: boolean; // If true, generate data that violates constraints
+  uniqueValues: Map<string, Set<unknown>>; // Track unique values per field
 }
 
 export class Generator {
@@ -76,6 +77,7 @@ export class Generator {
       schemas: new Map(),
       importedSchemas: new Map(),
       collections: new Map(),
+      uniqueValues: new Map(),
     };
     this.openApiLoader = new OpenAPILoader();
   }
@@ -472,6 +474,33 @@ export class Generator {
       return this.evaluateExpression(field.distribution);
     }
 
+    // Unique fields - retry until we get a unique value
+    if (field.unique) {
+      return this.generateUniqueField(field);
+    }
+
+    return this.generateFromFieldType(field.fieldType, field.name);
+  }
+
+  private generateUniqueField(field: FieldDefinition): unknown {
+    const key = `${this.ctx.currentSchemaName}.${field.name}`;
+
+    if (!this.ctx.uniqueValues.has(key)) {
+      this.ctx.uniqueValues.set(key, new Set());
+    }
+    const usedValues = this.ctx.uniqueValues.get(key)!;
+
+    const maxAttempts = 1000;
+    for (let i = 0; i < maxAttempts; i++) {
+      const value = this.generateFromFieldType(field.fieldType, field.name);
+      if (!usedValues.has(value)) {
+        usedValues.add(value);
+        return value;
+      }
+    }
+
+    // Fallback: return last generated value with warning
+    console.warn(`Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`);
     return this.generateFromFieldType(field.fieldType, field.name);
   }
 
@@ -925,6 +954,51 @@ export class Generator {
         } finally {
           this.ctx.current = oldCurrent;
         }
+      }
+      case "round": {
+        // round(value, decimals?) - round to specified decimal places (default 0)
+        const value = args[0] as number;
+        const decimals = (args[1] as number) ?? 0;
+        const factor = Math.pow(10, decimals);
+        return Math.round(value * factor) / factor;
+      }
+      case "floor": {
+        // floor(value, decimals?) - floor to specified decimal places (default 0)
+        const value = args[0] as number;
+        const decimals = (args[1] as number) ?? 0;
+        const factor = Math.pow(10, decimals);
+        return Math.floor(value * factor) / factor;
+      }
+      case "ceil": {
+        // ceil(value, decimals?) - ceil to specified decimal places (default 0)
+        const value = args[0] as number;
+        const decimals = (args[1] as number) ?? 0;
+        const factor = Math.pow(10, decimals);
+        return Math.ceil(value * factor) / factor;
+      }
+      case "unique": {
+        // unique(key, generator_expr) - ensures generated value is unique within key namespace
+        // The key identifies the uniqueness scope (e.g., "invoices.id")
+        // Retries generation up to 100 times to find a unique value
+        const key = args[0] as string;
+        const generatorExpr = call.arguments[1];
+
+        if (!this.ctx.uniqueValues.has(key)) {
+          this.ctx.uniqueValues.set(key, new Set());
+        }
+        const usedValues = this.ctx.uniqueValues.get(key)!;
+
+        const maxAttempts = 100;
+        for (let i = 0; i < maxAttempts; i++) {
+          const value = this.evaluateExpression(generatorExpr);
+          if (!usedValues.has(value)) {
+            usedValues.add(value);
+            return value;
+          }
+        }
+        // Fallback: return last generated value with warning
+        console.warn(`Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`);
+        return this.evaluateExpression(generatorExpr);
       }
       default:
         return null;

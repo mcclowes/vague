@@ -143,6 +143,7 @@ export class StatementParser extends TypeParser {
 
     const fieldType = this.parseFieldType();
     const optional = this.match(TokenType.QUESTION);
+    const unique = this.match(TokenType.UNIQUE);
 
     let condition: Expression | undefined;
     if (this.match(TokenType.WHEN)) {
@@ -165,6 +166,7 @@ export class StatementParser extends TypeParser {
       fieldType,
       optional,
       computed,
+      unique: unique || undefined,
       condition,
       distribution,
       constraints,

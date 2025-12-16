@@ -1587,4 +1587,92 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("decimal precision functions", () => {
+    it("round() rounds to specified decimal places", async () => {
+      const source = `
+        schema Order {
+          subtotal: decimal in 100..200,
+          tax: = round(subtotal * 0.2, 2),
+          total: = round(subtotal * 1.2, 2)
+        }
+
+        dataset TestData {
+          orders: 10 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { subtotal: number, tax: number, total: number }[];
+      for (const order of orders) {
+        // Check that tax and total have at most 2 decimal places
+        expect(order.tax).toBe(Math.round(order.tax * 100) / 100);
+        expect(order.total).toBe(Math.round(order.total * 100) / 100);
+      }
+    });
+
+    it("floor() and ceil() work correctly", async () => {
+      const source = `
+        schema Item {
+          price: decimal in 10.5..20.9,
+          floored: = floor(price, 1),
+          ceiled: = ceil(price, 1)
+        }
+
+        dataset TestData {
+          items: 10 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { price: number, floored: number, ceiled: number }[];
+      for (const item of items) {
+        expect(item.floored).toBeLessThanOrEqual(item.price);
+        expect(item.ceiled).toBeGreaterThanOrEqual(item.price);
+      }
+    });
+  });
+
+  describe("unique fields", () => {
+    it("generates unique values for fields marked with unique", async () => {
+      const source = `
+        schema Invoice {
+          id: int in 1..100 unique,
+          amount: int in 100..500
+        }
+
+        dataset TestData {
+          invoices: 20 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      const invoices = result.invoices as { id: number }[];
+      const ids = invoices.map(i => i.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
+    });
+
+    it("generates unique strings", async () => {
+      const source = `
+        schema Item {
+          code: "A" | "B" | "C" | "D" | "E" unique
+        }
+
+        dataset TestData {
+          items: 5 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { code: string }[];
+      const codes = items.map(i => i.code);
+      const uniqueCodes = new Set(codes);
+      expect(uniqueCodes.size).toBe(codes.length);
+    });
+  });
 });

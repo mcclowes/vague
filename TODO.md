@@ -5,12 +5,9 @@
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
 
 ## Core Language
-
-- [ ] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
 - [ ] **String transformations** - Derived strings: `slug: = kebabCase(title)`, `upper: = uppercase(name)`
-- [ ] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
@@ -18,9 +15,7 @@
 
 ## Data Quality
 
-- [ ] **Decimal precision** - Round decimals appropriately for currency etc.
 - [ ] **Date formatting** - ISO 8601 output, configurable formats
-- [ ] **Unique values** - Ensure IDs/references are unique where needed
 
 ## Dataset-Level Features
 
@@ -111,3 +106,7 @@
 - [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights: `0.7: int in 10..100 | 0.3: field`
 - [x] **Seed support** - `--seed 123` for reproducible generation
 - [x] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
+- [x] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
+- [x] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
+- [x] **Decimal precision** - `round()`, `floor()`, `ceil()` functions with decimal places
+- [x] **Unique values** - `id: int in 1..1000 unique` ensures no duplicates

@@ -103,6 +103,7 @@ export interface FieldDefinition {
   fieldType: FieldType;
   optional?: boolean; // ?
   computed?: boolean; // = prefix
+  unique?: boolean; // unique - ensure no duplicates
   condition?: Expression; // when clause
   distribution?: Expression; // ~ clause
   constraints?: Expression; // where clause

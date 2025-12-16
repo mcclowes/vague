@@ -109,7 +109,28 @@ schema Invoice {
   item_count: = count(line_items),
   avg_price: = avg(line_items.unit_price),
   min_price: = min(line_items.unit_price),
-  max_price: = max(line_items.unit_price)
+  max_price: = max(line_items.unit_price),
+  // Arithmetic expressions
+  tax: = round(sum(line_items.amount) * 0.2, 2),
+  grand_total: = round(sum(line_items.amount) * 1.2, 2)
+}
+```
+
+### Decimal Precision
+```vague
+schema Order {
+  subtotal: decimal in 100..500,
+  tax: = round(subtotal * 0.2, 2),    // Round to 2 decimal places
+  floored: = floor(subtotal, 1),      // Floor to 1 decimal place
+  ceiled: = ceil(subtotal, 0)         // Ceil to whole number
+}
+```
+
+### Unique Values
+```vague
+schema Invoice {
+  id: int in 1000..9999 unique,       // Ensures no duplicate IDs
+  code: "A" | "B" | "C" | "D" unique  // Works with superposition too
 }
 ```
 
@@ -250,7 +271,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 126 tests covering lexer, parser, generator, and validator.
+Currently 130 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -291,6 +312,10 @@ Currently 126 tests covering lexer, parser, generator, and validator.
 - [x] Mixed superposition (`int in 10..500 | field.ref`, weighted: `0.7: int in 10..100 | 0.3: field`)
 - [x] Seeded generation (`--seed 123` for reproducible output)
 - [x] Negative testing (`dataset X violating { }` for constraint-violating data)
+- [x] Logical operators in where clauses (`any of X where .a == 1 or .b == 2`)
+- [x] Arithmetic in computed fields (`= sum(items.price) * 1.2`)
+- [x] Decimal precision functions (`round()`, `floor()`, `ceil()`)
+- [x] Unique values (`id: int in 1..1000 unique`)
 
 See TODO.md for planned features.
 
