@@ -32,8 +32,8 @@
 
 ## Plugin System
 
-- [ ] **Plugin architecture** - Plugin loader, namespace resolution, discovery
-- [ ] **Custom generators** - Pattern-based generators, stateful sequences
+- [ ] **Custom generators** - Pattern-based generators beyond faker
+- [ ] **Plugin discovery** - Auto-load plugins from node_modules or directory
 
 ## Context System
 
@@ -72,11 +72,12 @@
 
 ## Ideas to explore
 
-- [ ] Addfitional keywords like then - so, especially, etc.
+- [ ] Additional keywords like then - so, especially, etc.
 
 ## OAS parsing
 
 - [ ] Extract Validation from OAS automatically? 
+- [ ] Rather than 'from' we could use more specific words - 'extends', 'restricts', 'implements', - explore these
 - [ ] Warn if validation in OAS spec - see below
 
 ```
@@ -134,3 +135,5 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Sequential/stateful generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)` for auto-incrementing values
 - [x] **Previous references** - `previous("field")` for referencing the previous record in a collection
 - [x] **Prettier and ESLint** - Code formatting and linting with `npm run format` and `npm run lint`
+- [x] **Plugin architecture** - `registerPlugin()`, namespace resolution, `VaguePlugin` type
+- [x] **OpenAPI example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
