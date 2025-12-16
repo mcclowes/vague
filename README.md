@@ -41,6 +41,10 @@ Generate JSON:
 node dist/cli.js your-file.vague
 ```
 
+## Syntax Cheat Sheet
+
+For a quick reference of all syntax, see **[SYNTAX.md](SYNTAX.md)**.
+
 ## Language Features
 
 ### Superposition (Random Choice)
