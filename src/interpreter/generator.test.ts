@@ -689,4 +689,114 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("dataset-level constraints", () => {
+    it("enforces sum constraint on collection", async () => {
+      const source = `
+        schema Item {
+          value: int in 10..50
+        }
+
+        dataset TestData {
+          items: 10 * Item,
+          validate {
+            sum(items.value) >= 200,
+            sum(items.value) <= 400
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.items).toHaveLength(10);
+      const sum = (result.items as { value: number }[]).reduce((s, i) => s + i.value, 0);
+      expect(sum).toBeGreaterThanOrEqual(200);
+      expect(sum).toBeLessThanOrEqual(400);
+    });
+
+    it("enforces count constraint on collection", async () => {
+      const source = `
+        schema Item { x: int }
+
+        dataset TestData {
+          items: 5..15 * Item,
+          validate {
+            count(items) >= 8
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.items.length).toBeGreaterThanOrEqual(8);
+    });
+
+    it("enforces cross-collection constraint", async () => {
+      const source = `
+        schema Invoice { total: int in 100..500 }
+        schema Payment { amount: int in 50..200 }
+
+        dataset TestData {
+          invoices: 5 * Invoice,
+          payments: 3 * Payment,
+          validate {
+            sum(payments.amount) <= sum(invoices.total)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      const invoiceTotal = (result.invoices as { total: number }[]).reduce((s, i) => s + i.total, 0);
+      const paymentTotal = (result.payments as { amount: number }[]).reduce((s, p) => s + p.amount, 0);
+      expect(paymentTotal).toBeLessThanOrEqual(invoiceTotal);
+    });
+
+    it("enforces multiple validation constraints", async () => {
+      const source = `
+        schema Item {
+          price: int in 10..100
+        }
+
+        dataset TestData {
+          items: 10 * Item,
+          validate {
+            sum(items.price) >= 200,
+            avg(items.price) >= 20,
+            max(items.price) >= 50
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      const prices = (result.items as { price: number }[]).map(i => i.price);
+      const sum = prices.reduce((s, p) => s + p, 0);
+      const avg = sum / prices.length;
+      const max = Math.max(...prices);
+
+      expect(sum).toBeGreaterThanOrEqual(200);
+      expect(avg).toBeGreaterThanOrEqual(20);
+      expect(max).toBeGreaterThanOrEqual(50);
+    });
+
+    it("enforces count comparison between collections", async () => {
+      const source = `
+        schema A { x: int }
+        schema B { y: int }
+
+        dataset TestData {
+          as: 5..10 * A,
+          bs: 3..8 * B,
+          validate {
+            count(bs) <= count(as)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.bs.length).toBeLessThanOrEqual(result.as.length);
+    });
+  });
 });

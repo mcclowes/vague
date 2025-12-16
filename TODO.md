@@ -25,8 +25,8 @@
 
 ## Dataset-Level Features
 
-- [ ] **Dataset-wide constraints** - `validate { sum(invoices.total) in 100_000..500_000 }`
-- [ ] **Aggregate constraints** - Balance debits/credits across records
+- [ ] **Balance constraints** - Special handling for `sum(debits) == sum(credits)` with adjustment strategy
+- [ ] **Aggregate adjustment** - Adjust last record to meet aggregate constraint instead of full regeneration
 
 ## Negative Testing & Edge Cases
 
@@ -92,3 +92,5 @@
 - [x] **Schema validation** - Validate generated data against OpenAPI specs (3.0.x/3.1.x)
 - [x] **CLI validation flags** - `-v`, `-m`, `--validate-only` for CI integration
 - [x] **OpenAPI schema import** - `schema Pet from petstore.Pet { }` inherits fields from OpenAPI spec
+- [x] **Dataset-wide constraints** - `validate { sum(invoices.total) >= 100000 }` with rejection sampling
+- [x] **Aggregate constraints** - Cross-collection constraints like `sum(payments.amount) <= sum(invoices.total)`

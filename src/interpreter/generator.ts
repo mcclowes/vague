@@ -18,6 +18,7 @@ import {
   FieldType,
   Cardinality,
   GeneratorType,
+  ValidationBlock,
 } from "../ast/index.js";
 import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
 import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
@@ -94,15 +95,63 @@ export class Generator {
   }
 
   private generateDataset(dataset: DatasetDefinition): Record<string, unknown[]> {
-    const result: Record<string, unknown[]> = {};
+    const maxAttempts = 20;
 
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const result: Record<string, unknown[]> = {};
+
+      // Generate all collections
+      for (const collection of dataset.collections) {
+        const items = this.generateCollection(collection);
+        result[collection.name] = items;
+        this.ctx.collections.set(collection.name, items);
+      }
+
+      // Check dataset-level constraints
+      if (!dataset.validation || this.validateDatasetConstraints(dataset.validation, result)) {
+        return result;
+      }
+
+      // Clear collections for retry
+      for (const collection of dataset.collections) {
+        this.ctx.collections.delete(collection.name);
+      }
+    }
+
+    // Fallback: return last attempt with warning
+    console.warn(`Warning: Dataset constraints not satisfied after ${maxAttempts} attempts`);
+    const result: Record<string, unknown[]> = {};
     for (const collection of dataset.collections) {
       const items = this.generateCollection(collection);
       result[collection.name] = items;
       this.ctx.collections.set(collection.name, items);
     }
-
     return result;
+  }
+
+  private validateDatasetConstraints(
+    validation: ValidationBlock,
+    data: Record<string, unknown[]>
+  ): boolean {
+    // Store all collections in context for expression evaluation
+    for (const [name, items] of Object.entries(data)) {
+      this.ctx.collections.set(name, items);
+    }
+
+    // Evaluate each validation expression
+    for (const constraint of validation.validations) {
+      try {
+        const result = this.evaluateExpression(constraint);
+        if (!Boolean(result)) {
+          return false;
+        }
+      } catch {
+        // Expression evaluation failed, constraint not satisfied
+        return false;
+      }
+    }
+
+    return true;
   }
 
   private generateCollection(collection: CollectionDefinition): unknown[] {
@@ -481,10 +530,37 @@ export class Generator {
   }
 
   private resolveReference(parts: string[]): unknown {
-    // Handle path expressions like line_items.amount
+    // Handle path expressions like line_items.amount or invoices.total
     // When traversing into an array, map over it to extract values
     let value: unknown = this.ctx.current;
 
+    // First part might be a collection name (for dataset-level validation)
+    const [first, ...rest] = parts;
+    if (this.ctx.collections.has(first)) {
+      value = this.ctx.collections.get(first);
+      // If no more parts, return the collection
+      if (rest.length === 0) {
+        return value;
+      }
+      // Continue with remaining parts
+      for (const part of rest) {
+        if (Array.isArray(value)) {
+          value = value.map((item) => {
+            if (item && typeof item === "object" && part in item) {
+              return (item as Record<string, unknown>)[part];
+            }
+            return null;
+          }).filter((v) => v !== null);
+        } else if (value && typeof value === "object" && part in value) {
+          value = (value as Record<string, unknown>)[part];
+        } else {
+          return null;
+        }
+      }
+      return value;
+    }
+
+    // Otherwise start from current context (schema-level)
     for (const part of parts) {
       if (Array.isArray(value)) {
         // Map over array to extract field from each item
@@ -509,8 +585,15 @@ export class Generator {
       case "Literal":
         return (expr as Literal).value;
 
-      case "Identifier":
-        return this.ctx.current?.[(expr as { name: string }).name] ?? null;
+      case "Identifier": {
+        const name = (expr as { name: string }).name;
+        // Check collections first (for dataset-level validation)
+        if (this.ctx.collections.has(name)) {
+          return this.ctx.collections.get(name);
+        }
+        // Then check current instance context
+        return this.ctx.current?.[name] ?? null;
+      }
 
       case "QualifiedName": {
         const parts = (expr as { parts: string[] }).parts;

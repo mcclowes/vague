@@ -1,0 +1,29 @@
+// Dataset-level constraints example
+// Validates aggregate constraints across entire collections
+
+schema Invoice {
+  id: int in 1..10000,
+  total: int in 100..2000
+}
+
+schema Payment {
+  id: int in 1..10000,
+  amount: int in 50..500
+}
+
+dataset FinancialData {
+  invoices: 20 * Invoice,
+  payments: 10 * Payment,
+
+  validate {
+    // Total invoices should be in a reasonable range
+    sum(invoices.total) >= 5000,
+    sum(invoices.total) <= 30000,
+
+    // Payments can't exceed invoices
+    sum(payments.amount) <= sum(invoices.total),
+
+    // Can't have more payments than invoices
+    count(payments) <= count(invoices)
+  }
+}

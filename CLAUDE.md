@@ -110,6 +110,21 @@ dataset TestData {
 }
 ```
 
+### Dataset-Level Constraints
+```vague
+dataset TestData {
+  invoices: 100 * Invoice,
+  payments: 50 * Payment,
+
+  validate {
+    sum(invoices.total) >= 100000,
+    sum(invoices.total) <= 500000,
+    sum(payments.amount) <= sum(invoices.total),
+    count(payments) <= count(invoices)
+  }
+}
+```
+
 ### OpenAPI Schema Import
 ```vague
 import petstore from "petstore.json"
@@ -138,7 +153,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 93 tests covering lexer, parser, generator, and validator.
+Currently 98 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -169,6 +184,7 @@ Currently 93 tests covering lexer, parser, generator, and validator.
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 - [x] Faker plugin for semantic types
 - [x] VSCode syntax highlighting (`vscode-vague/`)
+- [x] Dataset-level constraints (`validate { }` block)
 
 See TODO.md for planned features.
 
