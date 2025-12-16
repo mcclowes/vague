@@ -395,6 +395,72 @@ Auto-detection matches collection names to schema names:
 - Plural to singular: `invoices` → `Invoice`
 - snake_case to PascalCase: `line_items` → `LineItem`
 
+## TypeScript Embedding (Tagged Template API)
+
+Use Vague directly in TypeScript with tagged template literals:
+
+```typescript
+import { vague } from 'vague';
+
+// Basic usage
+const data = await vague`
+  schema Person { name: string, age: int in 18..65 }
+  dataset Test { people: 10 * Person }
+`;
+
+// With seed for deterministic output
+const fixtures = await vague({ seed: 42 })`
+  schema Invoice {
+    id: unique int in 1000..9999,
+    status: "draft" | "sent" | "paid",
+    total: decimal in 100..5000
+  }
+  dataset Test { invoices: 20 * Invoice }
+`;
+
+// With TypeScript generics for type safety
+interface TestData { invoices: Invoice[] }
+const typed = await vague<TestData>({ seed: 42 })`...`;
+
+// Interpolation support
+const count = 100;
+const data = await vague`
+  dataset Test { items: ${count} * Item }
+`;
+```
+
+### Vitest Fixture Pattern
+
+See `examples/vitest-fixtures/` for a complete example of using Vague as a seeded fixture generator:
+
+```typescript
+// invoice.test.ts
+import { vague } from 'vague';
+
+interface TestFixtures { invoices: Invoice[] }
+const SEED = 42;
+
+let fixtures: TestFixtures;
+beforeAll(async () => {
+  fixtures = await vague<TestFixtures>({ seed: SEED })`
+    schema Invoice { ... }
+    dataset TestFixtures { invoices: 20 * Invoice }
+  `;
+});
+
+it('test with deterministic fixtures', () => {
+  // fixtures.invoices is the same every run
+  expect(calculateTotal(fixtures.invoices[0])).toBe(expected);
+});
+```
+
+Benefits:
+- Fixtures are deterministic (same seed = same data)
+- Schema changes automatically regenerate appropriate fixtures
+- No static JSON files to maintain
+- Complex relationships handled automatically
+- TypeScript types keep fixtures aligned with code
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
@@ -513,6 +579,7 @@ See `src/plugins/faker.ts` for a complete example of plugin implementation.
 - [x] Previous references (`previous("field")` for sequential coherence)
 - [x] Expression superposition (`0.7: (invoice.total - invoice.amount_paid) | 0.3: int in 10..500`)
 - [x] OpenAPI example population (`--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`)
+- [x] Tagged template API (`vague\`...\``, `vague({ seed: 42 })\`...\``)
 
 See TODO.md for planned features.
 

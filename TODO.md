@@ -73,6 +73,7 @@
 ## Ideas to explore
 
 - [ ] Additional keywords like then - so, especially, etc.
+- [ ] currently we have to do: status: 0.85: "Active" | 0.15: "Archived",  but actually this should work: status: 0.85: "Active" | "Archived",
 
 ## OAS parsing
 

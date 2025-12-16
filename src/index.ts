@@ -22,6 +22,7 @@ export {
 import { Lexer } from './lexer/index.js';
 import { Parser } from './parser/index.js';
 import { Generator } from './interpreter/index.js';
+import { setSeed } from './interpreter/index.js';
 
 export async function compile(source: string): Promise<Record<string, unknown[]>> {
   const lexer = new Lexer(source);
@@ -39,4 +40,48 @@ export function parse(source: string) {
   const tokens = lexer.tokenize();
   const parser = new Parser(tokens);
   return parser.parse();
+}
+
+export interface VagueOptions {
+  seed?: number;
+}
+
+type VagueTaggedTemplate<T> = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
+
+function createVagueTemplate<T = Record<string, unknown[]>>(
+  options: VagueOptions = {}
+): VagueTaggedTemplate<T> {
+  return async (strings: TemplateStringsArray, ...values: unknown[]): Promise<T> => {
+    // Interpolate values into the template
+    let source = strings[0];
+    for (let i = 0; i < values.length; i++) {
+      source += String(values[i]) + strings[i + 1];
+    }
+
+    if (options.seed !== undefined) {
+      setSeed(options.seed);
+    }
+
+    const result = await compile(source);
+
+    // Reset seed after generation to avoid affecting other calls
+    if (options.seed !== undefined) {
+      setSeed(null);
+    }
+
+    return result as T;
+  };
+}
+
+export function vague<T = Record<string, unknown[]>>(
+  stringsOrOptions: TemplateStringsArray | VagueOptions,
+  ...values: unknown[]
+): Promise<T> | VagueTaggedTemplate<T> {
+  // Called as vague`...` (tagged template)
+  if (Array.isArray(stringsOrOptions) && 'raw' in stringsOrOptions) {
+    return createVagueTemplate<T>()(stringsOrOptions as TemplateStringsArray, ...values);
+  }
+
+  // Called as vague({ seed: 42 })`...` (options then tagged template)
+  return createVagueTemplate<T>(stringsOrOptions as VagueOptions);
 }
