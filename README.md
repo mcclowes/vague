@@ -203,6 +203,27 @@ order_num: = sequenceInt("orders")  // 1, 2, 3, ...
 prev_value: = previous("amount")    // Reference previous record
 ```
 
+### String Transformations
+
+```vague
+// Case transformations
+upper: = uppercase(name)             // "HELLO WORLD"
+lower: = lowercase(name)             // "hello world"
+capitalized: = capitalize(name)      // "Hello World"
+
+// Case style conversions
+slug: = kebabCase(title)             // "hello-world"
+snake: = snakeCase(title)            // "hello_world"
+camel: = camelCase(title)            // "helloWorld"
+
+// String manipulation
+trimmed: = trim("  hello  ")         // "hello"
+combined: = concat(first, " ", last) // "John Doe"
+part: = substring(name, 0, 5)        // First 5 characters
+replaced: = replace(name, "foo", "bar")
+len: = length(name)                  // String length
+```
+
 ### Negative Testing
 
 ```vague

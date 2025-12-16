@@ -2207,4 +2207,309 @@ describe('Generator', () => {
       expect(records[2].order_id).toBe('ORD-502');
     });
   });
+
+  describe('string transformation functions', () => {
+    it('uppercase() converts string to uppercase', async () => {
+      const source = `
+        schema Item {
+          name: "hello world",
+          upper: = uppercase(name)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; upper: string };
+
+      expect(item.upper).toBe('HELLO WORLD');
+    });
+
+    it('lowercase() converts string to lowercase', async () => {
+      const source = `
+        schema Item {
+          name: "HELLO WORLD",
+          lower: = lowercase(name)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; lower: string };
+
+      expect(item.lower).toBe('hello world');
+    });
+
+    it('capitalize() capitalizes first letter of each word', async () => {
+      const source = `
+        schema Item {
+          name: "hello world",
+          capitalized: = capitalize(name)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; capitalized: string };
+
+      expect(item.capitalized).toBe('Hello World');
+    });
+
+    it('kebabCase() converts to kebab-case', async () => {
+      const source = `
+        schema Item {
+          title: "Hello World",
+          slug: = kebabCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; slug: string };
+
+      expect(item.slug).toBe('hello-world');
+    });
+
+    it('kebabCase() handles camelCase input', async () => {
+      const source = `
+        schema Item {
+          title: "helloWorld",
+          slug: = kebabCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; slug: string };
+
+      expect(item.slug).toBe('hello-world');
+    });
+
+    it('snakeCase() converts to snake_case', async () => {
+      const source = `
+        schema Item {
+          title: "Hello World",
+          snake: = snakeCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; snake: string };
+
+      expect(item.snake).toBe('hello_world');
+    });
+
+    it('snakeCase() handles camelCase input', async () => {
+      const source = `
+        schema Item {
+          title: "helloWorld",
+          snake: = snakeCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; snake: string };
+
+      expect(item.snake).toBe('hello_world');
+    });
+
+    it('camelCase() converts to camelCase', async () => {
+      const source = `
+        schema Item {
+          title: "hello world",
+          camel: = camelCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; camel: string };
+
+      expect(item.camel).toBe('helloWorld');
+    });
+
+    it('camelCase() handles kebab-case input', async () => {
+      const source = `
+        schema Item {
+          title: "hello-world-test",
+          camel: = camelCase(title)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { title: string; camel: string };
+
+      expect(item.camel).toBe('helloWorldTest');
+    });
+
+    it('trim() removes leading and trailing whitespace', async () => {
+      const source = `
+        schema Item {
+          name: "  hello world  ",
+          trimmed: = trim(name)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; trimmed: string };
+
+      expect(item.trimmed).toBe('hello world');
+    });
+
+    it('concat() concatenates multiple strings', async () => {
+      const source = `
+        schema Item {
+          first: "Hello",
+          last: "World",
+          full: = concat(first, " ", last, "!")
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { first: string; last: string; full: string };
+
+      expect(item.full).toBe('Hello World!');
+    });
+
+    it('substring() extracts a substring', async () => {
+      const source = `
+        schema Item {
+          name: "Hello World",
+          part1: = substring(name, 0, 5),
+          part2: = substring(name, 6)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; part1: string; part2: string };
+
+      expect(item.part1).toBe('Hello');
+      expect(item.part2).toBe('World');
+    });
+
+    it('replace() replaces first occurrence', async () => {
+      const source = `
+        schema Item {
+          name: "foo bar foo",
+          replaced: = replace(name, "foo", "baz")
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; replaced: string };
+
+      expect(item.replaced).toBe('baz bar foo');
+    });
+
+    it('length() returns string length', async () => {
+      const source = `
+        schema Item {
+          name: "Hello",
+          len: = length(name)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as { name: string; len: number };
+
+      expect(item.len).toBe(5);
+    });
+
+    it('string functions handle null values gracefully', async () => {
+      const source = `
+        schema Item {
+          upper: = uppercase(null),
+          lower: = lowercase(null),
+          trim_val: = trim(null),
+          len: = length(null)
+        }
+
+        dataset TestData {
+          items: 1 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const item = result.items[0] as {
+        upper: string;
+        lower: string;
+        trim_val: string;
+        len: number;
+      };
+
+      expect(item.upper).toBe('');
+      expect(item.lower).toBe('');
+      expect(item.trim_val).toBe('');
+      expect(item.len).toBe(0);
+    });
+
+    it('string functions can be chained with other computed fields', async () => {
+      const source = `
+        schema Product {
+          name: "  My Product Name  ",
+          trimmed: = trim(name),
+          slug: = kebabCase(trimmed)
+        }
+
+        dataset TestData {
+          products: 1 * Product
+        }
+      `;
+
+      const result = await compile(source);
+      const product = result.products[0] as { name: string; trimmed: string; slug: string };
+
+      expect(product.trimmed).toBe('My Product Name');
+      expect(product.slug).toBe('my-product-name');
+    });
+  });
 });

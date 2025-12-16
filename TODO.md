@@ -3,7 +3,6 @@
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
-- [ ] **String transformations** - Derived strings: `slug: = kebabCase(title)`, `upper: = uppercase(name)`
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
@@ -138,3 +137,4 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Prettier and ESLint** - Code formatting and linting with `npm run format` and `npm run lint`
 - [x] **Plugin architecture** - `registerPlugin()`, namespace resolution, `VaguePlugin` type
 - [x] **OpenAPI example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
+- [x] **String transformations** - `uppercase()`, `lowercase()`, `capitalize()`, `kebabCase()`, `snakeCase()`, `camelCase()`, `trim()`, `concat()`, `substring()`, `replace()`, `length()`

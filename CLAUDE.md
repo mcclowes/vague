@@ -161,6 +161,30 @@ schema Event {
 }
 ```
 
+### String Transformations
+```vague
+schema Product {
+  title: "Hello World",
+
+  // Case transformations
+  upper: = uppercase(title),           // "HELLO WORLD"
+  lower: = lowercase(title),           // "hello world"
+  capitalized: = capitalize(title),    // "Hello World"
+
+  // Case style conversions
+  slug: = kebabCase(title),            // "hello-world"
+  snake: = snakeCase(title),           // "hello_world"
+  camel: = camelCase(title),           // "helloWorld"
+
+  // String manipulation
+  trimmed: = trim("  hello  "),        // "hello"
+  combined: = concat(title, "!"),      // "Hello World!"
+  part: = substring(title, 0, 5),      // "Hello"
+  replaced: = replace(title, "World", "There"),  // "Hello There"
+  len: = length(title)                 // 11
+}
+```
+
 ### Sequential/Stateful Generation
 ```vague
 schema Invoice {
@@ -597,6 +621,7 @@ See `src/plugins/faker.ts` for a complete example of plugin implementation.
 - [x] Expression superposition (`0.7: (invoice.total - invoice.amount_paid) | 0.3: int in 10..500`)
 - [x] OpenAPI example population (`--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`)
 - [x] Tagged template API (`vague\`...\``, `vague({ seed: 42 })\`...\``)
+- [x] String transformations (`uppercase`, `lowercase`, `capitalize`, `kebabCase`, `snakeCase`, `camelCase`, `trim`, `concat`, `substring`, `replace`, `length`)
 
 See TODO.md for planned features.
 
