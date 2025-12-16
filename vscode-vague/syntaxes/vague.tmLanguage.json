@@ -126,6 +126,11 @@
           "match": "=>"
         },
         {
+          "comment": "Null coalescing operator",
+          "name": "keyword.operator.nullish-coalescing.vague",
+          "match": "\\?\\?"
+        },
+        {
           "comment": "Ternary operator",
           "name": "keyword.operator.ternary.vague",
           "match": "\\?"
