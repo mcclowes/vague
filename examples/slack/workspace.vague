@@ -1,0 +1,315 @@
+// Slack API - Test Data Generation
+// Based on https://api.slack.com/
+//
+// Models Slack's core workspace objects:
+// - Teams (workspaces) and users
+// - Channels and conversations
+// - Messages with threads and reactions
+// - Files and apps
+// - User groups and reminders
+//
+// Demonstrates:
+// - Threaded conversation patterns
+// - Reaction tracking with side effects
+// - Complex user/channel relationships
+
+schema Team {
+  id: uuid(),
+  name: companyName(),
+  domain: faker.internet.domainWord(),
+  email_domain: faker.internet.domainName(),
+  icon_image_34: faker.image.avatar(),
+  icon_image_68: faker.image.avatar(),
+  icon_image_132: faker.image.avatar(),
+  enterprise_id: uuid()?,
+  enterprise_name: companyName()?,
+  is_verified: 0.3: true | 0.7: false,
+  plan: 0.4: "free" | 0.35: "pro" | 0.2: "business+" | 0.05: "enterprise",
+  created: int in 1400000000..1700000000
+}
+
+schema UserProfile {
+  first_name: firstName(),
+  last_name: lastName(),
+  real_name: fullName(),
+  display_name: faker.internet.userName(),
+  email: email(),
+  phone: phone()?,
+  title: faker.person.jobTitle()?,
+  skype: faker.internet.userName()?,
+  status_text: "In a meeting" | "Focusing" | "Out of office" | "Vacationing" | "",
+  status_emoji: ":calendar:" | ":computer:" | ":palm_tree:" | ":airplane:" | "",
+  status_expiration: int in 0..1800000000,
+  image_24: faker.image.avatar(),
+  image_48: faker.image.avatar(),
+  image_72: faker.image.avatar(),
+  image_192: faker.image.avatar(),
+  image_512: faker.image.avatar()
+}
+
+schema User {
+  id: uuid(),
+  team_id: any of teams,
+  name: faker.internet.userName(),
+  real_name: fullName(),
+  profile: UserProfile,
+  is_admin: 0.1: true | 0.9: false,
+  is_owner: 0.05: true | 0.95: false,
+  is_primary_owner: 0.02: true | 0.98: false,
+  is_restricted: 0.05: true | 0.95: false,
+  is_ultra_restricted: 0.03: true | 0.97: false,
+  is_bot: 0.1: true | 0.9: false,
+  is_app_user: 0.05: true | 0.95: false,
+  deleted: 0.05: true | 0.95: false,
+  tz: "America/Los_Angeles" | "America/New_York" | "Europe/London" | "Asia/Tokyo" | "Australia/Sydney",
+  tz_label: "Pacific Standard Time" | "Eastern Standard Time" | "GMT" | "Japan Standard Time" | "Australian Eastern Time",
+  tz_offset: -28800 | -18000 | 0 | 32400 | 36000,
+  updated: int in 1600000000..1700000000,
+  presence: 0.6: "active" | 0.4: "away"
+}
+
+schema Channel {
+  id: uuid(),
+  name: faker.lorem.slug(),
+  name_normalized: faker.lorem.slug(),
+  team_id: any of teams,
+  creator: any of users,
+  is_channel: 0.7: true | 0.3: false,
+  is_group: 0.2: true | 0.8: false,
+  is_im: 0.1: true | 0.9: false,
+  is_mpim: 0.05: true | 0.95: false,
+  is_private: 0.3: true | 0.7: false,
+  is_archived: 0.05: true | 0.95: false,
+  is_general: 0.02: true | 0.98: false,
+  is_shared: 0.1: true | 0.9: false,
+  is_org_shared: 0.05: true | 0.95: false,
+  is_ext_shared: 0.05: true | 0.95: false,
+  is_member: 0.8: true | 0.2: false,
+  topic_value: sentence()?,
+  topic_creator: uuid(),
+  topic_last_set: int in 1600000000..1700000000,
+  purpose_value: sentence()?,
+  purpose_creator: uuid(),
+  purpose_last_set: int in 1600000000..1700000000,
+  num_members: int in 1..500,
+  unread_count: int in 0..100,
+  unread_count_display: int in 0..50,
+  created: int in 1400000000..1700000000,
+  updated: int in 1600000000..1700000000
+}
+
+schema Reaction {
+  name: "thumbsup" | "heart" | "joy" | "fire" | "eyes" | "rocket" | "tada" | "clap" | "thinking_face" | "100",
+  count: int in 1..50,
+  users: 1..10 * uuid()
+}
+
+schema Attachment {
+  id: int in 1..1000,
+  fallback: sentence(),
+  color: "good" | "warning" | "danger" | "#36a64f" | "#ff0000",
+  pretext: sentence()?,
+  author_name: fullName()?,
+  author_link: faker.internet.url()?,
+  author_icon: faker.image.avatar()?,
+  title: sentence()?,
+  title_link: faker.internet.url()?,
+  text: faker.lorem.paragraph(),
+  thumb_url: faker.image.url()?,
+  footer: companyName()?,
+  footer_icon: faker.image.avatar()?,
+  ts: int in 1600000000..1700000000
+}
+
+schema Block {
+  type: 0.4: "section" | 0.2: "divider" | 0.15: "image" | 0.1: "actions" | 0.1: "context" | 0.05: "header",
+  block_id: uuid(),
+  text: sentence()?
+}
+
+schema Message {
+  type: "message",
+  subtype: "bot_message" | "channel_join" | "channel_leave" | "file_share" | null,
+  channel: any of channels,
+  user: any of users,
+  text: faker.lorem.paragraph(),
+  ts: faker.date.recent(),
+  thread_ts: string?,
+  reply_count: int in 0..50,
+  reply_users_count: int in 0..20,
+  latest_reply: string?,
+  is_starred: 0.05: true | 0.95: false,
+  pinned_to: 0..2 * uuid(),
+  reactions: 0..5 * Reaction,
+  attachments: 0..3 * Attachment?,
+  blocks: 0..5 * Block?,
+  edited_user: uuid()?,
+  edited_ts: string?,
+  bot_id: uuid()?,
+  bot_profile: string?
+} then {
+  channel.unread_count += 1
+}
+
+schema ThreadReply {
+  type: "message",
+  channel: any of channels,
+  user: any of users,
+  text: faker.lorem.paragraph(),
+  ts: faker.date.recent(),
+  thread_ts: any of messages.ts,
+  parent_user_id: uuid(),
+  reactions: 0..3 * Reaction?,
+  edited_user: uuid()?,
+  edited_ts: string?
+}
+
+schema File {
+  id: uuid(),
+  name: faker.system.fileName(),
+  title: faker.lorem.words(3),
+  mimetype: "application/pdf" | "image/png" | "image/jpeg" | "text/plain" | "application/json" | "application/zip",
+  filetype: "pdf" | "png" | "jpg" | "txt" | "json" | "zip",
+  pretty_type: "PDF" | "PNG" | "JPEG" | "Plain Text" | "JSON" | "Zip",
+  user: any of users,
+  size: int in 1000..50000000,
+  mode: 0.7: "hosted" | 0.2: "external" | 0.1: "snippet",
+  is_external: 0.2: true | 0.8: false,
+  is_public: 0.6: true | 0.4: false,
+  public_url_shared: 0.3: true | 0.7: false,
+  display_as_bot: 0.05: true | 0.95: false,
+  username: faker.internet.userName(),
+  url_private: faker.internet.url(),
+  url_private_download: faker.internet.url(),
+  permalink: faker.internet.url(),
+  permalink_public: faker.internet.url()?,
+  channels: 1..3 * uuid(),
+  groups: 0..2 * uuid(),
+  ims: 0..2 * uuid(),
+  comments_count: int in 0..50,
+  shares: 0..5 * uuid(),
+  created: int in 1600000000..1700000000,
+  timestamp: int in 1600000000..1700000000
+}
+
+schema App {
+  id: uuid(),
+  name: faker.company.name(),
+  deleted: 0.05: true | 0.95: false,
+  icons_image_36: faker.image.avatar(),
+  icons_image_48: faker.image.avatar(),
+  icons_image_72: faker.image.avatar()
+}
+
+schema BotInfo {
+  id: uuid(),
+  app_id: any of apps,
+  name: faker.company.buzzVerb(),
+  deleted: 0.05: true | 0.95: false,
+  icons_image_36: faker.image.avatar(),
+  icons_image_48: faker.image.avatar(),
+  icons_image_72: faker.image.avatar(),
+  updated: int in 1600000000..1700000000
+}
+
+schema Usergroup {
+  id: uuid(),
+  team_id: any of teams,
+  name: faker.company.buzzPhrase(),
+  handle: faker.lorem.slug(),
+  description: sentence()?,
+  is_usergroup: true,
+  is_subteam: true,
+  is_external: 0.1: true | 0.9: false,
+  auto_type: "owner" | "admin" | null,
+  auto_provision: 0.2: true | 0.8: false,
+  enterprise_subteam_id: uuid()?,
+  date_create: int in 1500000000..1700000000,
+  date_update: int in 1600000000..1700000000,
+  date_delete: int in 0..0,
+  created_by: any of users,
+  updated_by: any of users?,
+  deleted_by: uuid()?,
+  user_count: int in 1..100,
+  users: 1..50 * uuid()
+}
+
+schema Reminder {
+  id: uuid(),
+  creator: any of users,
+  user: any of users,
+  text: sentence(),
+  recurring: 0.2: true | 0.8: false,
+  time: int in 1700000000..1800000000,
+  complete_ts: int in 0..1800000000
+}
+
+schema Bookmark {
+  id: uuid(),
+  channel_id: any of channels,
+  title: faker.lorem.words(3),
+  link: faker.internet.url(),
+  emoji: ":bookmark:" | ":link:" | ":pushpin:" | ":star:",
+  icon_url: faker.image.avatar()?,
+  type: 0.9: "link" | 0.1: "folder",
+  date_created: int in 1600000000..1700000000,
+  date_updated: int in 1600000000..1700000000,
+  rank: int in 1..100,
+  last_updated_by_user_id: any of users
+}
+
+schema Emoji {
+  name: faker.lorem.word(),
+  url: faker.image.url(),
+  team_id: any of teams,
+  user_id: any of users,
+  created: int in 1500000000..1700000000,
+  is_alias: 0.1: true | 0.9: false,
+  alias_for: string?
+}
+
+dataset SlackTestData {
+  // Workspaces
+  teams: 5 * Team,
+
+  // Users
+  users: 200 * User,
+
+  // Channels
+  channels: 100 * Channel,
+
+  // Messages
+  messages: 2000 * Message,
+  thread_replies: 500 * ThreadReply,
+
+  // Files
+  files: 300 * File,
+
+  // Apps and bots
+  apps: 20 * App,
+  bots: 15 * BotInfo,
+
+  // Groups
+  usergroups: 30 * Usergroup,
+
+  // Utilities
+  reminders: 50 * Reminder,
+  bookmarks: 100 * Bookmark,
+
+  // Custom emoji
+  emojis: 50 * Emoji,
+
+  validate {
+    // Most users are active
+    some(users, .deleted == false),
+
+    // Most channels are not archived
+    some(channels, .is_archived == false),
+
+    // Some messages have reactions
+    some(messages, .reactions != null),
+
+    // User counts are reasonable
+    all(usergroups, .user_count >= 1)
+  }
+}

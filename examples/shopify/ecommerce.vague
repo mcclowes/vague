@@ -1,0 +1,271 @@
+// Shopify E-commerce API - Test Data Generation
+// Based on https://shopify.dev/docs/api/admin-rest
+//
+// Models Shopify's core e-commerce objects:
+// - Products with variants and images
+// - Customers with addresses
+// - Orders with line items and fulfillments
+// - Inventory management
+// - Discounts and gift cards
+//
+// Demonstrates:
+// - Complex nested structures
+// - Inventory tracking with side effects
+// - Order lifecycle management
+
+schema Image {
+  id: int in 1000000..9999999,
+  src: faker.image.url(),
+  alt: faker.commerce.productAdjective(),
+  width: int in 400..2000,
+  height: int in 400..2000,
+  position: int in 1..10,
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent()
+}
+
+schema ProductVariant {
+  id: int in 1000000..9999999,
+  title: faker.commerce.productMaterial(),
+  sku: faker.string.alphanumeric(8),
+  price: decimal in 9.99..999.99,
+  compare_at_price: decimal in 19.99..1299.99?,
+  weight: decimal in 0.1..50,
+  weight_unit: 0.6: "kg" | 0.4: "lb",
+  inventory_quantity: int in 0..500,
+  inventory_policy: 0.9: "deny" | 0.1: "continue",
+  inventory_management: 0.95: "shopify" | 0.05: null,
+  requires_shipping: 0.95: true | 0.05: false,
+  taxable: 0.9: true | 0.1: false,
+  barcode: faker.string.numeric(12)?,
+  position: int in 1..10,
+  option1: "Small" | "Medium" | "Large" | "XL",
+  option2: "Red" | "Blue" | "Green" | "Black" | "White" | null,
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent()
+}
+
+schema Product {
+  id: int in 1000000..9999999,
+  title: faker.commerce.productName(),
+  body_html: faker.commerce.productDescription(),
+  vendor: companyName(),
+  product_type: "Clothing" | "Electronics" | "Home" | "Sports" | "Beauty",
+  handle: faker.lorem.slug(),
+  status: 0.85: "active" | 0.1: "draft" | 0.05: "archived",
+  published_at: faker.date.past()?,
+  template_suffix: string?,
+  tags: faker.commerce.department(),
+  variants: 1..6 * ProductVariant,
+  images: 1..5 * Image,
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent()
+}
+
+schema CustomerAddress {
+  id: int in 1000000..9999999,
+  first_name: firstName(),
+  last_name: lastName(),
+  company: companyName()?,
+  address1: streetAddress(),
+  address2: string?,
+  city: city(),
+  province: state(),
+  province_code: faker.location.state({ abbreviated: true }),
+  country: "United States" | "Canada" | "United Kingdom" | "Australia",
+  country_code: 0.7: "US" | 0.15: "CA" | 0.1: "GB" | 0.05: "AU",
+  zip: zipCode(),
+  phone: phone()?,
+  default: 0.3: true | 0.7: false
+}
+
+schema Customer {
+  id: int in 1000000..9999999,
+  email: email(),
+  first_name: firstName(),
+  last_name: lastName(),
+  phone: phone()?,
+  verified_email: 0.9: true | 0.1: false,
+  accepts_marketing: 0.4: true | 0.6: false,
+  accepts_marketing_updated_at: faker.date.recent(),
+  orders_count: int in 0..50,
+  total_spent: decimal in 0..10000,
+  state: 0.95: "enabled" | 0.03: "disabled" | 0.02: "invited",
+  note: sentence()?,
+  currency: 0.6: "USD" | 0.25: "CAD" | 0.1: "GBP" | 0.05: "AUD",
+  tax_exempt: 0.05: true | 0.95: false,
+  tags: string?,
+  addresses: 1..3 * CustomerAddress,
+  default_address: any of addresses,
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent()
+}
+
+schema OrderLineItem {
+  id: int in 1000000..9999999,
+  variant: any of products.variants,
+  title: faker.commerce.productName(),
+  quantity: int in 1..10,
+  price: decimal in 9.99..999.99,
+  total_discount: decimal in 0..50,
+  sku: faker.string.alphanumeric(8),
+  vendor: companyName(),
+  requires_shipping: 0.95: true | 0.05: false,
+  taxable: 0.9: true | 0.1: false,
+  gift_card: 0.02: true | 0.98: false,
+  fulfillment_status: "fulfilled" | "partial" | null
+}
+
+schema ShippingLine {
+  id: int in 1000000..9999999,
+  title: "Standard Shipping" | "Express Shipping" | "Overnight" | "Free Shipping",
+  price: decimal in 0..29.99,
+  code: "standard" | "express" | "overnight" | "free",
+  source: "shopify",
+  carrier_identifier: "usps" | "fedex" | "ups" | "dhl" | null
+}
+
+schema TaxLine {
+  title: "State Tax" | "County Tax" | "City Tax" | "VAT" | "GST",
+  price: decimal in 0.50..100,
+  rate: decimal in 0.05..0.25,
+  channel_liable: 0.9: false | 0.1: true
+}
+
+schema DiscountCode {
+  code: faker.string.alphanumeric(8),
+  amount: decimal in 5..100,
+  type: 0.6: "percentage" | 0.4: "fixed_amount"
+}
+
+schema Fulfillment {
+  id: int in 1000000..9999999,
+  order_id: int in 1000000..9999999,
+  status: 0.7: "success" | 0.2: "pending" | 0.1: "cancelled",
+  tracking_company: "USPS" | "FedEx" | "UPS" | "DHL" | null,
+  tracking_number: faker.string.alphanumeric(20)?,
+  tracking_url: faker.internet.url()?,
+  shipment_status: "delivered" | "in_transit" | "out_for_delivery" | "attempted_delivery" | null,
+  created_at: faker.date.recent(),
+  updated_at: faker.date.recent()
+}
+
+schema Refund {
+  id: int in 1000000..9999999,
+  note: sentence()?,
+  restock: 0.8: true | 0.2: false,
+  created_at: faker.date.recent()
+}
+
+schema Order {
+  id: int in 1000000..9999999,
+  order_number: int in 1001..99999,
+  name: string,
+  email: email(),
+  customer: any of customers,
+  billing_address: any of customer.addresses,
+  shipping_address: any of customer.addresses,
+
+  line_items: 1..8 * OrderLineItem,
+  shipping_lines: 1..2 * ShippingLine,
+  tax_lines: 1..3 * TaxLine,
+  discount_codes: 0..2 * DiscountCode,
+
+  // Computed totals
+  subtotal_price: = sum(line_items.price) * sum(line_items.quantity),
+  total_shipping: = sum(shipping_lines.price),
+  total_tax: = sum(tax_lines.price),
+  total_discounts: = sum(discount_codes.amount),
+  total_price: decimal in 10..5000,
+
+  currency: 0.6: "USD" | 0.25: "CAD" | 0.1: "GBP" | 0.05: "AUD",
+  financial_status: 0.75: "paid" | 0.1: "pending" | 0.05: "refunded" | 0.05: "partially_refunded" | 0.05: "voided",
+  fulfillment_status: 0.6: "fulfilled" | 0.25: null | 0.1: "partial" | 0.05: "restocked",
+
+  confirmed: 0.98: true | 0.02: false,
+  cancelled_at: faker.date.recent()?,
+  cancel_reason: "customer" | "fraud" | "inventory" | "declined" | null,
+  closed_at: faker.date.recent()?,
+  buyer_accepts_marketing: 0.4: true | 0.6: false,
+
+  note: sentence()?,
+  tags: string?,
+  source_name: 0.6: "web" | 0.25: "mobile" | 0.1: "pos" | 0.05: "api",
+
+  processed_at: faker.date.recent(),
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent()
+} then {
+  // Update customer metrics when order is placed
+  customer.orders_count += 1,
+  customer.total_spent += total_price
+}
+
+schema InventoryLevel {
+  inventory_item_id: int in 1000000..9999999,
+  location_id: int in 1000000..9999999,
+  available: int in 0..500,
+  updated_at: faker.date.recent()
+}
+
+schema Collection {
+  id: int in 1000000..9999999,
+  title: faker.commerce.department(),
+  handle: faker.lorem.slug(),
+  body_html: faker.commerce.productDescription()?,
+  published_at: faker.date.past()?,
+  sort_order: "best-selling" | "alpha-asc" | "alpha-desc" | "price-asc" | "price-desc" | "created-desc",
+  template_suffix: string?,
+  products_count: int in 5..100,
+  updated_at: faker.date.recent()
+}
+
+schema GiftCard {
+  id: int in 1000000..9999999,
+  code: faker.string.alphanumeric(16),
+  balance: decimal in 0..500,
+  initial_value: decimal in 25..500,
+  currency: 0.6: "USD" | 0.25: "CAD" | 0.1: "GBP" | 0.05: "AUD",
+  customer: any of customers?,
+  disabled_at: faker.date.recent()?,
+  expires_on: faker.date.future()?,
+  note: sentence()?,
+  created_at: faker.date.past(),
+  updated_at: faker.date.recent(),
+
+  assume balance <= initial_value
+}
+
+dataset ShopifyTestData {
+  // Product catalog
+  products: 200 * Product,
+
+  // Customer base
+  customers: 500 * Customer,
+
+  // Orders
+  orders: 1000 * Order,
+
+  // Inventory
+  inventory_levels: 400 * InventoryLevel,
+
+  // Collections
+  collections: 20 * Collection,
+
+  // Gift cards
+  gift_cards: 50 * GiftCard,
+
+  validate {
+    // Most orders should be paid
+    some(orders, .financial_status == "paid"),
+
+    // Most orders should be fulfilled
+    some(orders, .fulfillment_status == "fulfilled"),
+
+    // Gift card balance shouldn't exceed initial value
+    all(gift_cards, .balance <= .initial_value),
+
+    // Customer order counts should be reasonable
+    all(customers, .orders_count >= 0)
+  }
+}
