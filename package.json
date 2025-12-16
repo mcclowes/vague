@@ -12,7 +12,11 @@
     "test": "vitest",
     "dev": "tsc --watch"
   },
-  "keywords": ["test-data", "generator", "dsl"],
+  "keywords": [
+    "test-data",
+    "generator",
+    "dsl"
+  ],
   "author": "",
   "license": "ISC",
   "description": "A declarative language for generating realistic test data",
@@ -22,6 +26,8 @@
     "vitest": "^4.0.15"
   },
   "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "swagger-parser": "^10.0.3"
   }
 }
