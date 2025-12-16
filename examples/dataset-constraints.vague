@@ -30,18 +30,12 @@ dataset FinancialData {
   payments: 40 * Payment,
 
   validate {
-    // Total invoices should be in a reasonable range
-    // 50 invoices * 200-1000 each = 10000-50000 range
-    sum(invoices.total) >= 15000,
+    sum(invoices.total) >= 15000, // Total invoices should be in a reasonable range
     sum(invoices.total) <= 45000,
+    sum(payments.amount) <= sum(invoices.total), // Payments can't exceed invoices
 
-    // Payments can't exceed invoices
-    sum(payments.amount) <= sum(invoices.total),
+    count(payments) <= count(invoices) * 3, // Can't have more payments than invoices * 3
 
-    // Can't have more payments than invoices * 3
-    count(payments) <= count(invoices) * 3,
-
-    // No invoice should be overpaid (amount_paid must not exceed total)
-    all(invoices, .amount_paid <= .total)
+    all(invoices, .amount_paid <= .total) // No invoice should be overpaid (amount_paid must not exceed total)
   }
 }
