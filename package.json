@@ -10,7 +10,9 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "examples": "for f in examples/*.vague; do echo \"\\n=== $f ===\" && node dist/cli.js \"$f\"; done",
+    "example": "f() { node dist/cli.js \"examples/$1\"; }; f"
   },
   "keywords": [
     "test-data",
