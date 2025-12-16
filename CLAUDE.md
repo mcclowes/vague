@@ -395,9 +395,29 @@ Auto-detection matches collection names to schema names:
 - Plural to singular: `invoices` → `Invoice`
 - snake_case to PascalCase: `line_items` → `LineItem`
 
-## TypeScript Embedding (Tagged Template API)
+## TypeScript Embedding
 
-Use Vague directly in TypeScript with tagged template literals:
+### File-based (Recommended)
+
+Load `.vague` files directly with `fromFile`:
+
+```typescript
+import { fromFile } from 'vague';
+
+// Load and compile a .vague file
+const data = await fromFile('./fixtures.vague');
+
+// With seed for deterministic output
+const fixtures = await fromFile('./fixtures.vague', { seed: 42 });
+
+// With TypeScript generics for type safety
+interface TestData { invoices: Invoice[] }
+const typed = await fromFile<TestData>('./fixtures.vague', { seed: 42 });
+```
+
+### Tagged Template (Inline Schemas)
+
+Use `vague` tagged template for inline schemas:
 
 ```typescript
 import { vague } from 'vague';
@@ -418,10 +438,6 @@ const fixtures = await vague({ seed: 42 })`
   dataset Test { invoices: 20 * Invoice }
 `;
 
-// With TypeScript generics for type safety
-interface TestData { invoices: Invoice[] }
-const typed = await vague<TestData>({ seed: 42 })`...`;
-
 // Interpolation support
 const count = 100;
 const data = await vague`
@@ -434,18 +450,19 @@ const data = await vague`
 See `examples/vitest-fixtures/` for a complete example of using Vague as a seeded fixture generator:
 
 ```typescript
+// fixtures.vague
+schema Invoice { id: unique int in 1000..9999, status: "draft" | "sent" | "paid" }
+dataset TestFixtures { invoices: 20 * Invoice }
+
 // invoice.test.ts
-import { vague } from 'vague';
+import { fromFile } from 'vague';
 
 interface TestFixtures { invoices: Invoice[] }
 const SEED = 42;
 
 let fixtures: TestFixtures;
 beforeAll(async () => {
-  fixtures = await vague<TestFixtures>({ seed: SEED })`
-    schema Invoice { ... }
-    dataset TestFixtures { invoices: 20 * Invoice }
-  `;
+  fixtures = await fromFile<TestFixtures>('./fixtures.vague', { seed: SEED });
 });
 
 it('test with deterministic fixtures', () => {

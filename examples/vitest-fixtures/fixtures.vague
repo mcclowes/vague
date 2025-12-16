@@ -1,0 +1,22 @@
+schema LineItem {
+  description: string,
+  quantity: int in 1..10,
+  unitPrice: decimal in 10.00..200.00,
+  amount: = round(quantity * unitPrice, 2)
+}
+
+schema Invoice {
+  id: unique int in 1000..9999,
+  status: "draft" | "sent" | "paid",
+  customerId: int in 1..100,
+  lineItems: 1..5 * LineItem,
+  subtotal: = round(sum(lineItems.amount), 2),
+  taxRate: 0.2,
+  tax: = round(subtotal * taxRate, 2),
+  total: = round(subtotal + tax, 2)
+}
+
+dataset TestFixtures {
+  invoices: 20 * Invoice,
+  lineItems: 10 * LineItem
+}

@@ -12,29 +12,33 @@ Traditional test fixtures have drawbacks:
 
 ## The Solution
 
-Vague's tagged template API with seeding gives you:
+Use `fromFile` to load `.vague` schema files with deterministic seeding:
 
 ```typescript
-import { vague } from 'vague';
+import { fromFile } from 'vague';
 
 interface TestFixtures { invoices: Invoice[] }
 
 let fixtures: TestFixtures;
 beforeAll(async () => {
-  fixtures = await vague<TestFixtures>({ seed: 42 })`
-    schema Invoice {
-      id: unique int in 1000..9999,
-      status: "draft" | "sent" | "paid",
-      total: decimal in 100..5000
-    }
-    dataset TestFixtures { invoices: 20 * Invoice }
-  `;
+  fixtures = await fromFile<TestFixtures>('./fixtures.vague', { seed: 42 });
 });
 
 it('calculates tax correctly', () => {
   // fixtures.invoices[0] is always the same
   expect(calculateTax(fixtures.invoices[0])).toBe(expectedValue);
 });
+```
+
+Or use the tagged template API for inline schemas:
+
+```typescript
+import { vague } from 'vague';
+
+const fixtures = await vague<TestFixtures>({ seed: 42 })`
+  schema Invoice { ... }
+  dataset TestFixtures { invoices: 20 * Invoice }
+`;
 ```
 
 ## Benefits
@@ -60,7 +64,7 @@ Use `beforeAll` to generate fixtures once per test file:
 ```typescript
 let fixtures: TestFixtures;
 beforeAll(async () => {
-  fixtures = await vague<TestFixtures>({ seed: SEED })`...`;
+  fixtures = await fromFile<TestFixtures>('./fixtures.vague', { seed: SEED });
 });
 ```
 

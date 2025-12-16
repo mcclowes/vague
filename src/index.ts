@@ -19,6 +19,8 @@ export {
   setFakerSeed,
 } from './plugins/index.js';
 
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { Lexer } from './lexer/index.js';
 import { Parser } from './parser/index.js';
 import { Generator } from './interpreter/index.js';
@@ -73,6 +75,14 @@ function createVagueTemplate<T = Record<string, unknown[]>>(
   };
 }
 
+// Overload: vague`...` (tagged template, returns Promise)
+export function vague<T = Record<string, unknown[]>>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): Promise<T>;
+// Overload: vague({ seed: 42 }) (options, returns tagged template function)
+export function vague<T = Record<string, unknown[]>>(options: VagueOptions): VagueTaggedTemplate<T>;
+// Implementation
 export function vague<T = Record<string, unknown[]>>(
   stringsOrOptions: TemplateStringsArray | VagueOptions,
   ...values: unknown[]
@@ -84,4 +94,24 @@ export function vague<T = Record<string, unknown[]>>(
 
   // Called as vague({ seed: 42 })`...` (options then tagged template)
   return createVagueTemplate<T>(stringsOrOptions as VagueOptions);
+}
+
+export async function fromFile<T = Record<string, unknown[]>>(
+  filePath: string,
+  options: VagueOptions = {}
+): Promise<T> {
+  const absolutePath = resolve(filePath);
+  const source = await readFile(absolutePath, 'utf-8');
+
+  if (options.seed !== undefined) {
+    setSeed(options.seed);
+  }
+
+  const result = await compile(source);
+
+  if (options.seed !== undefined) {
+    setSeed(null);
+  }
+
+  return result as T;
 }

@@ -3,13 +3,14 @@
  *
  * Benefits of this approach:
  * 1. Fixtures are deterministic (same seed = same data)
- * 2. Fixtures evolve with your schema definition
+ * 2. Fixtures evolve with your schema definition (.vague file)
  * 3. No static JSON files to maintain
  * 4. Complex relationships are generated automatically
  * 5. TypeScript types keep fixtures aligned with code
  */
+import { join } from 'node:path';
 import { describe, it, expect, beforeAll } from 'vitest';
-import { vague } from '../../src/index.js';
+import { fromFile } from '../../src/index.js';
 import {
   Invoice,
   LineItem,
@@ -27,36 +28,15 @@ interface TestFixtures {
 // Seed ensures reproducibility - change it to get different test data
 const FIXTURE_SEED = 42;
 
+// Path to the .vague schema file
+const FIXTURES_PATH = join(import.meta.dirname, 'fixtures.vague');
+
 // Generate fixtures once before all tests
 let fixtures: TestFixtures;
 
 beforeAll(async () => {
-  // The vague schema acts as executable documentation of your test data
-  // When requirements change, update the schema and fixtures regenerate
-  fixtures = await vague<TestFixtures>({ seed: FIXTURE_SEED })`
-    schema LineItem {
-      description: string,
-      quantity: int in 1..10,
-      unitPrice: decimal in 10.00..200.00,
-      amount: = round(quantity * unitPrice, 2)
-    }
-
-    schema Invoice {
-      id: unique int in 1000..9999,
-      status: "draft" | "sent" | "paid",
-      customerId: int in 1..100,
-      lineItems: 1..5 * LineItem,
-      subtotal: = round(sum(lineItems.amount), 2),
-      taxRate: 0.2,
-      tax: = round(subtotal * taxRate, 2),
-      total: = round(subtotal + tax, 2)
-    }
-
-    dataset TestFixtures {
-      invoices: 20 * Invoice,
-      lineItems: 10 * LineItem
-    }
-  `;
+  // Load fixtures from .vague file - schema changes automatically regenerate fixtures
+  fixtures = await fromFile<TestFixtures>(FIXTURES_PATH, { seed: FIXTURE_SEED });
 });
 
 describe('calculateInvoiceTotals', () => {
@@ -134,30 +114,7 @@ describe('getOverdueInvoices', () => {
 describe('fixture properties (demonstrating determinism)', () => {
   it('generates consistent data across test runs', async () => {
     // Running with the same seed produces identical fixtures
-    const fixtures2 = await vague<TestFixtures>({ seed: FIXTURE_SEED })`
-      schema LineItem {
-        description: string,
-        quantity: int in 1..10,
-        unitPrice: decimal in 10.00..200.00,
-        amount: = round(quantity * unitPrice, 2)
-      }
-
-      schema Invoice {
-        id: unique int in 1000..9999,
-        status: "draft" | "sent" | "paid",
-        customerId: int in 1..100,
-        lineItems: 1..5 * LineItem,
-        subtotal: = round(sum(lineItems.amount), 2),
-        taxRate: 0.2,
-        tax: = round(subtotal * taxRate, 2),
-        total: = round(subtotal + tax, 2)
-      }
-
-      dataset TestFixtures {
-        invoices: 20 * Invoice,
-        lineItems: 10 * LineItem
-      }
-    `;
+    const fixtures2 = await fromFile<TestFixtures>(FIXTURES_PATH, { seed: FIXTURE_SEED });
 
     expect(fixtures2).toEqual(fixtures);
   });
