@@ -1976,4 +1976,137 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("sequential/stateful generation", () => {
+    it("sequence() generates auto-incrementing string values", async () => {
+      const source = `
+        schema Invoice {
+          id: = sequence("INV-", 1001),
+          amount: int in 100..500
+        }
+
+        dataset TestData {
+          invoices: 5 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+      const invoices = result.invoices as { id: string, amount: number }[];
+
+      expect(invoices[0].id).toBe("INV-1001");
+      expect(invoices[1].id).toBe("INV-1002");
+      expect(invoices[2].id).toBe("INV-1003");
+      expect(invoices[3].id).toBe("INV-1004");
+      expect(invoices[4].id).toBe("INV-1005");
+    });
+
+    it("sequenceInt() generates auto-incrementing integers", async () => {
+      const source = `
+        schema Order {
+          order_num: = sequenceInt("orders", 100),
+          total: int in 50..200
+        }
+
+        dataset TestData {
+          orders: 5 * Order
+        }
+      `;
+
+      const result = await compile(source);
+      const orders = result.orders as { order_num: number }[];
+
+      expect(orders[0].order_num).toBe(100);
+      expect(orders[1].order_num).toBe(101);
+      expect(orders[2].order_num).toBe(102);
+      expect(orders[3].order_num).toBe(103);
+      expect(orders[4].order_num).toBe(104);
+    });
+
+    it("sequence() with default start value begins at 1", async () => {
+      const source = `
+        schema Item {
+          code: = sequence("ITEM-")
+        }
+
+        dataset TestData {
+          items: 3 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { code: string }[];
+
+      expect(items[0].code).toBe("ITEM-1");
+      expect(items[1].code).toBe("ITEM-2");
+      expect(items[2].code).toBe("ITEM-3");
+    });
+
+    it("previous() returns null for first record", async () => {
+      const source = `
+        schema Event {
+          value: int in 1..100,
+          prev_value: = previous("value")
+        }
+
+        dataset TestData {
+          events: 3 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const events = result.events as { value: number, prev_value: number | null }[];
+
+      expect(events[0].prev_value).toBeNull();
+      expect(events[1].prev_value).toBe(events[0].value);
+      expect(events[2].prev_value).toBe(events[1].value);
+    });
+
+    it("previous() enables sequential coherence", async () => {
+      const source = `
+        schema TimeSeries {
+          seq: = sequenceInt("ts", 1),
+          timestamp: int in 1000..2000,
+          prev_ts: = previous("timestamp")
+        }
+
+        dataset TestData {
+          series: 5 * TimeSeries
+        }
+      `;
+
+      const result = await compile(source);
+      const series = result.series as { seq: number, timestamp: number, prev_ts: number | null }[];
+
+      // First has no previous
+      expect(series[0].prev_ts).toBeNull();
+
+      // Each subsequent references the previous timestamp
+      for (let i = 1; i < series.length; i++) {
+        expect(series[i].prev_ts).toBe(series[i - 1].timestamp);
+      }
+    });
+
+    it("multiple sequences are independent", async () => {
+      const source = `
+        schema Record {
+          invoice_id: = sequence("INV-", 100),
+          order_id: = sequence("ORD-", 500)
+        }
+
+        dataset TestData {
+          records: 3 * Record
+        }
+      `;
+
+      const result = await compile(source);
+      const records = result.records as { invoice_id: string, order_id: string }[];
+
+      expect(records[0].invoice_id).toBe("INV-100");
+      expect(records[0].order_id).toBe("ORD-500");
+      expect(records[1].invoice_id).toBe("INV-101");
+      expect(records[1].order_id).toBe("ORD-501");
+      expect(records[2].invoice_id).toBe("INV-102");
+      expect(records[2].order_id).toBe("ORD-502");
+    });
+  });
 });

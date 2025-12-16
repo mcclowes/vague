@@ -161,6 +161,28 @@ schema Event {
 }
 ```
 
+### Sequential/Stateful Generation
+```vague
+schema Invoice {
+  // Auto-incrementing string IDs
+  id: = sequence("INV-", 1001),         // "INV-1001", "INV-1002", ...
+
+  // Auto-incrementing integers
+  order_num: = sequenceInt("orders", 100),  // 100, 101, 102, ...
+
+  // Reference previous record in collection
+  prev_amount: = previous("amount"),    // null for first record
+  amount: int in 100..500
+}
+
+// Use previous() for sequential coherence
+schema TimeSeries {
+  timestamp: int in 1000..2000,
+  prev_ts: = previous("timestamp"),     // Chain to previous record
+  delta: = timestamp - (previous("timestamp") ?? timestamp)
+}
+```
+
 ### Statistical Distributions
 ```vague
 schema Person {
@@ -321,7 +343,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 143 tests covering lexer, parser, generator, and validator.
+Currently 149 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 

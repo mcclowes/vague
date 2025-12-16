@@ -26,8 +26,6 @@
 ## Advanced Features
 
 - [ ] **Cascading `then` blocks** - (Potential) Allow `then` mutations to trigger other `then` blocks with depth limits
-- [ ] **Sequential/stateful generation** - `invoiceNumber: sequence("INV-", 1001)` for auto-incrementing values across dataset
-- [ ] **Previous references** - `date > previous.date` for sequential coherence
 - [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
 - [ ] **Constraint analysis** - Warn on unsatisfiable constraints, estimate rejection probability
 - [ ] **SMT solver** - Z3 integration for complex constraints
@@ -107,3 +105,5 @@
 - [x] **Unique values** - `id: int in 1..1000 unique` ensures no duplicates
 - [x] **Built-in distributions** - `gaussian()`, `exponential()`, `lognormal()`, `poisson()`, `beta()`, `uniform()`
 - [x] **Date functions** - `now()`, `today()`, `daysAgo()`, `daysFromNow()`, `datetime()`, `dateBetween()`, `formatDate()`
+- [x] **Sequential/stateful generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)` for auto-incrementing values
+- [x] **Previous references** - `previous("field")` for referencing the previous record in a collection

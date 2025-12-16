@@ -75,9 +75,11 @@ export interface GeneratorContext {
   collections: Map<string, unknown[]>;
   parent?: Record<string, unknown>;
   current?: Record<string, unknown>;
+  previous?: Record<string, unknown>; // Previous record in collection for sequential coherence
   currentSchemaName?: string;
   violating?: boolean; // If true, generate data that violates constraints
   uniqueValues: Map<string, Set<unknown>>; // Track unique values per field
+  sequences: Map<string, number>; // Track sequence counters
 }
 
 export class Generator {
@@ -90,6 +92,7 @@ export class Generator {
       importedSchemas: new Map(),
       collections: new Map(),
       uniqueValues: new Map(),
+      sequences: new Map(),
     };
     this.openApiLoader = new OpenAPILoader();
   }
@@ -193,9 +196,14 @@ export class Generator {
       throw new Error(`Unknown schema: ${collection.schemaRef}`);
     }
 
+    // Clear previous for new collection
+    this.ctx.previous = undefined;
+
     for (let i = 0; i < count; i++) {
       const item = this.generateInstance(schema, collection.overrides);
       items.push(item);
+      // Track previous for sequential coherence
+      this.ctx.previous = item;
     }
 
     return items;
@@ -1166,6 +1174,51 @@ export class Generator {
           .replace("HH", hours)
           .replace("mm", minutes)
           .replace("ss", seconds);
+      }
+
+      // ============================================
+      // Sequential/stateful functions
+      // ============================================
+      case "sequence": {
+        // sequence(prefix, start?) - auto-incrementing values
+        // e.g., sequence("INV-", 1001) returns "INV-1001", "INV-1002", etc.
+        const prefix = (args[0] as string) ?? "";
+        const start = (args[1] as number) ?? 1;
+
+        const key = `seq:${prefix}`;
+        if (!this.ctx.sequences.has(key)) {
+          this.ctx.sequences.set(key, start);
+        }
+
+        const current = this.ctx.sequences.get(key)!;
+        this.ctx.sequences.set(key, current + 1);
+
+        return `${prefix}${current}`;
+      }
+      case "sequenceInt": {
+        // sequenceInt(name, start?) - auto-incrementing integer
+        // e.g., sequenceInt("order_id", 1000) returns 1000, 1001, 1002, etc.
+        const name = (args[0] as string) ?? "default";
+        const start = (args[1] as number) ?? 1;
+
+        const key = `seqInt:${name}`;
+        if (!this.ctx.sequences.has(key)) {
+          this.ctx.sequences.set(key, start);
+        }
+
+        const current = this.ctx.sequences.get(key)!;
+        this.ctx.sequences.set(key, current + 1);
+
+        return current;
+      }
+      case "previous": {
+        // previous(field) - get field from previous record in collection
+        // Returns null if no previous record exists
+        const fieldName = args[0] as string;
+        if (!this.ctx.previous) {
+          return null;
+        }
+        return (this.ctx.previous as Record<string, unknown>)[fieldName] ?? null;
       }
 
       default:
