@@ -1,0 +1,65 @@
+schema Address {
+  city: = faker.location.city(),
+  country: "US",
+  postal_code: = faker.location.zipCode()
+}
+
+schema Item {
+  sku: 0.25: "PLAN-ENT-ANNUAL" | 0.25: "PLAN-START-MONTH" | 0.13: "PLAN-GRO-ANNUAL" | 0.13: "ADDON-SEATS-10" | 0.13: "ADDON-SEATS-50" | 0.13: "ADDON-STORAGE-100GB",
+  name: 0.25: "Enterprise Plan (Annual)" | 0.25: "Starter Plan (Monthly)" | 0.13: "Growth Plan (Annual)" | 0.13: "Additional Seats (10)" | 0.13: "Additional Seats (50)" | 0.13: "Storage Add-on (100GB)",
+  quantity: 1,
+  unit_price: 0.25: 2499 | 0.13: 799 | 0.13: 500 | 0.13: 99 | 0.13: 2500 | 0.13: 49 | 0.13: 199
+}
+
+schema Properties {
+  page: unique string?,
+  referrer: = faker.internet.url()?,
+  feature: unique string?,
+  format: string?,
+  from_plan: string?,
+  to_plan: string?,
+  endpoint: string?,
+  reason: string?,
+  feedback: string?
+}
+
+schema Customer {
+  id: unique string,
+  email: = email(),
+  name: = fullName(),
+  tier: 0.4: "enterprise" | 0.4: "starter" | 0.2: "growth",
+  created_at: date in 2022..2024,
+  lifetime_value: unique decimal in 150..28750,
+  is_active: boolean,
+  address: Address
+}
+
+schema Order {
+  order_id: unique string,
+  customer_id: 0.29: "cust_a1b2c3d4e5f6" | 0.29: "cust_b2c3d4e5f6g7" | 0.14: "cust_c3d4e5f6g7h8" | 0.14: "cust_d4e5f6g7h8i9" | 0.14: "cust_e5f6g7h8i9j0",
+  status: 0.71: "completed" | 0.14: "refunded" | 0.14: "pending",
+  payment_method: 0.71: "card" | 0.29: "invoice",
+  subtotal: unique int in 49..4999,
+  tax: unique decimal in 4.9..499.9,
+  total: unique decimal in 53.9..5498.9,
+  currency: "USD",
+  placed_at: date in 2024..2024,
+  items: 1..2 * Item
+}
+
+schema Event {
+  event_id: unique string,
+  type: 0.5: "page_view" | 0.25: "feature_used" | 0.13: "subscription_upgraded" | 0.13: "subscription_cancelled",
+  user_id: 0.25: "cust_a1b2c3d4e5f6" | 0.25: "cust_b2c3d4e5f6g7" | 0.25: "cust_d4e5f6g7h8i9" | 0.13: "cust_e5f6g7h8i9j0" | 0.13: "cust_c3d4e5f6g7h8",
+  timestamp: date in 2024..2024,
+  properties: Properties
+}
+
+dataset Generated {
+  addresss: 5 * Address,
+  items: 8 * Item,
+  propertiess: 8 * Properties,
+  customers: 5 * Customer,
+  orders: 7 * Order,
+  events: 8 * Event
+}
