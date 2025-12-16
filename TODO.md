@@ -3,6 +3,7 @@
 ## Next Up
 
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
+- [ ] 'id: int in 1000..9999 unique,' -> 'id: unique int in 1000..9999,'
 
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
@@ -69,6 +70,28 @@
 ## Ideas to explore
 
 - [ ] Addfitional keywords like then - so, especially, etc.
+
+## OAS parsing
+
+- [ ] Extract Validation from OAS automatically? 
+- [ ] Warn if validation in OAS spec - see below
+
+```
+"validation": {
+  "warnings": [
+    {
+      "field": "SortCode",
+      "details": "Must be 6 characters long if the specified currency is GBP."
+    },
+    {
+      "field": "SortCode",
+      "details": "Must be provided if the specified currency is GBP."
+    }
+  ],
+  "information": []
+}
+```
+in an OAS, we can see validation warnings defined. These are too human readable to programmatically leverage, but we could at least warn users if validation exists in the OAS but no validation at all is defined in Vague.
 
 ---
 

@@ -330,6 +330,33 @@ dataset TestData {
 }
 ```
 
+**Format-aware generation**: When the OpenAPI schema includes `format` hints, Vague generates appropriate values automatically:
+
+| Format | Generated Output |
+|--------|------------------|
+| `uuid` | `550e8400-e29b-41d4-a716-446655440000` |
+| `email` | `user@example.com` |
+| `uri` / `url` | `https://example.com/123` |
+| `date` | `2023-07-15` |
+| `date-time` | `2023-07-15T14:30:00.000Z` |
+| `time` | `14:30:45` |
+| `hostname` | `host123.example.com` |
+| `ipv4` | `192.168.1.100` |
+| `ipv6` | `2001:0db8:85a3:...` |
+| `byte` | Base64 encoded |
+| `binary` | Hex string |
+| `password` | `Pass1234!` |
+| `iban` | `GB99MOCK12345678` |
+
+Fields without format hints use type-based generation:
+- `string` → Markov chain text (context-aware based on field name)
+- `integer` → Random 0-999
+- `number` → Random 0.0-999.x
+- `boolean` → 50% true/false
+- `enum` → Random choice from values
+- `array` → Empty `[]` (override for populated arrays)
+- `object` → `null` (override for nested objects)
+
 ### Schema Validation (CLI)
 ```bash
 # Validate against OpenAPI spec
@@ -339,11 +366,39 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
 node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --validate-only
 ```
 
+### OpenAPI Example Population (CLI)
+Generate realistic examples and embed them in an OpenAPI spec:
+```bash
+# Populate OpenAPI spec with inline examples (bundled)
+node dist/cli.js data.vague --oas-output api-with-examples.json --oas-source api.json
+
+# With explicit mapping (collection -> schema)
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json -m '{"invoices": "Invoice"}'
+
+# Multiple examples per schema
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-example-count 3
+
+# External file references instead of inline examples
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-external
+```
+
+Options:
+- `--oas-output <file>`: Output path for the populated OpenAPI spec
+- `--oas-source <spec>`: Source OpenAPI spec to populate with examples
+- `--oas-example-count <n>`: Number of examples per schema (default: 1)
+- `--oas-external`: Use external file references (`externalValue`) instead of inline examples
+- `-m, --mapping <json>`: Manual collection-to-schema mapping (auto-detects if not provided)
+
+Auto-detection matches collection names to schema names:
+- Case-insensitive: `pets` → `Pet`
+- Plural to singular: `invoices` → `Invoice`
+- snake_case to PascalCase: `line_items` → `LineItem`
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 160 tests covering lexer, parser, generator, validator, and examples.
+Currently 179 tests covering lexer, parser, generator, validator, OpenAPI populator, and examples.
 
 ## Architecture Notes
 
@@ -370,7 +425,7 @@ Currently 160 tests covering lexer, parser, generator, validator, and examples.
 - [x] Parent references (`^field`)
 - [x] Computed fields with aggregates
 - [x] Markov chain strings
-- [x] OpenAPI import (basic)
+- [x] OpenAPI import with format-aware generation (`uuid`, `email`, `date-time`, etc.)
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 - [x] Faker plugin for semantic types
 - [x] VSCode syntax highlighting (`vscode-vague/`)
@@ -393,6 +448,7 @@ Currently 160 tests covering lexer, parser, generator, validator, and examples.
 - [x] Sequential generation (`sequence()`, `sequenceInt()` for auto-incrementing values)
 - [x] Previous references (`previous("field")` for sequential coherence)
 - [x] Expression superposition (`0.7: (invoice.total - invoice.amount_paid) | 0.3: int in 10..500`)
+- [x] OpenAPI example population (`--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`)
 
 See TODO.md for planned features.
 

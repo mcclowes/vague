@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
 import { compile, registerPlugin, setSeed } from "./index.js";
 import { SchemaValidator } from "./validator/index.js";
 import { fakerPlugin, fakerShorthandPlugin } from "./plugins/index.js";
+import { OpenAPIExamplePopulator } from "./openapi/example-populator.js";
 
 // Register faker plugins automatically
 registerPlugin(fakerPlugin);
@@ -33,11 +34,22 @@ Options:
   --validate-only          Only validate, don't output data
   -h, --help               Show this help message
 
+OpenAPI Example Population:
+  --oas-output <file>      Write OpenAPI spec with examples to file
+  --oas-source <spec>      Source OpenAPI spec to populate (auto-detected if using import)
+  --oas-external           Use external file references instead of inline examples
+  --oas-example-count <n>  Number of examples per schema (default: 1)
+
 Examples:
   vague schema.vague -o output.json -p
   vague schema.vague -s 12345                 # Reproducible output
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}'
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}' --validate-only
+
+  # Populate OpenAPI spec with examples
+  vague schema.vague --oas-output api-with-examples.json --oas-source api.json
+  vague schema.vague --oas-output api.json --oas-source api.json --oas-example-count 3
+  vague schema.vague --oas-output api.json --oas-source api.json --oas-external
 `);
     process.exit(0);
   }
@@ -49,6 +61,10 @@ Examples:
   let validateSpec: string | null = null;
   let schemaMapping: ValidationMapping | null = null;
   let validateOnly = false;
+  let oasOutput: string | null = null;
+  let oasSource: string | null = null;
+  let oasExternal = false;
+  let oasExampleCount = 1;
 
   for (let i = 1; i < args.length; i++) {
     if (args[i] === "-o" || args[i] === "--output") {
@@ -72,6 +88,18 @@ Examples:
       }
     } else if (args[i] === "--validate-only") {
       validateOnly = true;
+    } else if (args[i] === "--oas-output") {
+      oasOutput = args[++i];
+    } else if (args[i] === "--oas-source") {
+      oasSource = args[++i];
+    } else if (args[i] === "--oas-external") {
+      oasExternal = true;
+    } else if (args[i] === "--oas-example-count") {
+      oasExampleCount = parseInt(args[++i], 10);
+      if (isNaN(oasExampleCount) || oasExampleCount < 1) {
+        console.error("Error: --oas-example-count must be a positive integer");
+        process.exit(1);
+      }
     }
   }
 
@@ -138,6 +166,40 @@ Examples:
         }
         console.error("\nUse -m/--mapping to specify which collections to validate against which schemas");
       }
+    }
+
+    // Populate OpenAPI spec with examples if requested
+    if (oasOutput) {
+      if (!oasSource) {
+        console.error("Error: --oas-source is required when using --oas-output");
+        process.exit(1);
+      }
+
+      const populator = new OpenAPIExamplePopulator();
+      const oasDoc = await populator.loadDocument(resolve(oasSource));
+
+      const outputDir = dirname(resolve(oasOutput));
+      const { document: populatedDoc, externalFiles } = populator.populate(
+        oasDoc,
+        result as Record<string, unknown[]>,
+        {
+          externalRefs: oasExternal,
+          exampleCount: oasExampleCount,
+          outputDir,
+          mapping: schemaMapping ?? undefined,
+        }
+      );
+
+      // Write external files if using external refs
+      if (externalFiles && externalFiles.size > 0) {
+        populator.writeExternalFiles(externalFiles);
+        console.error(`Written ${externalFiles.size} external example files`);
+      }
+
+      // Write the populated OpenAPI spec
+      const oasJson = JSON.stringify(populatedDoc, null, 2);
+      writeFileSync(resolve(oasOutput), oasJson);
+      console.error(`OpenAPI spec with examples written to ${oasOutput}`);
     }
 
     // Output data unless validate-only

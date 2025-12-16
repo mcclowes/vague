@@ -212,13 +212,10 @@ dataset Invalid violating {
 
 See the `examples/` directory:
 
-- `basic.vague` - Simple schemas and datasets
-- `constraints.vague` - Hard and conditional constraints
-- `computed-fields.vague` - Aggregate functions
-- `cross-ref.vague` - Cross-record references
-- `dataset-constraints.vague` - Dataset-level validation and `then` blocks
-- `dynamic-cardinality.vague` - Conditional collection sizes
-- `openapi-import.vague` - Import schemas from OpenAPI specs
+- `basics/` - Core language features (schemas, constraints, computed fields, cross-refs)
+- `openapi-importing/` - Import schemas from OpenAPI specs
+- `openapi-examples-generation/` - Populate OpenAPI specs with generated examples
+- `codat/`, `stripe/`, `github/`, etc. - Real-world API examples
 
 ## CLI Usage
 
@@ -255,10 +252,8 @@ node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 ```bash
 npm run build     # Compile TypeScript
-npm test          # Run tests (160 tests)
+npm test          # Run tests
 npm run dev       # Watch mode
-npm run examples  # Run all example files
-npm run example -- basic.vague  # Run a specific example
 ```
 
 ## Project Structure

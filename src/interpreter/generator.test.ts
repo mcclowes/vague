@@ -811,7 +811,7 @@ describe("Generator", () => {
   describe("OpenAPI schema import", () => {
     it("imports fields from OpenAPI spec", async () => {
       const source = `
-        import petstore from "examples/petstore.json"
+        import petstore from "examples/openapi-examples-generation/petstore.json"
 
         schema TestPet from petstore.Pet { }
 
@@ -837,7 +837,7 @@ describe("Generator", () => {
 
     it("allows overriding imported fields", async () => {
       const source = `
-        import petstore from "examples/petstore.json"
+        import petstore from "examples/openapi-examples-generation/petstore.json"
 
         schema CustomPet from petstore.Pet {
           age: int in 1..5
@@ -863,7 +863,7 @@ describe("Generator", () => {
 
     it("allows adding custom fields to imported schema", async () => {
       const source = `
-        import petstore from "examples/petstore.json"
+        import petstore from "examples/openapi-examples-generation/petstore.json"
 
         schema ExtendedOwner from petstore.Owner {
           tier: "Gold" | "Silver" | "Bronze"
@@ -884,6 +884,79 @@ describe("Generator", () => {
         expect(o).toHaveProperty("email");
         // Custom field
         expect(["Gold", "Silver", "Bronze"]).toContain(o.tier);
+      }
+    });
+
+    it("generates format-aware values from OpenAPI schema", async () => {
+      // Create a temporary OpenAPI spec with format annotations
+      const fs = await import("fs");
+      const path = await import("path");
+      const tempDir = path.join(__dirname, "../../examples/openapi-examples-generation");
+      const tempSpec = path.join(tempDir, "format-test.json");
+
+      const spec = {
+        openapi: "3.0.0",
+        info: { title: "Format Test", version: "1.0.0" },
+        paths: {},
+        components: {
+          schemas: {
+            User: {
+              type: "object",
+              properties: {
+                id: { type: "string", format: "uuid" },
+                email: { type: "string", format: "email" },
+                website: { type: "string", format: "uri" },
+                created_at: { type: "string", format: "date-time" },
+                birth_date: { type: "string", format: "date" },
+                ip_address: { type: "string", format: "ipv4" },
+              },
+            },
+          },
+        },
+      };
+
+      fs.writeFileSync(tempSpec, JSON.stringify(spec, null, 2));
+
+      try {
+        const source = `
+          import formattest from "examples/openapi-examples-generation/format-test.json"
+
+          schema TestUser from formattest.User { }
+
+          dataset TestData {
+            users: 5 * TestUser
+          }
+        `;
+
+        const result = await compile(source);
+
+        expect(result.users).toHaveLength(5);
+        for (const user of result.users) {
+          const u = user as Record<string, unknown>;
+
+          // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+          expect(u.id).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+          );
+
+          // Email format: something@something
+          expect(u.email).toMatch(/@/);
+
+          // URI format: starts with http(s)://
+          expect(u.website).toMatch(/^https?:\/\//);
+
+          // date-time format: ISO 8601
+          expect(u.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+
+          // date format: YYYY-MM-DD
+          expect(u.birth_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+          // ipv4 format: x.x.x.x
+          expect(u.ip_address).toMatch(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+        }
+      } finally {
+        // Cleanup temp file
+        fs.unlinkSync(tempSpec);
       }
     });
   });

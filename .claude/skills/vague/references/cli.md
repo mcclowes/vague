@@ -1,0 +1,67 @@
+# Vague CLI Reference
+
+## Basic Usage
+
+```bash
+# Generate data from a .vague file
+node dist/cli.js <file.vague>
+
+# With seed for reproducible output
+node dist/cli.js <file.vague> --seed 123
+```
+
+## Schema Validation
+
+Validate generated data against an OpenAPI spec:
+
+```bash
+# Validate against OpenAPI spec
+node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
+
+# Validate only (exit code 1 on failure)
+node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --validate-only
+```
+
+Options:
+- `-v, --validate <spec>`: OpenAPI spec file to validate against
+- `-m, --mapping <json>`: Map collection names to schema names
+- `--validate-only`: Only validate, don't output data
+
+## OpenAPI Example Population
+
+Generate realistic examples and embed them in an OpenAPI spec:
+
+```bash
+# Populate OpenAPI spec with inline examples (bundled)
+node dist/cli.js data.vague --oas-output api-with-examples.json --oas-source api.json
+
+# With explicit mapping (collection -> schema)
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json -m '{"invoices": "Invoice"}'
+
+# Multiple examples per schema
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-example-count 3
+
+# External file references instead of inline examples
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-external
+```
+
+Options:
+- `--oas-output <file>`: Output path for the populated OpenAPI spec
+- `--oas-source <spec>`: Source OpenAPI spec to populate with examples
+- `--oas-example-count <n>`: Number of examples per schema (default: 1)
+- `--oas-external`: Use external file references instead of inline examples
+
+## Auto-Detection
+
+The CLI auto-detects collection-to-schema mappings:
+- Case-insensitive: `pets` → `Pet`
+- Plural to singular: `invoices` → `Invoice`
+- snake_case to PascalCase: `line_items` → `LineItem`
+
+## Project Commands
+
+```bash
+npm run build     # Compile TypeScript
+npm test          # Run tests (vitest)
+npm run dev       # Watch mode compilation
+```

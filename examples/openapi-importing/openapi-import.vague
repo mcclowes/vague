@@ -7,7 +7,7 @@
 //   import <name> from "<path-to-openapi-spec.json>"
 //   schema MySchema from <name>.<SchemaName> { ... }
 
-import petstore from "examples/petstore.json"
+import petstore from "examples/openapi-examples-generation/petstore.json"
 
 // Import a schema directly from the OpenAPI spec.
 // The base schema provides field definitions (id, name, species, age, vaccinated).

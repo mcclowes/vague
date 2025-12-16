@@ -462,7 +462,7 @@ export class Generator {
 
   private generateFromImportedField(field: unknown, fieldName?: string): unknown {
     // Basic type generation for imported fields
-    const f = field as { type: { kind: string; type?: string }; enum?: unknown[]; name?: string };
+    const f = field as { type: { kind: string; type?: string }; enum?: unknown[]; name?: string; format?: string };
     if (f.enum && f.enum.length > 0) {
       return f.enum[Math.floor(random() * f.enum.length)];
     }
@@ -471,7 +471,7 @@ export class Generator {
       case "primitive":
         switch (f.type.type) {
           case "string":
-            return this.randomString(fieldName ?? f.name);
+            return this.generateStringFromFormat(f.format, fieldName ?? f.name);
           case "integer":
             return Math.floor(random() * 1000);
           case "number":
@@ -486,6 +486,106 @@ export class Generator {
       default:
         return null;
     }
+  }
+
+  /**
+   * Generate a string value based on OpenAPI format hint
+   */
+  private generateStringFromFormat(format: string | undefined, fieldName?: string): unknown {
+    // Try format-based generation first
+    if (format) {
+      // Look for a plugin generator that matches the format
+      for (const plugin of pluginRegistry.values()) {
+        // Try direct format match (e.g., "uuid" -> uuid generator)
+        if (plugin.generators[format]) {
+          return plugin.generators[format]([], this.ctx);
+        }
+      }
+
+      // Handle common OpenAPI/JSON Schema formats
+      switch (format) {
+        case "uuid":
+          return this.tryPluginGenerator("uuid") ?? crypto.randomUUID();
+        case "email":
+          return this.tryPluginGenerator("email") ?? `user${randomInt(1, 9999)}@example.com`;
+        case "uri":
+        case "url":
+          return this.tryPluginGenerator("url") ?? `https://example.com/${randomInt(1, 9999)}`;
+        case "hostname":
+          return `host${randomInt(1, 999)}.example.com`;
+        case "ipv4":
+          return `${randomInt(1, 255)}.${randomInt(0, 255)}.${randomInt(0, 255)}.${randomInt(1, 254)}`;
+        case "ipv6":
+          return this.tryPluginGenerator("internet.ipv6") ??
+            Array.from({ length: 8 }, () => randomInt(0, 65535).toString(16).padStart(4, "0")).join(":");
+        case "date":
+          // YYYY-MM-DD format
+          return this.generateRandomDate();
+        case "date-time":
+          // ISO 8601 format
+          return this.generateRandomDateTime();
+        case "time":
+          // HH:MM:SS format
+          return `${String(randomInt(0, 23)).padStart(2, "0")}:${String(randomInt(0, 59)).padStart(2, "0")}:${String(randomInt(0, 59)).padStart(2, "0")}`;
+        case "byte":
+          // Base64 encoded string
+          return Buffer.from(Array.from({ length: 16 }, () => randomInt(0, 255))).toString("base64");
+        case "binary":
+          return Array.from({ length: 16 }, () => randomInt(0, 255).toString(16).padStart(2, "0")).join("");
+        case "password":
+          return this.tryPluginGenerator("internet.password") ?? `Pass${randomInt(1000, 9999)}!`;
+        case "iban":
+          return this.tryPluginGenerator("iban") ?? `GB${randomInt(10, 99)}MOCK${randomInt(10000000, 99999999)}`;
+      }
+    }
+
+    // Fallback to context-aware string generation
+    return this.randomString(fieldName);
+  }
+
+  /**
+   * Try to call a plugin generator, return undefined if not found
+   */
+  private tryPluginGenerator(name: string): unknown | undefined {
+    const parts = name.split(".");
+
+    if (parts.length > 1) {
+      // Qualified name like "internet.ipv6"
+      const pluginName = parts[0];
+      const generatorPath = parts.slice(1).join(".");
+      const plugin = pluginRegistry.get(pluginName);
+      if (plugin?.generators[generatorPath]) {
+        return plugin.generators[generatorPath]([], this.ctx);
+      }
+      // Also check faker plugin with full path
+      const fakerPlugin = pluginRegistry.get("faker");
+      if (fakerPlugin?.generators[name]) {
+        return fakerPlugin.generators[name]([], this.ctx);
+      }
+    }
+
+    // Simple name - search all plugins
+    for (const plugin of pluginRegistry.values()) {
+      if (plugin.generators[name]) {
+        return plugin.generators[name]([], this.ctx);
+      }
+    }
+    return undefined;
+  }
+
+  private generateRandomDate(): string {
+    const year = randomInt(2020, 2024);
+    const month = randomInt(1, 12);
+    const day = randomInt(1, 28);
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  private generateRandomDateTime(): string {
+    const date = this.generateRandomDate();
+    const hours = randomInt(0, 23);
+    const minutes = randomInt(0, 59);
+    const seconds = randomInt(0, 59);
+    return `${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.000Z`;
   }
 
   private generateField(field: FieldDefinition, _baseField?: unknown): unknown {

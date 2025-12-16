@@ -14,6 +14,7 @@ export interface ImportedField {
   required: boolean;
   enum?: (string | number)[];
   description?: string;
+  format?: string; // OpenAPI format hint (uuid, email, date-time, etc.)
 }
 
 export type ImportedFieldType =
@@ -67,6 +68,7 @@ export class OpenAPILoader {
             required: required.includes(fieldName),
             enum: fieldSchema.enum as (string | number)[] | undefined,
             description: fieldSchema.description,
+            format: fieldSchema.format,
           });
         }
       }

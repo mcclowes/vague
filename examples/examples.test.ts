@@ -11,9 +11,9 @@ async function runExample(filename: string): Promise<Record<string, unknown[]>> 
 }
 
 describe('examples', () => {
-  describe('basic.vague', () => {
+  describe('basics/basic.vague', () => {
     it('produces companies and invoices with correct structure', async () => {
-      const result = await runExample('basic.vague');
+      const result = await runExample('basics/basic.vague');
 
       expect(result.companies).toHaveLength(10);
       expect(result.invoices).toHaveLength(50);
@@ -42,9 +42,9 @@ describe('examples', () => {
     });
   });
 
-  describe('constraints.vague', () => {
+  describe('basics/constraints.vague', () => {
     it('respects hard constraints', async () => {
-      const result = await runExample('constraints.vague');
+      const result = await runExample('basics/constraints.vague');
 
       // Invoice: due_date >= issued_date
       for (const inv of result.invoices as Record<string, unknown>[]) {
@@ -71,9 +71,9 @@ describe('examples', () => {
     });
   });
 
-  describe('computed-fields.vague', () => {
+  describe('basics/computed-fields.vague', () => {
     it('computes aggregates correctly', async () => {
-      const result = await runExample('computed-fields.vague');
+      const result = await runExample('basics/computed-fields.vague');
 
       expect(result.invoices.length).toBeGreaterThanOrEqual(2);
       expect(result.invoices.length).toBeLessThanOrEqual(10);
@@ -96,7 +96,7 @@ describe('examples', () => {
     });
 
     it('handles nullable fields', async () => {
-      const result = await runExample('computed-fields.vague');
+      const result = await runExample('basics/computed-fields.vague');
 
       // Some invoices should have null notes, some should have string notes
       const invoices = result.invoices as Record<string, unknown>[];
@@ -116,9 +116,9 @@ describe('examples', () => {
     });
   });
 
-  describe('cross-ref.vague', () => {
+  describe('basics/cross-ref.vague', () => {
     it('references existing companies and propagates parent values', async () => {
-      const result = await runExample('cross-ref.vague');
+      const result = await runExample('basics/cross-ref.vague');
 
       expect(result.companies).toHaveLength(10);
       expect(result.invoices).toHaveLength(30);
@@ -139,9 +139,9 @@ describe('examples', () => {
     });
   });
 
-  describe('dynamic-cardinality.vague', () => {
+  describe('basics/dynamic-cardinality.vague', () => {
     it('generates correct item counts based on order size', async () => {
-      const result = await runExample('dynamic-cardinality.vague');
+      const result = await runExample('basics/dynamic-cardinality.vague');
 
       expect(result.orders).toHaveLength(20);
       expect(result.shipments).toHaveLength(15);
@@ -177,7 +177,7 @@ describe('examples', () => {
     });
 
     it('respects dataset-level constraints', async () => {
-      const result = await runExample('dynamic-cardinality.vague');
+      const result = await runExample('basics/dynamic-cardinality.vague');
 
       const orders = result.orders as Record<string, unknown>[];
       const shipments = result.shipments as Record<string, unknown>[];
@@ -188,9 +188,9 @@ describe('examples', () => {
     });
   });
 
-  describe('dataset-constraints.vague', () => {
+  describe('basics/dataset-constraints.vague', () => {
     it('applies then blocks to update invoice status', async () => {
-      const result = await runExample('dataset-constraints.vague');
+      const result = await runExample('basics/dataset-constraints.vague');
 
       expect(result.invoices).toHaveLength(50);
       expect(result.payments).toHaveLength(40);
@@ -212,7 +212,7 @@ describe('examples', () => {
     });
 
     it('respects validate block constraints', async () => {
-      const result = await runExample('dataset-constraints.vague');
+      const result = await runExample('basics/dataset-constraints.vague');
 
       const invoices = result.invoices as Record<string, unknown>[];
       const payments = result.payments as Record<string, unknown>[];
@@ -228,7 +228,7 @@ describe('examples', () => {
     });
 
     it('handles nullable fields', async () => {
-      const result = await runExample('dataset-constraints.vague');
+      const result = await runExample('basics/dataset-constraints.vague');
       const invoices = result.invoices as Record<string, unknown>[];
 
       for (const inv of invoices) {
@@ -237,9 +237,9 @@ describe('examples', () => {
     });
   });
 
-  describe('openapi-import.vague', () => {
+  describe('openapi-importing/openapi-import.vague', () => {
     it('imports and extends OpenAPI schemas', async () => {
-      const result = await runExample('openapi-import.vague');
+      const result = await runExample('openapi-importing/openapi-import.vague');
 
       expect(result.pets).toHaveLength(10);
       expect(result.owners).toHaveLength(5);
