@@ -29,6 +29,12 @@ export class TypeParser extends ExpressionParser {
   // ============================================
 
   parseFieldType(): FieldType {
+    // Check for weighted superposition starting with number: 0.7: int in 10..50 | 0.3: value
+    // (must check before cardinality since both start with NUMBER)
+    if (this.check(TokenType.NUMBER) && this.isWeightedSuperposition()) {
+      return this.parseWeightedSuperpositionType();
+    }
+
     // Check for primitive types with range: int in 18..65
     // Also handles generator types: uuid(), faker.email()
     if (this.checkPrimitive()) {
@@ -41,12 +47,24 @@ export class TypeParser extends ExpressionParser {
           if (primitiveOrGenerator.type !== "PrimitiveType") {
             throw this.error("Range type requires a primitive base type (int, decimal, date)");
           }
-          return {
+          const rangeType = {
             type: "RangeType",
             baseType: primitiveOrGenerator,
             min: range.min,
             max: range.max,
           } as RangeType;
+
+          // Check for superposition after range: int in 10..500 | other_value
+          // Also supports weights: 0.7: int in 10..500 | 0.3: other_value (weight on range comes before 'int')
+          if (this.check(TokenType.PIPE)) {
+            const options: WeightedOption[] = [{ value: { type: "RangeExpression", min: range.min, max: range.max } as Expression }];
+            while (this.match(TokenType.PIPE)) {
+              options.push(this.parseSuperpositionOptionForType());
+            }
+            return { type: "SuperpositionType", options };
+          }
+
+          return rangeType;
         }
 
         // Nullable shorthand: string?, int?
@@ -206,6 +224,30 @@ export class TypeParser extends ExpressionParser {
     return next === TokenType.STAR || next === TokenType.DOTDOT || next === TokenType.PER;
   }
 
+  private isWeightedSuperposition(): boolean {
+    // Look ahead: NUMBER followed by COLON indicates a weighted superposition
+    const saved = this.savePosition();
+    this.advance(); // consume number
+
+    const isWeight = this.check(TokenType.COLON);
+    this.restorePosition(saved);
+    return isWeight;
+  }
+
+  private parseWeightedSuperpositionType(): FieldType {
+    const options: WeightedOption[] = [];
+
+    // Parse first weighted option
+    options.push(this.parseSuperpositionOptionForType());
+
+    // Parse additional options
+    while (this.match(TokenType.PIPE)) {
+      options.push(this.parseSuperpositionOptionForType());
+    }
+
+    return { type: "SuperpositionType", options };
+  }
+
   private isDynamicCardinality(): boolean {
     // Look ahead for ) * pattern indicating dynamic cardinality
     const saved = this.savePosition();
@@ -229,6 +271,48 @@ export class TypeParser extends ExpressionParser {
 
     this.restorePosition(saved);
     return false;
+  }
+
+  // ============================================
+  // Superposition option for field types
+  // ============================================
+
+  /**
+   * Parse a superposition option that may include:
+   * - A weight prefix: 0.7: value
+   * - A range type: int in 10..50 or (int in 10..50)
+   * - A regular expression: invoice.total
+   */
+  private parseSuperpositionOptionForType(): WeightedOption {
+    // Check for weight prefix: 0.7: value
+    let weight: number | undefined;
+    if (this.check(TokenType.NUMBER)) {
+      const saved = this.savePosition();
+      const numToken = this.advance();
+      if (this.match(TokenType.COLON)) {
+        weight = parseFloat(numToken.value);
+      } else {
+        this.restorePosition(saved);
+      }
+    }
+
+    // Check for range type: int in 10..50
+    if (this.checkPrimitive()) {
+      const saved = this.savePosition();
+      const primitive = this.parsePrimitiveType();
+      if (primitive?.type === "PrimitiveType" && this.match(TokenType.IN)) {
+        const range = this.parseRangeExpression();
+        return {
+          weight,
+          value: { type: "RangeExpression", min: range.min, max: range.max } as Expression,
+        };
+      }
+      this.restorePosition(saved);
+    }
+
+    // Regular expression
+    const value = this.parseComparison();
+    return { weight, value };
   }
 
   // ============================================

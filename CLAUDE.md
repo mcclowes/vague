@@ -44,6 +44,10 @@ schema Person {
 ```vague
 status: "draft" | "sent" | "paid"           // Equal weight
 status: 0.7: "paid" | 0.2: "pending" | 0.1: "draft"  // Weighted
+
+// Mixed types: range OR field reference
+amount: int in 10..500 | invoice.total      // Either partial or full
+amount: 0.7: int in 10..500 | 0.3: invoice.total  // Weighted mix
 ```
 
 ### Nullable Fields
@@ -226,7 +230,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 118 tests covering lexer, parser, generator, and validator.
+Currently 123 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -264,6 +268,7 @@ Currently 118 tests covering lexer, parser, generator, and validator.
 - [x] Logical operators in expressions (`and`, `or`, `not`)
 - [x] Dynamic cardinality (`(condition ? 5..10 : 1..3) * Item`)
 - [x] Nullable fields (`string?`, `int | null`)
+- [x] Mixed superposition (`int in 10..500 | field.ref`, weighted: `0.7: int in 10..100 | 0.3: field`)
 
 See TODO.md for planned features.
 

@@ -1,3 +1,5 @@
+![Abstract representation of data and Vague](./banner.png)
+
 # Vague
 
 A declarative language for generating realistic test data. Vague treats ambiguity as a first-class primitive — declare the shape of valid data and let the runtime figure out how to populate it.
@@ -127,6 +129,41 @@ schema Invoice {
 }
 ```
 
+### Nullable Fields
+
+```vague
+nickname: string?           // Shorthand: sometimes null
+notes: string | null        // Explicit
+```
+
+### Ternary Expressions
+
+```vague
+status: = amount_paid >= total ? "paid" : "pending"
+grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+```
+
+### Dynamic Cardinality
+
+```vague
+schema Order {
+  size: "small" | "large",
+  items: (size == "large" ? 5..10 : 1..3) * LineItem
+}
+```
+
+### Side Effects (`then` blocks)
+
+```vague
+schema Payment {
+  invoice: any of invoices,
+  amount: int in 10..500
+} then {
+  invoice.amount_paid += amount,
+  invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partial"
+}
+```
+
 ## Examples
 
 See the `examples/` directory:
@@ -135,7 +172,9 @@ See the `examples/` directory:
 - `constraints.vague` - Hard and conditional constraints
 - `computed-fields.vague` - Aggregate functions
 - `cross-ref.vague` - Cross-record references
-- `codat/lending-test-data.vague` - Real-world API test data
+- `dataset-constraints.vague` - Dataset-level validation and `then` blocks
+- `dynamic-cardinality.vague` - Conditional collection sizes
+- `openapi-import.vague` - Import schemas from OpenAPI specs
 
 ## CLI Usage
 
@@ -171,7 +210,7 @@ node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 ```bash
 npm run build    # Compile TypeScript
-npm test         # Run tests (75 tests)
+npm test         # Run tests (123 tests)
 npm run dev      # Watch mode
 ```
 
@@ -191,12 +230,11 @@ src/
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned features:
+See [TODO.md](TODO.md) for planned features:
 
-- Plugin system for semantic types (faker integration)
 - Negative testing (generate constraint-violating data)
 - Probabilistic constraints
-- Dataset-wide validation
+- Date arithmetic and transformations
 - Constraint solving (SMT integration)
 
 ## Contributing

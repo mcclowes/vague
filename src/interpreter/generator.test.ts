@@ -209,6 +209,106 @@ describe("Generator", () => {
     expect(ageSet).toBeGreaterThan(0);
   });
 
+  it("generates range with alternative value superposition", async () => {
+    const source = `
+      schema Item {
+        base_price: 100,
+        price: int in 10..50 | base_price
+      }
+
+      dataset TestData {
+        items: 50 * Item
+      }
+    `;
+
+    const result = await compile(source);
+
+    let fromRange = 0;
+    let fromBase = 0;
+
+    for (const item of result.items) {
+      const i = item as { base_price: number, price: number };
+      if (i.price === 100) {
+        fromBase++;
+      } else if (i.price >= 10 && i.price <= 50) {
+        fromRange++;
+      }
+    }
+
+    // Both should occur with 50 samples
+    expect(fromRange).toBeGreaterThan(0);
+    expect(fromBase).toBeGreaterThan(0);
+  });
+
+  it("generates weighted range with alternative value superposition", async () => {
+    const source = `
+      schema Item {
+        base_price: 100,
+        price: 0.8: int in 10..50 | 0.2: base_price
+      }
+
+      dataset TestData {
+        items: 100 * Item
+      }
+    `;
+
+    const result = await compile(source);
+
+    let fromRange = 0;
+    let fromBase = 0;
+
+    for (const item of result.items) {
+      const i = item as { base_price: number, price: number };
+      if (i.price === 100) {
+        fromBase++;
+      } else if (i.price >= 10 && i.price <= 50) {
+        fromRange++;
+      }
+    }
+
+    // Both should occur - with 80/20 split, range should dominate
+    expect(fromRange).toBeGreaterThan(0);
+    expect(fromBase).toBeGreaterThan(0);
+    // With 100 samples and 80% weight, expect more from range
+    expect(fromRange).toBeGreaterThan(fromBase);
+  });
+
+  it("generates weighted range superposition with field reference", async () => {
+    const source = `
+      schema Invoice {
+        total: int in 100..1000
+      }
+
+      schema Payment {
+        invoice: any of invoices,
+        amount: 0.7: int in 10..100 | 0.3: invoice.total
+      }
+
+      dataset TestData {
+        invoices: 10 * Invoice,
+        payments: 50 * Payment
+      }
+    `;
+
+    const result = await compile(source);
+
+    let smallPayments = 0;
+    let fullPayments = 0;
+
+    for (const payment of result.payments) {
+      const p = payment as { invoice: { total: number }, amount: number };
+      if (p.amount >= 10 && p.amount <= 100) {
+        smallPayments++;
+      } else if (p.amount === p.invoice.total) {
+        fullPayments++;
+      }
+    }
+
+    // Both types should occur
+    expect(smallPayments).toBeGreaterThan(0);
+    expect(fullPayments).toBeGreaterThan(0);
+  });
+
   it("generates boolean literals correctly", async () => {
     const source = `
       schema Config {

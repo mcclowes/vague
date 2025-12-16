@@ -110,3 +110,4 @@
 - [x] **Logical operators in expressions** - `and`, `or`, `not` work everywhere (comparisons, ternaries, etc.)
 - [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) * Item` for conditional collection sizes
 - [x] **Nullable fields** - `string?` and `int | null` syntax for fields that can be null
+- [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights: `0.7: int in 10..100 | 0.3: field`

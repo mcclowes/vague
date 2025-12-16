@@ -580,23 +580,36 @@ export class Generator {
     // If no weights, equal probability
     const hasWeights = options.some((o) => o.weight !== undefined);
 
+    let result: unknown;
     if (!hasWeights) {
       const idx = Math.floor(Math.random() * options.length);
-      return this.evaluateExpression(options[idx].value);
-    }
+      result = this.evaluateExpression(options[idx].value);
+    } else {
+      // Weighted selection
+      const totalWeight = options.reduce((sum, o) => sum + (o.weight ?? 0), 0);
+      let random = Math.random() * totalWeight;
 
-    // Weighted selection
-    const totalWeight = options.reduce((sum, o) => sum + (o.weight ?? 0), 0);
-    let random = Math.random() * totalWeight;
+      for (const option of options) {
+        random -= option.weight ?? 0;
+        if (random <= 0) {
+          result = this.evaluateExpression(option.value);
+          break;
+        }
+      }
 
-    for (const option of options) {
-      random -= option.weight ?? 0;
-      if (random <= 0) {
-        return this.evaluateExpression(option.value);
+      if (result === undefined) {
+        result = this.evaluateExpression(options[options.length - 1].value);
       }
     }
 
-    return this.evaluateExpression(options[options.length - 1].value);
+    // If result is a range object, pick a random value from it
+    if (result && typeof result === "object" && "min" in result && "max" in result) {
+      const min = result.min as number;
+      const max = result.max as number;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    return result;
   }
 
   private generateCollectionField(fieldType: {
