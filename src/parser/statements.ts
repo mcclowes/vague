@@ -141,9 +141,9 @@ export class StatementParser extends TypeParser {
       };
     }
 
+    const unique = this.match(TokenType.UNIQUE);
     const fieldType = this.parseFieldType();
     const optional = this.match(TokenType.QUESTION);
-    const unique = this.match(TokenType.UNIQUE);
 
     let condition: Expression | undefined;
     if (this.match(TokenType.WHEN)) {

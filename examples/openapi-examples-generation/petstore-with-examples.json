@@ -37,11 +37,11 @@
           }
         },
         "example": {
-          "id": 1947,
-          "age": 1,
-          "name": "Mill Smitho",
-          "species": "fish",
-          "vaccinated": false
+          "id": 8979,
+          "age": 13,
+          "name": "Eliams Williamess",
+          "species": "bird",
+          "vaccinated": true
         }
       },
       "Owner": {
@@ -66,10 +66,10 @@
           }
         },
         "example": {
-          "id": 698,
-          "name": "Chae Patrichart",
+          "id": 840,
+          "name": "Milli Jams",
           "email": "the quick brown fox jumps",
-          "phone": "the quick brown fox jumps"
+          "phone": "the lazy dog lorem ipsum"
         }
       }
     }

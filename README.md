@@ -167,7 +167,7 @@ schema Payment {
 ### Unique Values
 
 ```vague
-id: int in 1000..9999 unique    // No duplicates in collection
+id: unique int in 1000..9999    // No duplicates in collection
 ```
 
 ### Statistical Distributions

@@ -129,8 +129,8 @@ schema Order {
 ### Unique Values
 ```vague
 schema Invoice {
-  id: int in 1000..9999 unique,       // Ensures no duplicate IDs
-  code: "A" | "B" | "C" | "D" unique  // Works with superposition too
+  id: unique int in 1000..9999,       // Ensures no duplicate IDs
+  code: unique "A" | "B" | "C" | "D"  // Works with superposition too
 }
 ```
 
@@ -442,7 +442,7 @@ Currently 179 tests covering lexer, parser, generator, validator, OpenAPI popula
 - [x] Logical operators in where clauses (`any of X where .a == 1 or .b == 2`)
 - [x] Arithmetic in computed fields (`= sum(items.price) * 1.2`)
 - [x] Decimal precision functions (`round()`, `floor()`, `ceil()`)
-- [x] Unique values (`id: int in 1..1000 unique`)
+- [x] Unique values (`id: unique int in 1..1000`)
 - [x] Statistical distributions (`gaussian`, `exponential`, `lognormal`, `poisson`, `beta`, `uniform`)
 - [x] Date functions (`now`, `today`, `daysAgo`, `daysFromNow`, `datetime`, `dateBetween`, `formatDate`)
 - [x] Sequential generation (`sequence()`, `sequenceInt()` for auto-incrementing values)

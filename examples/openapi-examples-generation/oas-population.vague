@@ -28,13 +28,12 @@ import petstore from "examples/openapi-examples-generation/petstore.json"
 //   "owners" -> "Owner"
 
 schema Pet from petstore.Pet {
-  // Override with realistic constraints
-  id: int in 1000..9999 unique,
+  id: unique int in 1000..9999,
   age: int in 1..15
 }
 
 schema Owner from petstore.Owner {
-  id: int in 1..999 unique
+  id: unique int in 1..999
 }
 
 // The dataset collections will be matched to OpenAPI schemas

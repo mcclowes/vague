@@ -1712,7 +1712,7 @@ describe("Generator", () => {
     it("generates unique values for fields marked with unique", async () => {
       const source = `
         schema Invoice {
-          id: int in 1..100 unique,
+          id: unique int in 1..100,
           amount: int in 100..500
         }
 
@@ -1732,7 +1732,7 @@ describe("Generator", () => {
     it("generates unique strings", async () => {
       const source = `
         schema Item {
-          code: "A" | "B" | "C" | "D" | "E" unique
+          code: unique "A" | "B" | "C" | "D" | "E"
         }
 
         dataset TestData {

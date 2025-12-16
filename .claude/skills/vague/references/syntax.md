@@ -55,8 +55,8 @@ employees: 100 * Employee       // Exactly 100
 ## Unique Values
 
 ```vague
-id: int in 1000..9999 unique,       // Ensures no duplicate IDs
-code: "A" | "B" | "C" | "D" unique  // Works with superposition too
+id: unique int in 1000..9999,       // Ensures no duplicate IDs
+code: unique "A" | "B" | "C" | "D"  // Works with superposition too
 ```
 
 ## Constraints

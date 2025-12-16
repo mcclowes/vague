@@ -3,7 +3,6 @@
 ## Next Up
 
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
-- [ ] 'id: int in 1000..9999 unique,' -> 'id: unique int in 1000..9999,'
 
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
@@ -12,6 +11,7 @@
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
+- [ ] Explore other keywords for fields, like unique
 
 ## Dataset-Level Features
 
@@ -47,6 +47,12 @@
 - [ ] **Data ingestion validation** - `vague validate data.json --schema schema.vague` to validate real data against Vague schemas
 - [ ] **Reuse constraint engine** - Run `assume` constraints and `validate { }` blocks as assertions on external data
 - [ ] **Error reporting** - Report which records fail which constraints with clear messages
+
+## Code quality and organisation
+
+- [ ] Break up the generator
+- [ ] Install and run prettier
+- [ ] Install and run eslint
 
 ## Output & Tooling
 
@@ -125,7 +131,7 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
 - [x] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
 - [x] **Decimal precision** - `round()`, `floor()`, `ceil()` functions with decimal places
-- [x] **Unique values** - `id: int in 1..1000 unique` ensures no duplicates
+- [x] **Unique values** - `id: unique int in 1..1000` ensures no duplicates
 - [x] **Built-in distributions** - `gaussian()`, `exponential()`, `lognormal()`, `poisson()`, `beta()`, `uniform()`
 - [x] **Date functions** - `now()`, `today()`, `daysAgo()`, `daysFromNow()`, `datetime()`, `dateBetween()`, `formatDate()`
 - [x] **Sequential/stateful generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)` for auto-incrementing values
