@@ -192,7 +192,7 @@ describe('examples', () => {
     it('applies then blocks to update invoice status', async () => {
       const result = await runExample('dataset-constraints.vague');
 
-      expect(result.invoices).toHaveLength(20);
+      expect(result.invoices).toHaveLength(50);
       expect(result.payments).toHaveLength(40);
 
       const invoices = result.invoices as Record<string, unknown>[];
@@ -202,7 +202,7 @@ describe('examples', () => {
         inv => inv.status === 'paid' || inv.status === 'partially-paid'
       );
 
-      // With 40 payments across 20 invoices, we expect some to be paid/partially-paid
+      // With 40 payments across 50 invoices, we expect some to be paid/partially-paid
       expect(paidOrPartial.length).toBeGreaterThan(0);
 
       // No invoice should be overpaid
@@ -221,8 +221,8 @@ describe('examples', () => {
       const totalPaid = invoices.reduce((sum, inv) => sum + (inv.amount_paid as number), 0);
 
       // These constraints are verified at generation time
-      expect(totalInvoices).toBeGreaterThanOrEqual(5000);
-      expect(totalInvoices).toBeLessThanOrEqual(18000);
+      expect(totalInvoices).toBeGreaterThanOrEqual(15000);
+      expect(totalInvoices).toBeLessThanOrEqual(45000);
       expect(totalPaid).toBeLessThanOrEqual(totalInvoices);
       expect(payments.length).toBeLessThanOrEqual(invoices.length * 3);
     });
