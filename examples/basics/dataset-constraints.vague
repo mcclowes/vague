@@ -1,27 +1,19 @@
-// Dataset-level constraints example
-// Validates aggregate constraints across entire collections
-
 schema Invoice {
   id: int in 1..10000,
   customer: string,
   total: int in 200..1000,
-  amount_paid: int in 0..0,        // Starts at 0, updated by payments
+  amount_paid: int in 0..0,  // starts at 0, updated by payments
   status: "unpaid" | "draft",
-  notes: string?                   // Nullable field - sometimes null
+  notes: string?
 }
 
 schema Payment {
   id: int in 1..10000,
-  invoice: any of invoices where .amount_paid < .total,  // Only unpaid/partial invoices
-  // Amount is either a partial payment (10-500) or the remaining balance
-  // Weighted: 30% partial payments, 70% remaining balance
-  amount: 0.3: int in 10..500 | 0.7: (invoice.total - invoice.amount_paid),
-
-  // Payment cannot exceed remaining balance
+  invoice: any of invoices where .amount_paid < .total,  // only unpaid invoices
+  amount: 0.3: int in 10..500 | 0.7: (invoice.total - invoice.amount_paid),  // weighted: partial or full
   assume amount <= invoice.total - invoice.amount_paid
 } then {
-  invoice.amount_paid += amount,
-  // Use ternary to set status based on whether fully paid
+  invoice.amount_paid += amount,  // side effect: update invoice
   invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partially-paid"
 }
 
@@ -30,12 +22,10 @@ dataset FinancialData {
   payments: 40 * Payment,
 
   validate {
-    sum(invoices.total) >= 15000, // Total invoices should be in a reasonable range
+    sum(invoices.total) >= 15000,
     sum(invoices.total) <= 45000,
-    sum(payments.amount) <= sum(invoices.total), // Payments can't exceed invoices
-
-    count(payments) <= count(invoices) * 3, // Can't have more payments than invoices * 3
-
-    all(invoices, .amount_paid <= .total) // No invoice should be overpaid (amount_paid must not exceed total)
+    sum(payments.amount) <= sum(invoices.total),
+    count(payments) <= count(invoices) * 3,
+    all(invoices, .amount_paid <= .total)  // predicate: no overpayment
   }
 }

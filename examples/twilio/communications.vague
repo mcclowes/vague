@@ -1,18 +1,3 @@
-// Twilio Communications API - Test Data Generation
-// Based on https://www.twilio.com/docs/api
-//
-// Models Twilio's core communication objects:
-// - Phone numbers and messaging services
-// - SMS/MMS messages
-// - Voice calls and recordings
-// - Verification services
-// - Usage records and billing
-//
-// Demonstrates:
-// - Communication status workflows
-// - Usage tracking with side effects
-// - Realistic messaging patterns
-
 schema PhoneNumber {
   sid: uuid(),
   account_sid: uuid(),
@@ -72,10 +57,7 @@ schema Message {
   date_created: faker.date.recent(),
   date_updated: faker.date.recent(),
   date_sent: faker.date.recent()?,
-
-  assume if status == "failed" or status == "undelivered" {
-    error_code != null
-  }
+  assume if status == "failed" or status == "undelivered" { error_code != null }
 }
 
 schema Call {
@@ -100,10 +82,7 @@ schema Call {
   trunk_sid: uuid()?,
   date_created: faker.date.recent(),
   date_updated: faker.date.recent(),
-
-  assume if status == "completed" {
-    duration > 0
-  }
+  assume if status == "completed" { duration > 0 }
 }
 
 schema Recording {
@@ -236,46 +215,24 @@ schema Conversation {
 }
 
 dataset TwilioTestData {
-  // Phone numbers
   phone_numbers: 50 * PhoneNumber,
-
-  // Messaging
   messaging_services: 10 * MessagingService,
   messages: 1000 * Message,
-
-  // Voice
   calls: 500 * Call,
   recordings: 100 * Recording,
   transcriptions: 30 * Transcription,
-
-  // Verification
   verification_services: 5 * VerificationService,
   verifications: 200 * Verification,
-
-  // Conversations
   conversations: 50 * Conversation,
-
-  // Usage and billing
   usage_records: 100 * UsageRecord,
-
-  // Account management
   accounts: 10 * Account,
   alerts: 50 * Alert,
 
   validate {
-    // Most messages should be delivered
     some(messages, .status == "delivered"),
-
-    // Most calls should complete
     some(calls, .status == "completed"),
-
-    // Completed calls have duration
     all(calls, .status != "completed" or .duration > 0),
-
-    // Most verifications should be approved
     some(verifications, .status == "approved"),
-
-    // Active accounts exist
     some(accounts, .status == "active")
   }
 }

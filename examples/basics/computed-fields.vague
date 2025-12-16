@@ -1,19 +1,15 @@
-// Example: Computed fields with aggregate functions
-
 schema LineItem {
   description: string,
   quantity: int in 1..10,
   unit_price: int in 10..200,
-  discount_code: string?             // Nullable field - sometimes null
+  discount_code: string?  // nullable field
 }
 
 schema Invoice {
   customer_name: string,
-  notes: string | null,              // Explicit nullable using pipe syntax
+  notes: string | null,  // explicit nullable
   line_items: 2..5 * LineItem,
-
-  // Computed fields - evaluated after line_items are generated
-  item_count: = count(line_items),
+  item_count: = count(line_items),  // computed fields
   subtotal: = sum(line_items.unit_price),
   min_price: = min(line_items.unit_price),
   max_price: = max(line_items.unit_price),

@@ -1,5 +1,3 @@
-// Example: Cross-record references
-
 schema Company {
   name: string,
   industry: "tech" | "retail" | "finance",
@@ -10,12 +8,12 @@ schema LineItem {
   description: string,
   quantity: int in 1..10,
   unit_price: decimal in 10..500,
-  currency: = ^base_currency
+  currency: = ^base_currency  // inherit from parent schema
 }
 
 schema Invoice {
   status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft",
-  customer: any of companies,
+  customer: any of companies,  // reference another collection
   base_currency: "USD" | "GBP" | "EUR",
   line_items: 1..5 * LineItem
 }

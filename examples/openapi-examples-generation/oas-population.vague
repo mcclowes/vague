@@ -1,31 +1,4 @@
-// OpenAPI Example Population
-//
-// This example shows how to generate data that can be used to populate
-// an OpenAPI spec with realistic examples.
-//
-// Run with:
-//   node dist/cli.js examples/openapi-examples-generation/oas-population.vague \
-//     --oas-output examples/openapi-examples-generation/petstore-with-examples.json \
-//     --oas-source examples/openapi-examples-generation/petstore.json
-//
-// Or with multiple examples:
-//   node dist/cli.js examples/openapi-examples-generation/oas-population.vague \
-//     --oas-output examples/openapi-examples-generation/petstore-with-examples.json \
-//     --oas-source examples/openapi-examples-generation/petstore.json \
-//     --oas-example-count 3
-//
-// Or with external file references:
-//   node dist/cli.js examples/openapi-examples-generation/oas-population.vague \
-//     --oas-output examples/openapi-examples-generation/petstore-with-examples.json \
-//     --oas-source examples/openapi-examples-generation/petstore.json \
-//     --oas-external
-
 import petstore from "examples/openapi-examples-generation/petstore.json"
-
-// Define schemas that match the OpenAPI spec's component schemas.
-// Collection names are auto-mapped to schema names:
-//   "pets" -> "Pet" (plural to singular)
-//   "owners" -> "Owner"
 
 schema Pet from petstore.Pet {
   age: int in 1..25
@@ -33,9 +6,7 @@ schema Pet from petstore.Pet {
 
 schema Owner from petstore.Owner {}
 
-// The dataset collections will be matched to OpenAPI schemas
-// and used to populate examples in the output spec
 dataset PetStoreExamples {
-  pets: 10 * Pet,
+  pets: 10 * Pet,  // auto-mapped to "Pet" schema in OpenAPI spec
   owners: 5 * Owner
 }

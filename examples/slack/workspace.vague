@@ -1,18 +1,3 @@
-// Slack API - Test Data Generation
-// Based on https://api.slack.com/
-//
-// Models Slack's core workspace objects:
-// - Teams (workspaces) and users
-// - Channels and conversations
-// - Messages with threads and reactions
-// - Files and apps
-// - User groups and reminders
-//
-// Demonstrates:
-// - Threaded conversation patterns
-// - Reaction tracking with side effects
-// - Complex user/channel relationships
-
 schema Team {
   id: uuid(),
   name: companyName(),
@@ -269,47 +254,23 @@ schema Emoji {
 }
 
 dataset SlackTestData {
-  // Workspaces
   teams: 5 * Team,
-
-  // Users
   users: 200 * User,
-
-  // Channels
   channels: 100 * Channel,
-
-  // Messages
   messages: 2000 * Message,
   thread_replies: 500 * ThreadReply,
-
-  // Files
   files: 300 * File,
-
-  // Apps and bots
   apps: 20 * App,
   bots: 15 * BotInfo,
-
-  // Groups
   usergroups: 30 * Usergroup,
-
-  // Utilities
   reminders: 50 * Reminder,
   bookmarks: 100 * Bookmark,
-
-  // Custom emoji
   emojis: 50 * Emoji,
 
   validate {
-    // Most users are active
     some(users, .deleted == false),
-
-    // Most channels are not archived
     some(channels, .is_archived == false),
-
-    // Some messages have reactions
     some(messages, .reactions != null),
-
-    // User counts are reasonable
     all(usergroups, .user_count >= 1)
   }
 }

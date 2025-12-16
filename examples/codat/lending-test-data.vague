@@ -1,22 +1,4 @@
-// Codat Lending API - Test Data Generation
-// Based on https://github.com/codatio/oas
-//
-// This generates realistic test data for an SMB lending scenario:
-// - Companies with connections to accounting platforms
-// - Customers and suppliers
-// - Invoices (accounts receivable) with line items
-// - Payments against invoices that update invoice status
-//
-// Demonstrates:
-// - OpenAPI schema imports (`from codat.Schema`)
-// - `then` blocks for payment side effects
-// - Dataset-level validation with predicates
-// - Ternary expressions for conditional values
-// - Nullable fields with `?` syntax
-
 import codat from "Codat-Lending.json"
-
-// --- Base Schemas (inheriting from OpenAPI) ---
 
 schema Customer from codat.AccountingCustomer {
   id: uuid(),
@@ -44,19 +26,12 @@ schema Invoice from codat.AccountingInvoice {
   issueDate: int in 1..28,
   dueDate: int in 1..90,
   currency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-
   lineItems: 1..8 * InvoiceLineItem,
-
-  // Computed totals
   subTotal: = sum(lineItems.unitAmount),
   totalTaxAmount: = sum(lineItems.taxAmount),
   totalAmount: = sum(lineItems.totalAmount),
-
-  // Start unpaid - payments will update these via `then` blocks
-  amountDue: = totalAmount,
+  amountDue: = totalAmount,  // payments will update via then blocks
   status: "Submitted",
-
-  // Constraints
   assume dueDate >= issueDate
 }
 
@@ -71,7 +46,6 @@ schema PaymentLine {
   links: 1..3 * PaymentLineLink
 }
 
-// Payment mutates the referenced invoice via `then` block
 schema Payment from codat.AccountingPayment {
   id: uuid(),
   invoice: any of invoices where .status != "Paid" and .status != "Void",
@@ -80,12 +54,9 @@ schema Payment from codat.AccountingPayment {
   date: int in 1..28,
   note: sentence()?,
   reference: faker.string.alphanumeric(10)?,
-
-  // Payment cannot exceed remaining balance
   assume amount <= invoice.amountDue
 } then {
   invoice.amountDue -= amount,
-  // Ternary: set status based on remaining balance
   invoice.status = invoice.amountDue <= 0 ? "Paid" : "PartiallyPaid"
 }
 
@@ -126,27 +97,20 @@ schema Bill from codat.AccountingBill {
   issueDate: int in 1..28,
   dueDate: int in 1..60,
   currency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-
   lineItems: 1..5 * BillLineItem,
-
   subTotal: = sum(lineItems.unitAmount),
   totalTaxAmount: = sum(lineItems.taxAmount),
   totalAmount: = sum(lineItems.totalAmount),
-
-  // Dynamic status based on amounts
   amountDue: = totalAmount,
   status: "Open",
-
   assume dueDate >= issueDate
 }
 
-// Bill payment - similar pattern to invoice payments
 schema BillPayment {
   id: uuid(),
   bill: any of bills where .status != "Paid",
   amount: int in 100..3000,
   date: int in 1..28,
-
   assume amount <= bill.amountDue
 } then {
   bill.amountDue -= amount,
@@ -166,55 +130,25 @@ schema Company {
   name: companyName(),
   description: faker.company.catchPhrase()?,
   defaultCurrency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-  // Dynamic cardinality: larger companies have more connections
   dataConnections: 1..3 * Connection
 }
 
-// --- Dataset Definition ---
-
 dataset LendingTestData {
-  // Companies applying for lending
   companies: 20 * Company,
-
-  // Chart of accounts
   accounts: 50 * Account,
-
-  // Customers (debtors)
   customers: 100 * Customer,
-
-  // Suppliers (creditors)
   suppliers: 50 * Supplier,
-
-  // Accounts receivable
   invoices: 500 * Invoice,
-
-  // Payments received (these mutate invoices via `then` blocks)
-  payments: 400 * Payment,
-
-  // Accounts payable
+  payments: 400 * Payment,  // mutate invoices via then blocks
   bills: 200 * Bill,
+  billPayments: 150 * BillPayment,  // mutate bills via then blocks
 
-  // Bill payments (these mutate bills via `then` blocks)
-  billPayments: 150 * BillPayment,
-
-  // Dataset-level validation
   validate {
-    // Total AR should be substantial for lending assessment
     sum(invoices.totalAmount) >= 100000,
-
-    // Total AP shouldn't exceed AR (healthy business)
-    sum(bills.totalAmount) <= sum(invoices.totalAmount) * 1.5,
-
-    // Payments shouldn't exceed invoice totals
+    sum(bills.totalAmount) <= sum(invoices.totalAmount) * 1.5,  // AP shouldn't exceed AR
     sum(payments.amount) <= sum(invoices.totalAmount),
-
-    // Some invoices should be paid (shows collection ability)
     some(invoices, .status == "Paid"),
-
-    // No invoice should be overpaid
     all(invoices, .amountDue >= 0),
-
-    // No bill should be overpaid
     all(bills, .amountDue >= 0)
   }
 }

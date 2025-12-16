@@ -1,18 +1,11 @@
-// Example: Hard constraints and conditional constraints
-
 schema Invoice {
   issued_date: int in 1..20,
   due_date: int in 1..30,
   status: "draft" | "sent" | "paid" | "overdue",
   amount: int in 100..10000,
 
-  // Hard constraint: due date must be after issued date
-  assume due_date >= issued_date,
-
-  // Conditional constraint: if paid, amount must be positive
-  assume if status == "paid" {
-    amount > 0
-  }
+  assume due_date >= issued_date,  // hard constraint
+  assume if status == "paid" { amount > 0 }  // conditional constraint
 }
 
 schema Company {
@@ -20,11 +13,7 @@ schema Company {
   founded: int in 1980..2023,
   employee_count: int in 1..10000,
 
-  // Conditional constraint: SaaS companies founded after 2000 with fewer employees
-  assume if industry == "saas" {
-    founded > 2000,
-    employee_count < 1000
-  }
+  assume if industry == "saas" { founded > 2000, employee_count < 1000 }
 }
 
 schema Product {
@@ -32,8 +21,7 @@ schema Product {
   price: int in 10..500,
   discount: int in 0..50,
 
-  // Constraint with logical operators
-  assume price > 50 or category == "budget",
+  assume price > 50 or category == "budget",  // logical operators
   assume not discount > 40
 }
 
