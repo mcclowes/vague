@@ -1,61 +1,64 @@
 # Vague Language - TODO
 
-## MVP Completion
+## Completed
 
-- [ ] **Parent references** - `^company.currency` syntax for inheriting from parent scope
-- [ ] **`any of` expressions** - `customer: any of companies` for referencing collection items
-- [ ] **Per-parent cardinality** - `invoices: 50..500 per company * Invoice`
-- [ ] **OpenAPI import resolution** - Actually load and use imported schemas
-- [ ] **Computed field evaluation** - `total: = sum(line_items.amount)` should calculate
-- [ ] **Hard constraints** - `constraints { issue_date < due_date }` with rejection sampling
-- [ ] **Conditional fields** - `paid_date: date when status == "paid"`
+- [x] **Parent references** - `^currency` syntax for inheriting from parent scope
+- [x] **`any of` expressions** - `customer: any of companies` for referencing collection items
+- [x] **Filtered references** - `any of companies where .active == true`
+- [x] **Computed field evaluation** - `total: = sum(line_items.amount)` with aggregates
+- [x] **Hard constraints** - `assume due_date >= issued_date` with rejection sampling
+- [x] **Conditional constraints** - `assume if status == "paid" { ... }`
+- [x] **Logical operators** - `and`, `or`, `not` in constraints
+- [x] **Aggregate functions** - `sum()`, `count()`, `min()`, `max()`, `avg()`
+- [x] **Path expressions** - `line_items.amount` traverses into collections
+- [x] **Markov chain strings** - Context-aware realistic text generation
+
+## Next Up
+
+- [ ] **Faker plugin** - `import faker from "vague-faker"` for semantic types
+- [ ] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
+- [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
 
 ## Data Quality
 
-- [x] **Markov chain strings** - Generate realistic text using Markov chains
-- [ ] **Faker integration** - `name: faker.company` for realistic strings
 - [ ] **Decimal precision** - Round decimals appropriately for currency etc.
 - [ ] **Date formatting** - ISO 8601 output, configurable formats
 - [ ] **Unique values** - Ensure IDs/references are unique where needed
+- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`
 
 ## Context System
 
 - [ ] **Context definitions** - Parse and store context affects clauses
 - [ ] **Context application** - `with Geography("en_GB")` actually influences generation
 - [ ] **Context inheritance** - Child records inherit parent context
-- [ ] **Context composition** - Multiple contexts combine correctly
 
 ## Distributions
 
 - [ ] **Distribution application** - `age: int ~ AgeStructure` uses defined distribution
-- [ ] **Soft constraints** - `total ~ 1000` biases toward value without hard requirement
-- [ ] **Correlation** - `industry ~ occupation` for correlated field generation
+- [ ] **Soft constraints** - Probabilistic constraint weighting
 
 ## Validation
 
 - [ ] **Dataset-wide validation** - `validate { sum(invoices.total) in 100_000..500_000 }`
-- [ ] **Constraint checking** - Validate generated data meets hard constraints
-- [ ] **Regeneration on failure** - Retry generation when constraints fail
+- [ ] **Aggregate constraints** - Balance debits/credits across records
+
+## Constraint Solving
+
+- [ ] **Smart generation order** - Topological sort of field dependencies
+- [ ] **Constraint analysis** - Warn on unsatisfiable constraints
+- [ ] **SMT solver** - Z3 integration for complex constraints
 
 ## Output & Tooling
 
 - [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
 - [ ] **Seed support** - `--seed 123` for reproducible generation
 - [ ] **Watch mode** - Regenerate on file change
-- [ ] **Schema validation** - Validate output against JSON Schema
-- [ ] **Error messages** - Better parse error locations and suggestions
-
-## Language Features (V2+)
-
-- [ ] **Match expressions** - `match locale { "en_GB" => "GBP", ... }`
-- [ ] **Structured generation** - Household structures with relationships
-- [ ] **Previous reference** - `date: > previous.date` for sequential coherence
-- [ ] **SMT solver integration** - For tightly coupled constraints
-- [ ] **Iterative refinement** - For dataset-wide balancing
+- [ ] **Better error messages** - Parse error locations and suggestions
 
 ## Technical Debt
 
 - [ ] **Type safety in generator** - Reduce `unknown` and `any` usage
 - [ ] **Error recovery in parser** - Continue parsing after errors
-- [ ] **Source maps** - Map generated output back to .vague source
 - [ ] **LSP server** - Language server for editor support
+
+See ROADMAP.md for detailed implementation plans.
