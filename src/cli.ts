@@ -2,8 +2,13 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { compile } from "./index.js";
+import { compile, registerPlugin } from "./index.js";
 import { SchemaValidator } from "./validator/index.js";
+import { fakerPlugin, fakerShorthandPlugin } from "./plugins/index.js";
+
+// Register faker plugins automatically
+registerPlugin(fakerPlugin);
+registerPlugin(fakerShorthandPlugin);
 
 interface ValidationMapping {
   [collection: string]: string;

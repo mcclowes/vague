@@ -1,4 +1,11 @@
-export { Generator, GeneratorContext } from "./generator.js";
+export {
+  Generator,
+  GeneratorContext,
+  registerPlugin,
+  getRegisteredPlugins,
+  type VaguePlugin,
+  type GeneratorFunction,
+} from "./generator.js";
 export {
   MarkovChain,
   CharMarkov,

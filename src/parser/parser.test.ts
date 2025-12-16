@@ -456,4 +456,81 @@ describe("Parser", () => {
       }
     });
   });
+
+  describe("generator types", () => {
+    it("parses simple generator type with parens", () => {
+      const ast = parse(`
+        schema User {
+          id: uuid()
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === "SchemaDefinition") {
+        expect(schema.fields[0].fieldType).toMatchObject({
+          type: "GeneratorType",
+          name: "uuid",
+          arguments: [],
+        });
+      }
+    });
+
+    it("parses qualified generator type", () => {
+      const ast = parse(`
+        schema User {
+          email: faker.internet.email()
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === "SchemaDefinition") {
+        expect(schema.fields[0].fieldType).toMatchObject({
+          type: "GeneratorType",
+          name: "faker.internet.email",
+          arguments: [],
+        });
+      }
+    });
+
+    it("parses generator type with arguments", () => {
+      const ast = parse(`
+        schema User {
+          phone: phone("US", true)
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === "SchemaDefinition") {
+        expect(schema.fields[0].fieldType).toMatchObject({
+          type: "GeneratorType",
+          name: "phone",
+        });
+        const genType = schema.fields[0].fieldType as { arguments: unknown[] };
+        expect(genType.arguments).toHaveLength(2);
+      }
+    });
+
+    it("distinguishes generator types from schema references", () => {
+      const ast = parse(`
+        schema LineItem {
+          amount: int
+        }
+        schema Invoice {
+          items: 1..5 * LineItem
+        }
+      `);
+
+      const invoice = ast.statements[1];
+      if (invoice.type === "SchemaDefinition") {
+        // LineItem should be a ReferenceType, not GeneratorType
+        const fieldType = invoice.fields[0].fieldType;
+        if (fieldType.type === "CollectionType") {
+          expect(fieldType.elementType).toMatchObject({
+            type: "ReferenceType",
+            path: { parts: ["LineItem"] },
+          });
+        }
+      }
+    });
+  });
 });

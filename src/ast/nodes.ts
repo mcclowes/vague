@@ -97,7 +97,8 @@ export type FieldType =
   | SuperpositionType
   | RangeType
   | CollectionType
-  | ExpressionType;
+  | ExpressionType
+  | GeneratorType;
 
 export interface ExpressionType {
   type: "ExpressionType";
@@ -107,6 +108,13 @@ export interface ExpressionType {
 export interface PrimitiveType {
   type: "PrimitiveType";
   name: "int" | "decimal" | "string" | "date" | "boolean";
+}
+
+// Plugin-provided generator: uuid, email, faker.company(), etc.
+export interface GeneratorType {
+  type: "GeneratorType";
+  name: string; // Full name including namespace: "uuid", "faker.company"
+  arguments: Expression[]; // Optional arguments: phone("US")
 }
 
 export interface ReferenceType {

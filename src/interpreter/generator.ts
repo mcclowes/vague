@@ -17,9 +17,35 @@ import {
   AssumeClause,
   FieldType,
   Cardinality,
+  GeneratorType,
 } from "../ast/index.js";
 import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
 import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
+
+// Plugin system types
+export type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
+
+export interface VaguePlugin {
+  name: string;
+  generators: Record<string, GeneratorFunction>;
+}
+
+// Global plugin registry
+const pluginRegistry: Map<string, VaguePlugin> = new Map();
+
+/**
+ * Register a plugin with the generator
+ */
+export function registerPlugin(plugin: VaguePlugin): void {
+  pluginRegistry.set(plugin.name, plugin);
+}
+
+/**
+ * Get all registered plugins
+ */
+export function getRegisteredPlugins(): string[] {
+  return Array.from(pluginRegistry.keys());
+}
 
 export interface GeneratorContext {
   schemas: Map<string, SchemaDefinition>;
@@ -308,9 +334,51 @@ export class Generator {
       case "ExpressionType":
         return this.evaluateExpression(fieldType.expression);
 
+      case "GeneratorType":
+        return this.generateFromPlugin(fieldType);
+
       default:
         return null;
     }
+  }
+
+  private generateFromPlugin(genType: GeneratorType): unknown {
+    const { name, arguments: args } = genType;
+
+    // Evaluate arguments
+    const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+
+    // Try to find generator: "faker.person.firstName" -> plugin "faker", generator "person.firstName"
+    // Or simple: "uuid" -> any plugin with generator "uuid"
+    const parts = name.split(".");
+
+    if (parts.length > 1) {
+      // Qualified name: faker.person.firstName
+      const pluginName = parts[0];
+      const generatorPath = parts.slice(1).join(".");
+
+      const plugin = pluginRegistry.get(pluginName);
+      if (plugin) {
+        const generator = plugin.generators[generatorPath];
+        if (generator) {
+          return generator(evaluatedArgs, this.ctx);
+        }
+        throw new Error(`Generator '${generatorPath}' not found in plugin '${pluginName}'`);
+      }
+      throw new Error(`Plugin '${pluginName}' not registered. Use registerPlugin() to register it.`);
+    }
+
+    // Simple name: uuid - search all plugins
+    for (const plugin of pluginRegistry.values()) {
+      const generator = plugin.generators[name];
+      if (generator) {
+        return generator(evaluatedArgs, this.ctx);
+      }
+    }
+
+    throw new Error(
+      `Generator '${name}' not found. Register a plugin that provides it using registerPlugin().`
+    );
   }
 
   private generatePrimitive(

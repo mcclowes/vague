@@ -35,6 +35,7 @@ import {
   AssumeClause,
   LogicalExpression,
   NotExpression,
+  GeneratorType,
 } from "../ast/index.js";
 
 export class Parser {
@@ -203,20 +204,27 @@ export class Parser {
 
   private parseFieldType(): FieldType {
     // Check for primitive types with range: int in 18..65
+    // Also handles generator types: uuid(), faker.email()
     if (this.checkPrimitive()) {
-      const primitive = this.parsePrimitiveType();
+      const primitiveOrGenerator = this.parsePrimitiveType();
 
-      if (this.match(TokenType.IN)) {
-        const range = this.parseRangeExpression();
-        return {
-          type: "RangeType",
-          baseType: primitive,
-          min: range.min,
-          max: range.max,
-        } as RangeType;
+      // If null, the identifier wasn't a primitive or generator - fall through to expression
+      if (primitiveOrGenerator !== null) {
+        if (this.match(TokenType.IN)) {
+          const range = this.parseRangeExpression();
+          if (primitiveOrGenerator.type !== "PrimitiveType") {
+            throw this.error("Range type requires a primitive base type (int, decimal, date)");
+          }
+          return {
+            type: "RangeType",
+            baseType: primitiveOrGenerator,
+            min: range.min,
+            max: range.max,
+          } as RangeType;
+        }
+
+        return primitiveOrGenerator;
       }
-
-      return primitive;
     }
 
     // Check for cardinality: 100 * Company or 1..10 * LineItem
@@ -273,7 +281,7 @@ export class Parser {
     return { type: "Cardinality", min, max: min };
   }
 
-  private parsePrimitiveType(): PrimitiveType {
+  private parsePrimitiveType(): PrimitiveType | GeneratorType | null {
     if (this.match(TokenType.INT)) return { type: "PrimitiveType", name: "int" };
     if (this.match(TokenType.DECIMAL)) return { type: "PrimitiveType", name: "decimal" };
     if (this.match(TokenType.DATE)) return { type: "PrimitiveType", name: "date" };
@@ -282,16 +290,51 @@ export class Parser {
     if (id === "string") return { type: "PrimitiveType", name: "string" };
     if (id === "boolean") return { type: "PrimitiveType", name: "boolean" };
 
-    throw this.error(`Unknown primitive type: ${id}`);
+    // Check if this is a generator type: qualified (faker.uuid) or with args (uuid())
+    // Otherwise return null to let caller treat as schema reference
+    let name = id;
+    let isGenerator = false;
+
+    // Handle qualified names: faker.uuid, faker.person.firstName
+    if (this.check(TokenType.DOT)) {
+      isGenerator = true;
+      while (this.match(TokenType.DOT)) {
+        const part = this.consume(TokenType.IDENTIFIER, "Expected identifier after '.'").value;
+        name += "." + part;
+      }
+    }
+
+    // Handle arguments: phone("US"), uuid()
+    const args: Expression[] = [];
+    if (this.check(TokenType.LPAREN)) {
+      isGenerator = true;
+      this.advance(); // consume LPAREN
+      if (!this.check(TokenType.RPAREN)) {
+        do {
+          args.push(this.parseExpression());
+        } while (this.match(TokenType.COMMA));
+      }
+      this.consume(TokenType.RPAREN, "Expected ')' after arguments");
+    }
+
+    if (isGenerator) {
+      return { type: "GeneratorType", name, arguments: args };
+    }
+
+    // Bare identifier - not a primitive, not a generator, return null
+    // Caller should handle as schema reference
+    // But we need to "unconsume" the identifier - restore position
+    this.pos--;
+    return null;
   }
 
   private checkPrimitive(): boolean {
+    // Accept any identifier as a potential type (primitives or generators)
     return (
       this.check(TokenType.INT) ||
       this.check(TokenType.DECIMAL) ||
       this.check(TokenType.DATE) ||
-      (this.check(TokenType.IDENTIFIER) &&
-        (this.peek().value === "string" || this.peek().value === "boolean"))
+      this.check(TokenType.IDENTIFIER)
     );
   }
 
