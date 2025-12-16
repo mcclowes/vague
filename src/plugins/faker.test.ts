@@ -1,14 +1,14 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { compile, registerPlugin } from "../index.js";
-import { fakerPlugin, fakerShorthandPlugin } from "./faker.js";
+import { describe, it, expect, beforeAll } from 'vitest';
+import { compile, registerPlugin } from '../index.js';
+import { fakerPlugin, fakerShorthandPlugin } from './faker.js';
 
-describe("Faker Plugin", () => {
+describe('Faker Plugin', () => {
   beforeAll(() => {
     registerPlugin(fakerPlugin);
     registerPlugin(fakerShorthandPlugin);
   });
 
-  it("generates UUID with faker.string.uuid()", async () => {
+  it('generates UUID with faker.string.uuid()', async () => {
     const source = `
       schema User {
         id: faker.string.uuid()
@@ -24,13 +24,11 @@ describe("Faker Plugin", () => {
     expect(result.users).toHaveLength(5);
     for (const user of result.users) {
       const u = user as Record<string, unknown>;
-      expect(u.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      );
+      expect(u.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     }
   });
 
-  it("generates email with faker.internet.email()", async () => {
+  it('generates email with faker.internet.email()', async () => {
     const source = `
       schema User {
         email: faker.internet.email()
@@ -49,7 +47,7 @@ describe("Faker Plugin", () => {
     }
   });
 
-  it("generates person names with faker.person", async () => {
+  it('generates person names with faker.person', async () => {
     const source = `
       schema User {
         firstName: faker.person.firstName(),
@@ -66,14 +64,14 @@ describe("Faker Plugin", () => {
 
     for (const user of result.users) {
       const u = user as Record<string, unknown>;
-      expect(typeof u.firstName).toBe("string");
-      expect(typeof u.lastName).toBe("string");
-      expect(typeof u.fullName).toBe("string");
+      expect(typeof u.firstName).toBe('string');
+      expect(typeof u.lastName).toBe('string');
+      expect(typeof u.fullName).toBe('string');
       expect((u.firstName as string).length).toBeGreaterThan(0);
     }
   });
 
-  it("generates company data with faker.company", async () => {
+  it('generates company data with faker.company', async () => {
     const source = `
       schema Company {
         name: faker.company.name(),
@@ -89,12 +87,12 @@ describe("Faker Plugin", () => {
 
     for (const company of result.companies) {
       const c = company as Record<string, unknown>;
-      expect(typeof c.name).toBe("string");
-      expect(typeof c.catchPhrase).toBe("string");
+      expect(typeof c.name).toBe('string');
+      expect(typeof c.catchPhrase).toBe('string');
     }
   });
 
-  it("generates dates with shorthand", async () => {
+  it('generates dates with shorthand', async () => {
     // Note: faker.date.* cannot be used because "date" is a reserved keyword
     // Use the shorthand generators instead
     const source = `
@@ -120,7 +118,7 @@ describe("Faker Plugin", () => {
     }
   });
 
-  it("generates finance data with faker.finance", async () => {
+  it('generates finance data with faker.finance', async () => {
     const source = `
       schema Account {
         iban: faker.finance.iban(),
@@ -136,14 +134,14 @@ describe("Faker Plugin", () => {
 
     for (const account of result.accounts) {
       const a = account as Record<string, unknown>;
-      expect(typeof a.iban).toBe("string");
+      expect(typeof a.iban).toBe('string');
       expect((a.iban as string).length).toBeGreaterThan(10);
-      expect(typeof a.currencyCode).toBe("string");
+      expect(typeof a.currencyCode).toBe('string');
       expect((a.currencyCode as string).length).toBe(3);
     }
   });
 
-  it("generates location data with faker.location", async () => {
+  it('generates location data with faker.location', async () => {
     const source = `
       schema Address {
         street: faker.location.streetAddress(),
@@ -160,14 +158,14 @@ describe("Faker Plugin", () => {
 
     for (const address of result.addresses) {
       const a = address as Record<string, unknown>;
-      expect(typeof a.street).toBe("string");
-      expect(typeof a.city).toBe("string");
-      expect(typeof a.country).toBe("string");
+      expect(typeof a.street).toBe('string');
+      expect(typeof a.city).toBe('string');
+      expect(typeof a.country).toBe('string');
     }
   });
 
-  describe("shorthand generators", () => {
-    it("generates UUID with shorthand uuid()", async () => {
+  describe('shorthand generators', () => {
+    it('generates UUID with shorthand uuid()', async () => {
       const source = `
         schema User {
           id: uuid()
@@ -182,13 +180,11 @@ describe("Faker Plugin", () => {
 
       for (const user of result.users) {
         const u = user as Record<string, unknown>;
-        expect(u.id).toMatch(
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        );
+        expect(u.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       }
     });
 
-    it("generates email with shorthand email()", async () => {
+    it('generates email with shorthand email()', async () => {
       const source = `
         schema User {
           email: email()
@@ -207,7 +203,7 @@ describe("Faker Plugin", () => {
       }
     });
 
-    it("generates names with shorthand", async () => {
+    it('generates names with shorthand', async () => {
       const source = `
         schema User {
           firstName: firstName(),
@@ -224,14 +220,14 @@ describe("Faker Plugin", () => {
 
       for (const user of result.users) {
         const u = user as Record<string, unknown>;
-        expect(typeof u.firstName).toBe("string");
-        expect(typeof u.lastName).toBe("string");
-        expect(typeof u.fullName).toBe("string");
+        expect(typeof u.firstName).toBe('string');
+        expect(typeof u.lastName).toBe('string');
+        expect(typeof u.fullName).toBe('string');
       }
     });
   });
 
-  it("works with other field types in same schema", async () => {
+  it('works with other field types in same schema', async () => {
     const source = `
       schema User {
         id: uuid(),
@@ -255,8 +251,8 @@ describe("Faker Plugin", () => {
       expect(u.email).toMatch(/@/);
       expect(u.age).toBeGreaterThanOrEqual(18);
       expect(u.age).toBeLessThanOrEqual(65);
-      expect(["active", "inactive"]).toContain(u.status);
-      expect(typeof u.isAdmin).toBe("boolean");
+      expect(['active', 'inactive']).toContain(u.status);
+      expect(typeof u.isAdmin).toBe('boolean');
     }
   });
 });

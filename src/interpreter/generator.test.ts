@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { compile } from "../index.js";
+import { describe, it, expect } from 'vitest';
+import { compile } from '../index.js';
 
-describe("Generator", () => {
-  it("generates simple dataset", async () => {
+describe('Generator', () => {
+  it('generates simple dataset', async () => {
     const source = `
       schema Company {
         name: string
@@ -17,12 +17,12 @@ describe("Generator", () => {
 
     expect(result.companies).toHaveLength(5);
     for (const company of result.companies) {
-      expect(company).toHaveProperty("name");
-      expect(typeof (company as Record<string, unknown>).name).toBe("string");
+      expect(company).toHaveProperty('name');
+      expect(typeof (company as Record<string, unknown>).name).toBe('string');
     }
   });
 
-  it("generates with range cardinality", async () => {
+  it('generates with range cardinality', async () => {
     const source = `
       schema Item {
         value: int
@@ -39,7 +39,7 @@ describe("Generator", () => {
     expect(result.items.length).toBeLessThanOrEqual(7);
   });
 
-  it("generates int in range", async () => {
+  it('generates int in range', async () => {
     const source = `
       schema Person {
         age: int in 18..65
@@ -59,7 +59,7 @@ describe("Generator", () => {
     }
   });
 
-  it("generates superposition values", async () => {
+  it('generates superposition values', async () => {
     const source = `
       schema Invoice {
         status: "draft" | "sent" | "paid"
@@ -72,21 +72,17 @@ describe("Generator", () => {
 
     const result = await compile(source);
 
-    const statuses = new Set(
-      result.invoices.map((i) => (i as Record<string, unknown>).status)
-    );
+    const statuses = new Set(result.invoices.map((i) => (i as Record<string, unknown>).status));
 
     // With 20 samples, we should see multiple values
     expect(statuses.size).toBeGreaterThan(0);
 
     for (const invoice of result.invoices) {
-      expect(["draft", "sent", "paid"]).toContain(
-        (invoice as Record<string, unknown>).status
-      );
+      expect(['draft', 'sent', 'paid']).toContain((invoice as Record<string, unknown>).status);
     }
   });
 
-  it("generates weighted superposition values", async () => {
+  it('generates weighted superposition values', async () => {
     const source = `
       schema Invoice {
         status: 0.9: "paid" | 0.1: "draft"
@@ -101,7 +97,7 @@ describe("Generator", () => {
 
     let paidCount = 0;
     for (const invoice of result.invoices) {
-      if ((invoice as Record<string, unknown>).status === "paid") {
+      if ((invoice as Record<string, unknown>).status === 'paid') {
         paidCount++;
       }
     }
@@ -110,7 +106,7 @@ describe("Generator", () => {
     expect(paidCount).toBeGreaterThan(70);
   });
 
-  it("generates nullable fields with question mark shorthand", async () => {
+  it('generates nullable fields with question mark shorthand', async () => {
     const source = `
       schema Item {
         name: string,
@@ -128,9 +124,9 @@ describe("Generator", () => {
     let withNull = 0;
 
     for (const item of result.items) {
-      const i = item as { name: string, notes: string | null };
+      const i = item as { name: string; notes: string | null };
       // Field should always exist with new nullable semantics
-      expect("notes" in i).toBe(true);
+      expect('notes' in i).toBe(true);
       if (i.notes === null) {
         withNull++;
       } else {
@@ -143,7 +139,7 @@ describe("Generator", () => {
     expect(withNull).toBeGreaterThan(0);
   });
 
-  it("generates null values in superposition", async () => {
+  it('generates null values in superposition', async () => {
     const source = `
       schema User {
         name: string,
@@ -161,7 +157,7 @@ describe("Generator", () => {
     let withNull = 0;
 
     for (const user of result.users) {
-      const u = user as { name: string, nickname: string | null };
+      const u = user as { name: string; nickname: string | null };
       if (u.nickname === null) {
         withNull++;
       } else {
@@ -174,7 +170,7 @@ describe("Generator", () => {
     expect(withNull).toBeGreaterThan(0);
   });
 
-  it("generates nullable fields with question mark syntax", async () => {
+  it('generates nullable fields with question mark syntax', async () => {
     const source = `
       schema User {
         name: string,
@@ -195,7 +191,7 @@ describe("Generator", () => {
     let ageSet = 0;
 
     for (const user of result.users) {
-      const u = user as { name: string, bio: string | null, age: number | null };
+      const u = user as { name: string; bio: string | null; age: number | null };
       if (u.bio === null) bioNull++;
       else bioSet++;
       if (u.age === null) ageNull++;
@@ -209,7 +205,7 @@ describe("Generator", () => {
     expect(ageSet).toBeGreaterThan(0);
   });
 
-  it("generates range with alternative value superposition", async () => {
+  it('generates range with alternative value superposition', async () => {
     const source = `
       schema Item {
         base_price: 100,
@@ -227,7 +223,7 @@ describe("Generator", () => {
     let fromBase = 0;
 
     for (const item of result.items) {
-      const i = item as { base_price: number, price: number };
+      const i = item as { base_price: number; price: number };
       if (i.price === 100) {
         fromBase++;
       } else if (i.price >= 10 && i.price <= 50) {
@@ -240,7 +236,7 @@ describe("Generator", () => {
     expect(fromBase).toBeGreaterThan(0);
   });
 
-  it("generates weighted range with alternative value superposition", async () => {
+  it('generates weighted range with alternative value superposition', async () => {
     const source = `
       schema Item {
         base_price: 100,
@@ -258,7 +254,7 @@ describe("Generator", () => {
     let fromBase = 0;
 
     for (const item of result.items) {
-      const i = item as { base_price: number, price: number };
+      const i = item as { base_price: number; price: number };
       if (i.price === 100) {
         fromBase++;
       } else if (i.price >= 10 && i.price <= 50) {
@@ -273,7 +269,7 @@ describe("Generator", () => {
     expect(fromRange).toBeGreaterThan(fromBase);
   });
 
-  it("generates weighted range superposition with field reference", async () => {
+  it('generates weighted range superposition with field reference', async () => {
     const source = `
       schema Invoice {
         total: int in 100..1000
@@ -296,7 +292,7 @@ describe("Generator", () => {
     let fullPayments = 0;
 
     for (const payment of result.payments) {
-      const p = payment as { invoice: { total: number }, amount: number };
+      const p = payment as { invoice: { total: number }; amount: number };
       if (p.amount >= 10 && p.amount <= 100) {
         smallPayments++;
       } else if (p.amount === p.invoice.total) {
@@ -309,7 +305,7 @@ describe("Generator", () => {
     expect(fullPayments).toBeGreaterThan(0);
   });
 
-  it("generates boolean literals correctly", async () => {
+  it('generates boolean literals correctly', async () => {
     const source = `
       schema Config {
         enabled: true | false,
@@ -327,7 +323,7 @@ describe("Generator", () => {
     let falseCount = 0;
 
     for (const config of result.configs) {
-      const c = config as { enabled: boolean, debug: boolean };
+      const c = config as { enabled: boolean; debug: boolean };
       if (c.enabled === true) trueCount++;
       if (c.enabled === false) falseCount++;
       expect(c.debug).toBe(false);
@@ -338,7 +334,7 @@ describe("Generator", () => {
     expect(falseCount).toBeGreaterThan(0);
   });
 
-  it("generates collection fields", async () => {
+  it('generates collection fields', async () => {
     const source = `
       schema LineItem {
         amount: decimal
@@ -361,13 +357,13 @@ describe("Generator", () => {
       expect(items.length).toBeLessThanOrEqual(5);
 
       for (const item of items) {
-        expect(item).toHaveProperty("amount");
-        expect(typeof (item as Record<string, unknown>).amount).toBe("number");
+        expect(item).toHaveProperty('amount');
+        expect(typeof (item as Record<string, unknown>).amount).toBe('number');
       }
     }
   });
 
-  it("generates dates in range", async () => {
+  it('generates dates in range', async () => {
     const source = `
       schema Company {
         created: date in 2020..2023
@@ -382,13 +378,13 @@ describe("Generator", () => {
 
     for (const company of result.companies) {
       const created = (company as Record<string, unknown>).created as string;
-      const year = parseInt(created.split("-")[0], 10);
+      const year = parseInt(created.split('-')[0], 10);
       expect(year).toBeGreaterThanOrEqual(2020);
       expect(year).toBeLessThanOrEqual(2023);
     }
   });
 
-  it("handles multiple collections", async () => {
+  it('handles multiple collections', async () => {
     const source = `
       schema Company {
         name: string
@@ -410,8 +406,8 @@ describe("Generator", () => {
     expect(result.invoices).toHaveLength(10);
   });
 
-  describe("cross-record references", () => {
-    it("resolves any of collection reference", async () => {
+  describe('cross-record references', () => {
+    it('resolves any of collection reference', async () => {
       const source = `
         schema Company {
           name: string,
@@ -438,7 +434,7 @@ describe("Generator", () => {
       }
     });
 
-    it("resolves any of with where clause", async () => {
+    it('resolves any of with where clause', async () => {
       const source = `
         schema Company {
           name: string,
@@ -459,14 +455,17 @@ describe("Generator", () => {
 
       // Each invoice's tech_customer should be a tech company (or null if none exist)
       for (const invoice of result.invoices) {
-        const customer = (invoice as Record<string, unknown>).tech_customer as Record<string, unknown> | null;
+        const customer = (invoice as Record<string, unknown>).tech_customer as Record<
+          string,
+          unknown
+        > | null;
         if (customer) {
-          expect(customer.industry).toBe("tech");
+          expect(customer.industry).toBe('tech');
         }
       }
     });
 
-    it("resolves parent reference in nested schema", async () => {
+    it('resolves parent reference in nested schema', async () => {
       const source = `
         schema LineItem {
           parent_currency: = ^currency
@@ -496,8 +495,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("constraints", () => {
-    it("enforces simple assume constraint", async () => {
+  describe('constraints', () => {
+    it('enforces simple assume constraint', async () => {
       const source = `
         schema Item {
           min_val: int in 1..50,
@@ -518,7 +517,7 @@ describe("Generator", () => {
       }
     });
 
-    it("enforces conditional assume if constraint", async () => {
+    it('enforces conditional assume if constraint', async () => {
       const source = `
         schema Company {
           industry: "saas" | "manufacturing",
@@ -537,14 +536,14 @@ describe("Generator", () => {
 
       for (const company of result.companies) {
         const c = company as Record<string, unknown>;
-        if (c.industry === "saas") {
+        if (c.industry === 'saas') {
           expect(c.founded).toBeGreaterThan(2000);
         }
         // Manufacturing companies can have any founded year
       }
     });
 
-    it("enforces logical and constraint", async () => {
+    it('enforces logical and constraint', async () => {
       const source = `
         schema Product {
           price: int in 1..1000,
@@ -566,7 +565,7 @@ describe("Generator", () => {
       }
     });
 
-    it("enforces logical or constraint", async () => {
+    it('enforces logical or constraint', async () => {
       const source = `
         schema Item {
           category: "premium" | "basic",
@@ -584,13 +583,13 @@ describe("Generator", () => {
       for (const item of result.items) {
         const i = item as Record<string, unknown>;
         // Either category is premium OR price is less than 100
-        const isPremium = i.category === "premium";
+        const isPremium = i.category === 'premium';
         const isLowPrice = (i.price as number) < 100;
         expect(isPremium || isLowPrice).toBe(true);
       }
     });
 
-    it("enforces not constraint", async () => {
+    it('enforces not constraint', async () => {
       const source = `
         schema Invoice {
           status: "paid" | "pending" | "cancelled",
@@ -606,11 +605,11 @@ describe("Generator", () => {
 
       for (const invoice of result.invoices) {
         const i = invoice as Record<string, unknown>;
-        expect(i.status).not.toBe("cancelled");
+        expect(i.status).not.toBe('cancelled');
       }
     });
 
-    it("enforces multiple assume clauses", async () => {
+    it('enforces multiple assume clauses', async () => {
       const source = `
         schema Order {
           quantity: int in 1..100,
@@ -633,7 +632,7 @@ describe("Generator", () => {
       }
     });
 
-    it("enforces multiple constraints in assume if block", async () => {
+    it('enforces multiple constraints in assume if block', async () => {
       const source = `
         schema Company {
           tier: "enterprise" | "startup",
@@ -654,7 +653,7 @@ describe("Generator", () => {
 
       for (const company of result.companies) {
         const c = company as Record<string, unknown>;
-        if (c.tier === "enterprise") {
+        if (c.tier === 'enterprise') {
           expect(c.employee_count).toBeGreaterThan(500);
           expect(c.revenue).toBeGreaterThan(1000000);
         }
@@ -662,8 +661,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("computed fields", () => {
-    it("computes sum of collection field", async () => {
+  describe('computed fields', () => {
+    it('computes sum of collection field', async () => {
       const source = `
         schema LineItem {
           amount: int in 10..100
@@ -689,7 +688,7 @@ describe("Generator", () => {
       }
     });
 
-    it("computes count of collection", async () => {
+    it('computes count of collection', async () => {
       const source = `
         schema Item {
           value: int
@@ -714,7 +713,7 @@ describe("Generator", () => {
       }
     });
 
-    it("computes min and max of collection field", async () => {
+    it('computes min and max of collection field', async () => {
       const source = `
         schema Score {
           value: int in 1..100
@@ -736,13 +735,13 @@ describe("Generator", () => {
       for (const game of result.games) {
         const g = game as Record<string, unknown>;
         const scores = g.scores as Record<string, unknown>[];
-        const values = scores.map(s => s.value as number);
+        const values = scores.map((s) => s.value as number);
         expect(g.lowest).toBe(Math.min(...values));
         expect(g.highest).toBe(Math.max(...values));
       }
     });
 
-    it("computes avg of collection field", async () => {
+    it('computes avg of collection field', async () => {
       const source = `
         schema Rating {
           stars: int in 1..5
@@ -763,13 +762,13 @@ describe("Generator", () => {
       for (const product of result.products) {
         const p = product as Record<string, unknown>;
         const ratings = p.ratings as Record<string, unknown>[];
-        const values = ratings.map(r => r.stars as number);
+        const values = ratings.map((r) => r.stars as number);
         const expectedAvg = values.reduce((s, v) => s + v, 0) / values.length;
         expect(p.avg_rating).toBeCloseTo(expectedAvg);
       }
     });
 
-    it("computes arithmetic expressions", async () => {
+    it('computes arithmetic expressions', async () => {
       const source = `
         schema LineItem {
           quantity: int in 1..10,
@@ -808,8 +807,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("OpenAPI schema import", () => {
-    it("imports fields from OpenAPI spec", async () => {
+  describe('OpenAPI schema import', () => {
+    it('imports fields from OpenAPI spec', async () => {
       const source = `
         import petstore from "examples/openapi-examples-generation/petstore.json"
 
@@ -826,16 +825,16 @@ describe("Generator", () => {
       for (const pet of result.pets) {
         const p = pet as Record<string, unknown>;
         // Fields from OpenAPI spec should be generated
-        expect(p).toHaveProperty("id");
-        expect(p).toHaveProperty("name");
-        expect(p).toHaveProperty("species");
-        expect(typeof p.id).toBe("number");
-        expect(typeof p.name).toBe("string");
-        expect(["dog", "cat", "bird", "fish"]).toContain(p.species);
+        expect(p).toHaveProperty('id');
+        expect(p).toHaveProperty('name');
+        expect(p).toHaveProperty('species');
+        expect(typeof p.id).toBe('number');
+        expect(typeof p.name).toBe('string');
+        expect(['dog', 'cat', 'bird', 'fish']).toContain(p.species);
       }
     });
 
-    it("allows overriding imported fields", async () => {
+    it('allows overriding imported fields', async () => {
       const source = `
         import petstore from "examples/openapi-examples-generation/petstore.json"
 
@@ -853,15 +852,15 @@ describe("Generator", () => {
       for (const pet of result.pets) {
         const p = pet as Record<string, unknown>;
         // Base fields still exist
-        expect(p).toHaveProperty("id");
-        expect(p).toHaveProperty("name");
+        expect(p).toHaveProperty('id');
+        expect(p).toHaveProperty('name');
         // Override field has constrained range
         expect(p.age).toBeGreaterThanOrEqual(1);
         expect(p.age).toBeLessThanOrEqual(5);
       }
     });
 
-    it("allows adding custom fields to imported schema", async () => {
+    it('allows adding custom fields to imported schema', async () => {
       const source = `
         import petstore from "examples/openapi-examples-generation/petstore.json"
 
@@ -879,38 +878,38 @@ describe("Generator", () => {
       for (const owner of result.owners) {
         const o = owner as Record<string, unknown>;
         // Base fields from OpenAPI
-        expect(o).toHaveProperty("id");
-        expect(o).toHaveProperty("name");
-        expect(o).toHaveProperty("email");
+        expect(o).toHaveProperty('id');
+        expect(o).toHaveProperty('name');
+        expect(o).toHaveProperty('email');
         // Custom field
-        expect(["Gold", "Silver", "Bronze"]).toContain(o.tier);
+        expect(['Gold', 'Silver', 'Bronze']).toContain(o.tier);
       }
     });
 
-    it("generates format-aware values from OpenAPI schema", async () => {
+    it('generates format-aware values from OpenAPI schema', async () => {
       // Create a temporary OpenAPI spec with format annotations
-      const fs = await import("fs");
-      const path = await import("path");
-      const tempDir = path.join(__dirname, "../../examples/openapi-examples-generation");
-      const tempSpec = path.join(tempDir, "format-test.json");
+      const fs = await import('fs');
+      const path = await import('path');
+      const tempDir = path.join(__dirname, '../../examples/openapi-examples-generation');
+      const tempSpec = path.join(tempDir, 'format-test.json');
 
       const spec = {
-        openapi: "3.0.0",
-        info: { title: "Format Test", version: "1.0.0" },
+        openapi: '3.0.0',
+        info: { title: 'Format Test', version: '1.0.0' },
         paths: {},
         components: {
           schemas: {
             User: {
-              type: "object",
+              type: 'object',
               properties: {
-                id: { type: "string", format: "uuid" },
-                email: { type: "string", format: "email" },
-                phone: { type: "string", format: "phone" },
-                phone2: { type: "string", format: "phone-number" },
-                website: { type: "string", format: "uri" },
-                created_at: { type: "string", format: "date-time" },
-                birth_date: { type: "string", format: "date" },
-                ip_address: { type: "string", format: "ipv4" },
+                id: { type: 'string', format: 'uuid' },
+                email: { type: 'string', format: 'email' },
+                phone: { type: 'string', format: 'phone' },
+                phone2: { type: 'string', format: 'phone-number' },
+                website: { type: 'string', format: 'uri' },
+                created_at: { type: 'string', format: 'date-time' },
+                birth_date: { type: 'string', format: 'date' },
+                ip_address: { type: 'string', format: 'ipv4' },
               },
             },
           },
@@ -937,9 +936,7 @@ describe("Generator", () => {
           const u = user as Record<string, unknown>;
 
           // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-          expect(u.id).toMatch(
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-          );
+          expect(u.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
           // Email format: something@something
           expect(u.email).toMatch(/@/);
@@ -967,8 +964,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("dataset-level constraints", () => {
-    it("enforces sum constraint on collection", async () => {
+  describe('dataset-level constraints', () => {
+    it('enforces sum constraint on collection', async () => {
       const source = `
         schema Item {
           value: int in 10..50
@@ -991,7 +988,7 @@ describe("Generator", () => {
       expect(sum).toBeLessThanOrEqual(400);
     });
 
-    it("enforces count constraint on collection", async () => {
+    it('enforces count constraint on collection', async () => {
       const source = `
         schema Item { x: int }
 
@@ -1008,7 +1005,7 @@ describe("Generator", () => {
       expect(result.items.length).toBeGreaterThanOrEqual(8);
     });
 
-    it("enforces cross-collection constraint", async () => {
+    it('enforces cross-collection constraint', async () => {
       const source = `
         schema Invoice { total: int in 100..500 }
         schema Payment { amount: int in 50..200 }
@@ -1024,12 +1021,18 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const invoiceTotal = (result.invoices as { total: number }[]).reduce((s, i) => s + i.total, 0);
-      const paymentTotal = (result.payments as { amount: number }[]).reduce((s, p) => s + p.amount, 0);
+      const invoiceTotal = (result.invoices as { total: number }[]).reduce(
+        (s, i) => s + i.total,
+        0
+      );
+      const paymentTotal = (result.payments as { amount: number }[]).reduce(
+        (s, p) => s + p.amount,
+        0
+      );
       expect(paymentTotal).toBeLessThanOrEqual(invoiceTotal);
     });
 
-    it("enforces multiple validation constraints", async () => {
+    it('enforces multiple validation constraints', async () => {
       const source = `
         schema Item {
           price: int in 10..100
@@ -1047,7 +1050,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const prices = (result.items as { price: number }[]).map(i => i.price);
+      const prices = (result.items as { price: number }[]).map((i) => i.price);
       const sum = prices.reduce((s, p) => s + p, 0);
       const avg = sum / prices.length;
       const max = Math.max(...prices);
@@ -1057,7 +1060,7 @@ describe("Generator", () => {
       expect(max).toBeGreaterThanOrEqual(50);
     });
 
-    it("enforces count comparison between collections", async () => {
+    it('enforces count comparison between collections', async () => {
       const source = `
         schema A { x: int }
         schema B { y: int }
@@ -1076,7 +1079,7 @@ describe("Generator", () => {
       expect(result.bs.length).toBeLessThanOrEqual(result.as.length);
     });
 
-    it("enforces all() predicate on collection", async () => {
+    it('enforces all() predicate on collection', async () => {
       const source = `
         schema Item {
           value: int in 10..100
@@ -1098,7 +1101,7 @@ describe("Generator", () => {
       }
     });
 
-    it("enforces all() with comparison between fields", async () => {
+    it('enforces all() with comparison between fields', async () => {
       const source = `
         schema Account {
           balance: int in 100..500,
@@ -1121,7 +1124,7 @@ describe("Generator", () => {
       }
     });
 
-    it("enforces some() predicate on collection", async () => {
+    it('enforces some() predicate on collection', async () => {
       const source = `
         schema Item {
           value: int in 1..100
@@ -1138,11 +1141,11 @@ describe("Generator", () => {
       const result = await compile(source);
       const items = result.items as { value: number }[];
 
-      const hasHighValue = items.some(item => item.value >= 50);
+      const hasHighValue = items.some((item) => item.value >= 50);
       expect(hasHighValue).toBe(true);
     });
 
-    it("enforces none() predicate on collection", async () => {
+    it('enforces none() predicate on collection', async () => {
       const source = `
         schema Item {
           value: int in 1..50
@@ -1165,8 +1168,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("then blocks", () => {
-    it("mutates referenced object with simple assignment", async () => {
+  describe('then blocks', () => {
+    it('mutates referenced object with simple assignment', async () => {
       const source = `
         schema Invoice {
           id: int in 1..100,
@@ -1192,11 +1195,11 @@ describe("Generator", () => {
       // All referenced invoices should be "paid"
       const payments = result.payments as { invoice: { status: string } }[];
       for (const payment of payments) {
-        expect(payment.invoice.status).toBe("paid");
+        expect(payment.invoice.status).toBe('paid');
       }
     });
 
-    it("mutates with compound assignment (+=)", async () => {
+    it('mutates with compound assignment (+=)', async () => {
       const source = `
         schema Account {
           balance: int in 100..1000
@@ -1220,14 +1223,14 @@ describe("Generator", () => {
 
       // Each deposit should have increased account balance
       // We can't easily verify exact values, but deposits should have valid structure
-      const deposits = result.deposits as { account: { balance: number }, amount: number }[];
+      const deposits = result.deposits as { account: { balance: number }; amount: number }[];
       for (const deposit of deposits) {
         expect(deposit.account.balance).toBeGreaterThan(0);
         expect(deposit.amount).toBeGreaterThanOrEqual(10);
       }
     });
 
-    it("applies multiple mutations in then block", async () => {
+    it('applies multiple mutations in then block', async () => {
       const source = `
         schema Invoice {
           id: int in 1..100,
@@ -1252,14 +1255,17 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const payments = result.payments as { invoice: { status: string, paid_amount: number }, amount: number }[];
+      const payments = result.payments as {
+        invoice: { status: string; paid_amount: number };
+        amount: number;
+      }[];
       for (const payment of payments) {
-        expect(payment.invoice.status).toBe("paid");
+        expect(payment.invoice.status).toBe('paid');
         expect(payment.invoice.paid_amount).toBeGreaterThan(0);
       }
     });
 
-    it("mutates the actual collection object (not a copy)", async () => {
+    it('mutates the actual collection object (not a copy)', async () => {
       const source = `
         schema Invoice {
           id: int in 1..100,
@@ -1284,14 +1290,14 @@ describe("Generator", () => {
 
       // Count paid invoices in the invoices array
       const invoices = result.invoices as { status: string }[];
-      const paidCount = invoices.filter(i => i.status === "paid").length;
+      const paidCount = invoices.filter((i) => i.status === 'paid').length;
 
       // At least some invoices should be paid (from mutations)
       // Note: Could be less than 10 if some payments reference the same invoice
       expect(paidCount).toBeGreaterThan(0);
     });
 
-    it("uses ternary in then block for conditional status", async () => {
+    it('uses ternary in then block for conditional status', async () => {
       const source = `
         schema Invoice {
           id: int in 1..100,
@@ -1318,20 +1324,20 @@ describe("Generator", () => {
       const result = await compile(source);
 
       // Check that statuses are set correctly based on amount_paid vs total
-      const invoices = result.invoices as { total: number, status: string, amount_paid: number }[];
+      const invoices = result.invoices as { total: number; status: string; amount_paid: number }[];
       for (const invoice of invoices) {
         if (invoice.amount_paid >= invoice.total) {
-          expect(invoice.status).toBe("paid");
+          expect(invoice.status).toBe('paid');
         } else if (invoice.amount_paid > 0) {
-          expect(invoice.status).toBe("partially-paid");
+          expect(invoice.status).toBe('partially-paid');
         }
         // Invoices with no payments stay "unpaid"
       }
     });
   });
 
-  describe("ternary expressions", () => {
-    it("evaluates simple ternary in field", async () => {
+  describe('ternary expressions', () => {
+    it('evaluates simple ternary in field', async () => {
       const source = `
         schema Item {
           value: int in 1..100,
@@ -1345,17 +1351,17 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const items = result.items as { value: number, category: string }[];
+      const items = result.items as { value: number; category: string }[];
       for (const item of items) {
         if (item.value > 50) {
-          expect(item.category).toBe("high");
+          expect(item.category).toBe('high');
         } else {
-          expect(item.category).toBe("low");
+          expect(item.category).toBe('low');
         }
       }
     });
 
-    it("supports nested ternary expressions", async () => {
+    it('supports nested ternary expressions', async () => {
       const source = `
         schema Item {
           score: int in 0..100,
@@ -1369,19 +1375,19 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const items = result.items as { score: number, grade: string }[];
+      const items = result.items as { score: number; grade: string }[];
       for (const item of items) {
         if (item.score >= 90) {
-          expect(item.grade).toBe("A");
+          expect(item.grade).toBe('A');
         } else if (item.score >= 70) {
-          expect(item.grade).toBe("B");
+          expect(item.grade).toBe('B');
         } else {
-          expect(item.grade).toBe("C");
+          expect(item.grade).toBe('C');
         }
       }
     });
 
-    it("evaluates ternary with comparison operators", async () => {
+    it('evaluates ternary with comparison operators', async () => {
       const source = `
         schema Order {
           quantity: int in 1..20,
@@ -1395,7 +1401,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { quantity: number, discount: number }[];
+      const orders = result.orders as { quantity: number; discount: number }[];
       for (const order of orders) {
         if (order.quantity >= 10) {
           expect(order.discount).toBe(0.1);
@@ -1405,7 +1411,7 @@ describe("Generator", () => {
       }
     });
 
-    it("supports logical AND in ternary condition", async () => {
+    it('supports logical AND in ternary condition', async () => {
       const source = `
         schema Order {
           quantity: int in 1..20,
@@ -1420,7 +1426,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { quantity: number, is_premium: boolean, discount: number }[];
+      const orders = result.orders as { quantity: number; is_premium: boolean; discount: number }[];
       for (const order of orders) {
         if (order.quantity >= 10 && order.is_premium) {
           expect(order.discount).toBe(0.2);
@@ -1430,7 +1436,7 @@ describe("Generator", () => {
       }
     });
 
-    it("supports logical OR in ternary condition", async () => {
+    it('supports logical OR in ternary condition', async () => {
       const source = `
         schema Product {
           on_sale: boolean,
@@ -1445,17 +1451,21 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const products = result.products as { on_sale: boolean, low_stock: boolean, highlight: string }[];
+      const products = result.products as {
+        on_sale: boolean;
+        low_stock: boolean;
+        highlight: string;
+      }[];
       for (const product of products) {
         if (product.on_sale || product.low_stock) {
-          expect(product.highlight).toBe("featured");
+          expect(product.highlight).toBe('featured');
         } else {
-          expect(product.highlight).toBe("normal");
+          expect(product.highlight).toBe('normal');
         }
       }
     });
 
-    it("supports NOT in ternary condition", async () => {
+    it('supports NOT in ternary condition', async () => {
       const source = `
         schema User {
           is_banned: boolean,
@@ -1469,17 +1479,17 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const users = result.users as { is_banned: boolean, status: string }[];
+      const users = result.users as { is_banned: boolean; status: string }[];
       for (const user of users) {
         if (!user.is_banned) {
-          expect(user.status).toBe("active");
+          expect(user.status).toBe('active');
         } else {
-          expect(user.status).toBe("banned");
+          expect(user.status).toBe('banned');
         }
       }
     });
 
-    it("supports complex logical expressions in ternary", async () => {
+    it('supports complex logical expressions in ternary', async () => {
       const source = `
         schema Order {
           total: int in 10..200,
@@ -1495,7 +1505,12 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { total: number, is_member: boolean, has_coupon: boolean, discount: number }[];
+      const orders = result.orders as {
+        total: number;
+        is_member: boolean;
+        has_coupon: boolean;
+        discount: number;
+      }[];
       for (const order of orders) {
         if ((order.total >= 100 && order.is_member) || order.has_coupon) {
           expect(order.discount).toBe(0.15);
@@ -1506,8 +1521,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("dynamic cardinality", () => {
-    it("supports simple dynamic cardinality with ternary", async () => {
+  describe('dynamic cardinality', () => {
+    it('supports simple dynamic cardinality with ternary', async () => {
       const source = `
         schema Order {
           size: "small" | "large",
@@ -1525,9 +1540,9 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { size: string, items: unknown[] }[];
+      const orders = result.orders as { size: string; items: unknown[] }[];
       for (const order of orders) {
-        if (order.size === "large") {
+        if (order.size === 'large') {
           expect(order.items.length).toBeGreaterThanOrEqual(5);
           expect(order.items.length).toBeLessThanOrEqual(10);
         } else {
@@ -1537,7 +1552,7 @@ describe("Generator", () => {
       }
     });
 
-    it("supports dynamic cardinality with fixed numbers", async () => {
+    it('supports dynamic cardinality with fixed numbers', async () => {
       const source = `
         schema Container {
           is_bulk: boolean,
@@ -1555,7 +1570,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const containers = result.containers as { is_bulk: boolean, items: unknown[] }[];
+      const containers = result.containers as { is_bulk: boolean; items: unknown[] }[];
       for (const container of containers) {
         if (container.is_bulk) {
           expect(container.items.length).toBe(100);
@@ -1565,7 +1580,7 @@ describe("Generator", () => {
       }
     });
 
-    it("supports dynamic cardinality with logical conditions", async () => {
+    it('supports dynamic cardinality with logical conditions', async () => {
       const source = `
         schema Order {
           is_wholesale: boolean,
@@ -1584,7 +1599,11 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { is_wholesale: boolean, is_priority: boolean, items: unknown[] }[];
+      const orders = result.orders as {
+        is_wholesale: boolean;
+        is_priority: boolean;
+        items: unknown[];
+      }[];
       for (const order of orders) {
         if (order.is_wholesale && order.is_priority) {
           expect(order.items.length).toBeGreaterThanOrEqual(20);
@@ -1597,8 +1616,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("negative testing (violating)", () => {
-    it("generates data that violates schema constraints", async () => {
+  describe('negative testing (violating)', () => {
+    it('generates data that violates schema constraints', async () => {
       const source = `
         schema Invoice {
           issued_date: int in 1..20,
@@ -1615,12 +1634,12 @@ describe("Generator", () => {
       const result = await compile(source);
 
       // In violating mode, at least some invoices should have due_date < issued_date
-      const invoices = result.invoices as { issued_date: number, due_date: number }[];
-      const violating = invoices.filter(i => i.due_date < i.issued_date);
+      const invoices = result.invoices as { issued_date: number; due_date: number }[];
+      const violating = invoices.filter((i) => i.due_date < i.issued_date);
       expect(violating.length).toBeGreaterThan(0);
     });
 
-    it("generates data that violates dataset-level constraints", async () => {
+    it('generates data that violates dataset-level constraints', async () => {
       const source = `
         schema Item {
           price: int in 1..100
@@ -1643,7 +1662,7 @@ describe("Generator", () => {
       expect(total).toBeLessThan(500);
     });
 
-    it("normal dataset still satisfies constraints", async () => {
+    it('normal dataset still satisfies constraints', async () => {
       const source = `
         schema Invoice {
           issued_date: int in 1..20,
@@ -1660,15 +1679,15 @@ describe("Generator", () => {
       const result = await compile(source);
 
       // Normal mode: all invoices should satisfy the constraint
-      const invoices = result.invoices as { issued_date: number, due_date: number }[];
+      const invoices = result.invoices as { issued_date: number; due_date: number }[];
       for (const invoice of invoices) {
         expect(invoice.due_date).toBeGreaterThanOrEqual(invoice.issued_date);
       }
     });
   });
 
-  describe("decimal precision functions", () => {
-    it("round() rounds to specified decimal places", async () => {
+  describe('decimal precision functions', () => {
+    it('round() rounds to specified decimal places', async () => {
       const source = `
         schema Order {
           subtotal: decimal in 100..200,
@@ -1683,7 +1702,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const orders = result.orders as { subtotal: number, tax: number, total: number }[];
+      const orders = result.orders as { subtotal: number; tax: number; total: number }[];
       for (const order of orders) {
         // Check that tax and total have at most 2 decimal places
         expect(order.tax).toBe(Math.round(order.tax * 100) / 100);
@@ -1691,7 +1710,7 @@ describe("Generator", () => {
       }
     });
 
-    it("floor() and ceil() work correctly", async () => {
+    it('floor() and ceil() work correctly', async () => {
       const source = `
         schema Item {
           price: decimal in 10.5..20.9,
@@ -1706,7 +1725,7 @@ describe("Generator", () => {
 
       const result = await compile(source);
 
-      const items = result.items as { price: number, floored: number, ceiled: number }[];
+      const items = result.items as { price: number; floored: number; ceiled: number }[];
       for (const item of items) {
         expect(item.floored).toBeLessThanOrEqual(item.price);
         expect(item.ceiled).toBeGreaterThanOrEqual(item.price);
@@ -1714,8 +1733,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("unique fields", () => {
-    it("generates unique values for fields marked with unique", async () => {
+  describe('unique fields', () => {
+    it('generates unique values for fields marked with unique', async () => {
       const source = `
         schema Invoice {
           id: unique int in 1..100,
@@ -1730,12 +1749,12 @@ describe("Generator", () => {
       const result = await compile(source);
 
       const invoices = result.invoices as { id: number }[];
-      const ids = invoices.map(i => i.id);
+      const ids = invoices.map((i) => i.id);
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     });
 
-    it("generates unique strings", async () => {
+    it('generates unique strings', async () => {
       const source = `
         schema Item {
           code: unique "A" | "B" | "C" | "D" | "E"
@@ -1749,14 +1768,14 @@ describe("Generator", () => {
       const result = await compile(source);
 
       const items = result.items as { code: string }[];
-      const codes = items.map(i => i.code);
+      const codes = items.map((i) => i.code);
       const uniqueCodes = new Set(codes);
       expect(uniqueCodes.size).toBe(codes.length);
     });
   });
 
-  describe("distribution functions", () => {
-    it("gaussian() generates normally distributed values", async () => {
+  describe('distribution functions', () => {
+    it('gaussian() generates normally distributed values', async () => {
       const source = `
         schema Person {
           age: = gaussian(35, 10, 18, 65)
@@ -1782,7 +1801,7 @@ describe("Generator", () => {
       expect(mean).toBeLessThan(45);
     });
 
-    it("exponential() generates exponentially distributed values", async () => {
+    it('exponential() generates exponentially distributed values', async () => {
       const source = `
         schema Event {
           wait_time: = exponential(0.5, 0, 20)
@@ -1802,11 +1821,11 @@ describe("Generator", () => {
       }
 
       // Most values should be small (exponential is right-skewed)
-      const smallCount = events.filter(e => e.wait_time < 5).length;
+      const smallCount = events.filter((e) => e.wait_time < 5).length;
       expect(smallCount).toBeGreaterThan(30);
     });
 
-    it("poisson() generates count data", async () => {
+    it('poisson() generates count data', async () => {
       const source = `
         schema Day {
           events: = poisson(5)
@@ -1831,7 +1850,7 @@ describe("Generator", () => {
       expect(mean).toBeLessThan(7);
     });
 
-    it("beta() generates values between 0 and 1", async () => {
+    it('beta() generates values between 0 and 1', async () => {
       const source = `
         schema Item {
           probability: = beta(2, 5)
@@ -1856,7 +1875,7 @@ describe("Generator", () => {
       expect(mean).toBeLessThan(0.45);
     });
 
-    it("uniform() generates uniformly distributed values", async () => {
+    it('uniform() generates uniformly distributed values', async () => {
       const source = `
         schema Item {
           value: = uniform(10, 20)
@@ -1881,7 +1900,7 @@ describe("Generator", () => {
       expect(mean).toBeLessThan(17);
     });
 
-    it("lognormal() generates right-skewed values", async () => {
+    it('lognormal() generates right-skewed values', async () => {
       const source = `
         schema Salary {
           amount: = lognormal(10, 0.5, 10000, 500000)
@@ -1902,8 +1921,8 @@ describe("Generator", () => {
     });
   });
 
-  describe("date functions", () => {
-    it("today() returns current date in YYYY-MM-DD format", async () => {
+  describe('date functions', () => {
+    it('today() returns current date in YYYY-MM-DD format', async () => {
       const source = `
         schema Event {
           event_date: = today()
@@ -1921,11 +1940,11 @@ describe("Generator", () => {
       expect(event.event_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
       // Should be today's date
-      const todayStr = new Date().toISOString().split("T")[0];
+      const todayStr = new Date().toISOString().split('T')[0];
       expect(event.event_date).toBe(todayStr);
     });
 
-    it("now() returns current datetime in ISO 8601 format", async () => {
+    it('now() returns current datetime in ISO 8601 format', async () => {
       const source = `
         schema Event {
           timestamp: = now()
@@ -1944,7 +1963,7 @@ describe("Generator", () => {
       expect(new Date(event.timestamp).toISOString()).toBe(event.timestamp);
     });
 
-    it("daysAgo() returns date in the past", async () => {
+    it('daysAgo() returns date in the past', async () => {
       const source = `
         schema Event {
           past_date: = daysAgo(30)
@@ -1960,12 +1979,12 @@ describe("Generator", () => {
 
       const expected = new Date();
       expected.setDate(expected.getDate() - 30);
-      const expectedStr = expected.toISOString().split("T")[0];
+      const expectedStr = expected.toISOString().split('T')[0];
 
       expect(event.past_date).toBe(expectedStr);
     });
 
-    it("daysFromNow() returns date in the future", async () => {
+    it('daysFromNow() returns date in the future', async () => {
       const source = `
         schema Event {
           future_date: = daysFromNow(90)
@@ -1981,12 +2000,12 @@ describe("Generator", () => {
 
       const expected = new Date();
       expected.setDate(expected.getDate() + 90);
-      const expectedStr = expected.toISOString().split("T")[0];
+      const expectedStr = expected.toISOString().split('T')[0];
 
       expect(event.future_date).toBe(expectedStr);
     });
 
-    it("datetime() generates random datetime within range", async () => {
+    it('datetime() generates random datetime within range', async () => {
       const source = `
         schema Event {
           timestamp: = datetime(2020, 2022)
@@ -2007,7 +2026,7 @@ describe("Generator", () => {
       }
     });
 
-    it("dateBetween() generates random date within range", async () => {
+    it('dateBetween() generates random date within range', async () => {
       const source = `
         schema Event {
           event_date: = dateBetween("2023-06-01", "2023-06-30")
@@ -2028,7 +2047,7 @@ describe("Generator", () => {
       }
     });
 
-    it("date type generates ISO 8601 date strings", async () => {
+    it('date type generates ISO 8601 date strings', async () => {
       const source = `
         schema Event {
           created: date,
@@ -2041,7 +2060,7 @@ describe("Generator", () => {
       `;
 
       const result = await compile(source);
-      const events = result.events as { created: string, founded: string }[];
+      const events = result.events as { created: string; founded: string }[];
 
       for (const event of events) {
         // Both should be YYYY-MM-DD format
@@ -2049,15 +2068,15 @@ describe("Generator", () => {
         expect(event.founded).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
         // Founded year should be in range
-        const year = parseInt(event.founded.split("-")[0]);
+        const year = parseInt(event.founded.split('-')[0]);
         expect(year).toBeGreaterThanOrEqual(2000);
         expect(year).toBeLessThanOrEqual(2020);
       }
     });
   });
 
-  describe("sequential/stateful generation", () => {
-    it("sequence() generates auto-incrementing string values", async () => {
+  describe('sequential/stateful generation', () => {
+    it('sequence() generates auto-incrementing string values', async () => {
       const source = `
         schema Invoice {
           id: = sequence("INV-", 1001),
@@ -2070,16 +2089,16 @@ describe("Generator", () => {
       `;
 
       const result = await compile(source);
-      const invoices = result.invoices as { id: string, amount: number }[];
+      const invoices = result.invoices as { id: string; amount: number }[];
 
-      expect(invoices[0].id).toBe("INV-1001");
-      expect(invoices[1].id).toBe("INV-1002");
-      expect(invoices[2].id).toBe("INV-1003");
-      expect(invoices[3].id).toBe("INV-1004");
-      expect(invoices[4].id).toBe("INV-1005");
+      expect(invoices[0].id).toBe('INV-1001');
+      expect(invoices[1].id).toBe('INV-1002');
+      expect(invoices[2].id).toBe('INV-1003');
+      expect(invoices[3].id).toBe('INV-1004');
+      expect(invoices[4].id).toBe('INV-1005');
     });
 
-    it("sequenceInt() generates auto-incrementing integers", async () => {
+    it('sequenceInt() generates auto-incrementing integers', async () => {
       const source = `
         schema Order {
           order_num: = sequenceInt("orders", 100),
@@ -2101,7 +2120,7 @@ describe("Generator", () => {
       expect(orders[4].order_num).toBe(104);
     });
 
-    it("sequence() with default start value begins at 1", async () => {
+    it('sequence() with default start value begins at 1', async () => {
       const source = `
         schema Item {
           code: = sequence("ITEM-")
@@ -2115,12 +2134,12 @@ describe("Generator", () => {
       const result = await compile(source);
       const items = result.items as { code: string }[];
 
-      expect(items[0].code).toBe("ITEM-1");
-      expect(items[1].code).toBe("ITEM-2");
-      expect(items[2].code).toBe("ITEM-3");
+      expect(items[0].code).toBe('ITEM-1');
+      expect(items[1].code).toBe('ITEM-2');
+      expect(items[2].code).toBe('ITEM-3');
     });
 
-    it("previous() returns null for first record", async () => {
+    it('previous() returns null for first record', async () => {
       const source = `
         schema Event {
           value: int in 1..100,
@@ -2133,14 +2152,14 @@ describe("Generator", () => {
       `;
 
       const result = await compile(source);
-      const events = result.events as { value: number, prev_value: number | null }[];
+      const events = result.events as { value: number; prev_value: number | null }[];
 
       expect(events[0].prev_value).toBeNull();
       expect(events[1].prev_value).toBe(events[0].value);
       expect(events[2].prev_value).toBe(events[1].value);
     });
 
-    it("previous() enables sequential coherence", async () => {
+    it('previous() enables sequential coherence', async () => {
       const source = `
         schema TimeSeries {
           seq: = sequenceInt("ts", 1),
@@ -2154,7 +2173,7 @@ describe("Generator", () => {
       `;
 
       const result = await compile(source);
-      const series = result.series as { seq: number, timestamp: number, prev_ts: number | null }[];
+      const series = result.series as { seq: number; timestamp: number; prev_ts: number | null }[];
 
       // First has no previous
       expect(series[0].prev_ts).toBeNull();
@@ -2165,7 +2184,7 @@ describe("Generator", () => {
       }
     });
 
-    it("multiple sequences are independent", async () => {
+    it('multiple sequences are independent', async () => {
       const source = `
         schema Record {
           invoice_id: = sequence("INV-", 100),
@@ -2178,14 +2197,14 @@ describe("Generator", () => {
       `;
 
       const result = await compile(source);
-      const records = result.records as { invoice_id: string, order_id: string }[];
+      const records = result.records as { invoice_id: string; order_id: string }[];
 
-      expect(records[0].invoice_id).toBe("INV-100");
-      expect(records[0].order_id).toBe("ORD-500");
-      expect(records[1].invoice_id).toBe("INV-101");
-      expect(records[1].order_id).toBe("ORD-501");
-      expect(records[2].invoice_id).toBe("INV-102");
-      expect(records[2].order_id).toBe("ORD-502");
+      expect(records[0].invoice_id).toBe('INV-100');
+      expect(records[0].order_id).toBe('ORD-500');
+      expect(records[1].invoice_id).toBe('INV-101');
+      expect(records[1].order_id).toBe('ORD-501');
+      expect(records[2].invoice_id).toBe('INV-102');
+      expect(records[2].order_id).toBe('ORD-502');
     });
   });
 });

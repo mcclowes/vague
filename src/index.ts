@@ -1,6 +1,6 @@
-export { Lexer, Token, TokenType } from "./lexer/index.js";
-export { Parser } from "./parser/index.js";
-export * from "./ast/index.js";
+export { Lexer, Token, TokenType } from './lexer/index.js';
+export { Parser } from './parser/index.js';
+export * from './ast/index.js';
 export {
   Generator,
   registerPlugin,
@@ -10,18 +10,18 @@ export {
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
-} from "./interpreter/index.js";
-export { OpenAPILoader, ImportedSchema } from "./openapi/index.js";
+} from './interpreter/index.js';
+export { OpenAPILoader, ImportedSchema } from './openapi/index.js';
 export {
   fakerPlugin,
   fakerShorthandPlugin,
   setFakerLocale,
   setFakerSeed,
-} from "./plugins/index.js";
+} from './plugins/index.js';
 
-import { Lexer } from "./lexer/index.js";
-import { Parser } from "./parser/index.js";
-import { Generator } from "./interpreter/index.js";
+import { Lexer } from './lexer/index.js';
+import { Parser } from './parser/index.js';
+import { Generator } from './interpreter/index.js';
 
 export async function compile(source: string): Promise<Record<string, unknown[]>> {
   const lexer = new Lexer(source);

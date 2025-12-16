@@ -7,7 +7,7 @@ export {
   getSeed,
   type VaguePlugin,
   type GeneratorFunction,
-} from "./generator.js";
+} from './generator.js';
 export {
   MarkovChain,
   CharMarkov,
@@ -15,4 +15,4 @@ export {
   generateCompanyName,
   generatePersonName,
   generateProductName,
-} from "./markov.js";
+} from './markov.js';

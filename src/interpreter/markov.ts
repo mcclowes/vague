@@ -1,5 +1,5 @@
 // Markov chain text generator for realistic strings
-import { random, randomInt, randomChoice } from "./random.js";
+import { random, randomInt, randomChoice } from './random.js';
 
 // Training corpus - common English words for general text
 const WORD_CORPUS = `
@@ -51,13 +51,16 @@ export class MarkovChain {
   }
 
   train(text: string): void {
-    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+    const words = text
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 0);
 
     for (let i = 0; i < words.length - this.order; i++) {
-      const state = words.slice(i, i + this.order).join(" ");
+      const state = words.slice(i, i + this.order).join(' ');
       const next = words[i + this.order];
 
-      if (i === 0 || words[i - 1].endsWith(".")) {
+      if (i === 0 || words[i - 1].endsWith('.')) {
         this.starters.push(state);
       }
 
@@ -71,14 +74,14 @@ export class MarkovChain {
   }
 
   generate(minWords = 2, maxWords = 5): string {
-    if (this.starters.length === 0) return "";
+    if (this.starters.length === 0) return '';
 
     const targetLength = randomInt(minWords, maxWords);
     const result: string[] = [];
 
     // Pick random starter
     let state = randomChoice(this.starters);
-    result.push(...state.split(" "));
+    result.push(...state.split(' '));
 
     while (result.length < targetLength) {
       const trans = this.transitions.get(state);
@@ -88,7 +91,7 @@ export class MarkovChain {
       const total = Array.from(trans.values()).reduce((a, b) => a + b, 0);
       let r = random() * total;
 
-      let next = "";
+      let next = '';
       for (const [word, count] of trans) {
         r -= count;
         if (r <= 0) {
@@ -101,13 +104,13 @@ export class MarkovChain {
       result.push(next);
 
       // Update state
-      const stateWords = state.split(" ");
+      const stateWords = state.split(' ');
       stateWords.shift();
       stateWords.push(next);
-      state = stateWords.join(" ");
+      state = stateWords.join(' ');
     }
 
-    return result.join(" ");
+    return result.join(' ');
   }
 }
 
@@ -143,7 +146,7 @@ export class CharMarkov {
   }
 
   generate(minLen = 4, maxLen = 12): string {
-    if (this.starters.length === 0) return "";
+    if (this.starters.length === 0) return '';
 
     const targetLen = randomInt(minLen, maxLen);
 
@@ -157,7 +160,7 @@ export class CharMarkov {
       const total = Array.from(trans.values()).reduce((a, b) => a + b, 0);
       let r = random() * total;
 
-      let next = "";
+      let next = '';
       for (const [char, count] of trans) {
         r -= count;
         if (r <= 0) {
@@ -187,42 +190,172 @@ productGenerator.train(PRODUCT_CORPUS);
 
 // Character-level for names
 const nameCorpus = [
-  "james", "john", "robert", "michael", "william", "david", "richard", "joseph",
-  "thomas", "charles", "mary", "patricia", "jennifer", "linda", "elizabeth",
-  "barbara", "susan", "jessica", "sarah", "karen", "smith", "johnson", "williams",
-  "brown", "jones", "garcia", "miller", "davis", "rodriguez", "martinez",
-  "anderson", "taylor", "thomas", "hernandez", "moore", "martin", "jackson",
+  'james',
+  'john',
+  'robert',
+  'michael',
+  'william',
+  'david',
+  'richard',
+  'joseph',
+  'thomas',
+  'charles',
+  'mary',
+  'patricia',
+  'jennifer',
+  'linda',
+  'elizabeth',
+  'barbara',
+  'susan',
+  'jessica',
+  'sarah',
+  'karen',
+  'smith',
+  'johnson',
+  'williams',
+  'brown',
+  'jones',
+  'garcia',
+  'miller',
+  'davis',
+  'rodriguez',
+  'martinez',
+  'anderson',
+  'taylor',
+  'thomas',
+  'hernandez',
+  'moore',
+  'martin',
+  'jackson',
 ];
 const nameGenerator = new CharMarkov(2);
 nameGenerator.train(nameCorpus);
 
 // Company suffix words
 const companyCorpus = [
-  "acme", "apex", "atlas", "beacon", "bright", "central", "clarity", "cloud",
-  "core", "cyber", "data", "delta", "digital", "dynamic", "edge", "elite",
-  "ember", "enable", "evergreen", "flex", "flow", "forge", "forward", "fusion",
-  "global", "grid", "harbor", "horizon", "hub", "infinity", "innova", "insight",
-  "integral", "kinetic", "launch", "leap", "legacy", "link", "logic", "lumina",
-  "matrix", "nexus", "nimble", "nova", "omega", "omni", "onyx", "optimal",
-  "orbit", "paradigm", "peak", "pinnacle", "pivot", "prime", "prism", "pulse",
-  "quantum", "quest", "radiant", "rapid", "reach", "realm", "relay", "resolve",
-  "ridge", "ripple", "scale", "scope", "shift", "signal", "silver", "skyline",
-  "smart", "ソlaris", "spark", "spectrum", "sphere", "sprint", "stellar", "strata",
-  "stream", "stride", "summit", "surge", "swift", "sync", "synergy", "titan",
-  "trace", "trail", "trend", "trust", "ultra", "unity", "uplift", "vanguard",
-  "vector", "velocity", "venture", "vertex", "vibe", "vigor", "virtue", "vision",
-  "vista", "vital", "vivid", "wave", "weave", "zenith", "zephyr", "zone",
+  'acme',
+  'apex',
+  'atlas',
+  'beacon',
+  'bright',
+  'central',
+  'clarity',
+  'cloud',
+  'core',
+  'cyber',
+  'data',
+  'delta',
+  'digital',
+  'dynamic',
+  'edge',
+  'elite',
+  'ember',
+  'enable',
+  'evergreen',
+  'flex',
+  'flow',
+  'forge',
+  'forward',
+  'fusion',
+  'global',
+  'grid',
+  'harbor',
+  'horizon',
+  'hub',
+  'infinity',
+  'innova',
+  'insight',
+  'integral',
+  'kinetic',
+  'launch',
+  'leap',
+  'legacy',
+  'link',
+  'logic',
+  'lumina',
+  'matrix',
+  'nexus',
+  'nimble',
+  'nova',
+  'omega',
+  'omni',
+  'onyx',
+  'optimal',
+  'orbit',
+  'paradigm',
+  'peak',
+  'pinnacle',
+  'pivot',
+  'prime',
+  'prism',
+  'pulse',
+  'quantum',
+  'quest',
+  'radiant',
+  'rapid',
+  'reach',
+  'realm',
+  'relay',
+  'resolve',
+  'ridge',
+  'ripple',
+  'scale',
+  'scope',
+  'shift',
+  'signal',
+  'silver',
+  'skyline',
+  'smart',
+  'ソlaris',
+  'spark',
+  'spectrum',
+  'sphere',
+  'sprint',
+  'stellar',
+  'strata',
+  'stream',
+  'stride',
+  'summit',
+  'surge',
+  'swift',
+  'sync',
+  'synergy',
+  'titan',
+  'trace',
+  'trail',
+  'trend',
+  'trust',
+  'ultra',
+  'unity',
+  'uplift',
+  'vanguard',
+  'vector',
+  'velocity',
+  'venture',
+  'vertex',
+  'vibe',
+  'vigor',
+  'virtue',
+  'vision',
+  'vista',
+  'vital',
+  'vivid',
+  'wave',
+  'weave',
+  'zenith',
+  'zephyr',
+  'zone',
 ];
 const companyNameGenerator = new CharMarkov(2);
 companyNameGenerator.train(companyCorpus);
 
-export function generateText(type: "word" | "company" | "product" | "name" = "word"): string {
+export function generateText(type: 'word' | 'company' | 'product' | 'name' = 'word'): string {
   switch (type) {
-    case "company":
+    case 'company':
       return capitalizeWords(companyGenerator.generate(2, 3));
-    case "product":
+    case 'product':
       return capitalizeWords(productGenerator.generate(2, 4));
-    case "name":
+    case 'name':
       return capitalize(nameGenerator.generate(4, 10));
     default:
       return wordGenerator.generate(2, 5);
@@ -231,7 +364,7 @@ export function generateText(type: "word" | "company" | "product" | "name" = "wo
 
 export function generateCompanyName(): string {
   const name = companyNameGenerator.generate(4, 10);
-  const suffixes = ["Inc", "LLC", "Corp", "Ltd", "Co", "Group", "Systems", "Solutions", "Tech"];
+  const suffixes = ['Inc', 'LLC', 'Corp', 'Ltd', 'Co', 'Group', 'Systems', 'Solutions', 'Tech'];
   const suffix = randomChoice(suffixes);
   return `${capitalize(name)} ${suffix}`;
 }
@@ -251,5 +384,5 @@ function capitalize(s: string): string {
 }
 
 function capitalizeWords(s: string): string {
-  return s.split(" ").map(capitalize).join(" ");
+  return s.split(' ').map(capitalize).join(' ');
 }

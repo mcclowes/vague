@@ -1,4 +1,4 @@
-import { Token, TokenType } from "../lexer/index.js";
+import { Token, TokenType } from '../lexer/index.js';
 
 /**
  * Base parser class with token utilities.

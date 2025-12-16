@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { compile, registerPlugin, setSeed } from "./index.js";
-import { SchemaValidator } from "./validator/index.js";
-import { fakerPlugin, fakerShorthandPlugin } from "./plugins/index.js";
-import { OpenAPIExamplePopulator } from "./openapi/example-populator.js";
+import { readFileSync, writeFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { compile, registerPlugin, setSeed } from './index.js';
+import { SchemaValidator } from './validator/index.js';
+import { fakerPlugin, fakerShorthandPlugin } from './plugins/index.js';
+import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 
 // Register faker plugins automatically
 registerPlugin(fakerPlugin);
@@ -18,7 +18,7 @@ interface ValidationMapping {
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`
 vague - Declarative test data generator
 
@@ -67,37 +67,37 @@ Examples:
   let oasExampleCount = 1;
 
   for (let i = 1; i < args.length; i++) {
-    if (args[i] === "-o" || args[i] === "--output") {
+    if (args[i] === '-o' || args[i] === '--output') {
       outputFile = args[++i];
-    } else if (args[i] === "-p" || args[i] === "--pretty") {
+    } else if (args[i] === '-p' || args[i] === '--pretty') {
       pretty = true;
-    } else if (args[i] === "-s" || args[i] === "--seed") {
+    } else if (args[i] === '-s' || args[i] === '--seed') {
       seed = parseInt(args[++i], 10);
       if (isNaN(seed)) {
-        console.error("Error: Seed must be a valid integer");
+        console.error('Error: Seed must be a valid integer');
         process.exit(1);
       }
-    } else if (args[i] === "-v" || args[i] === "--validate") {
+    } else if (args[i] === '-v' || args[i] === '--validate') {
       validateSpec = args[++i];
-    } else if (args[i] === "-m" || args[i] === "--mapping") {
+    } else if (args[i] === '-m' || args[i] === '--mapping') {
       try {
         schemaMapping = JSON.parse(args[++i]) as ValidationMapping;
       } catch {
-        console.error("Error: Invalid JSON for schema mapping");
+        console.error('Error: Invalid JSON for schema mapping');
         process.exit(1);
       }
-    } else if (args[i] === "--validate-only") {
+    } else if (args[i] === '--validate-only') {
       validateOnly = true;
-    } else if (args[i] === "--oas-output") {
+    } else if (args[i] === '--oas-output') {
       oasOutput = args[++i];
-    } else if (args[i] === "--oas-source") {
+    } else if (args[i] === '--oas-source') {
       oasSource = args[++i];
-    } else if (args[i] === "--oas-external") {
+    } else if (args[i] === '--oas-external') {
       oasExternal = true;
-    } else if (args[i] === "--oas-example-count") {
+    } else if (args[i] === '--oas-example-count') {
       oasExampleCount = parseInt(args[++i], 10);
       if (isNaN(oasExampleCount) || oasExampleCount < 1) {
-        console.error("Error: --oas-example-count must be a positive integer");
+        console.error('Error: --oas-example-count must be a positive integer');
         process.exit(1);
       }
     }
@@ -109,7 +109,7 @@ Examples:
       setSeed(seed);
     }
 
-    const source = readFileSync(resolve(inputFile), "utf-8");
+    const source = readFileSync(resolve(inputFile), 'utf-8');
     const result = await compile(source);
 
     // Validate if spec provided
@@ -154,24 +154,28 @@ Examples:
           }
         }
 
-        console.error(`\nValidation summary: ${totalValidated - totalFailed}/${totalValidated} items valid`);
+        console.error(
+          `\nValidation summary: ${totalValidated - totalFailed}/${totalValidated} items valid`
+        );
 
         if (hasErrors && validateOnly) {
           process.exit(1);
         }
       } else {
-        console.error("Available schemas:", loadedSchemas.slice(0, 20).join(", "));
+        console.error('Available schemas:', loadedSchemas.slice(0, 20).join(', '));
         if (loadedSchemas.length > 20) {
           console.error(`  ... and ${loadedSchemas.length - 20} more`);
         }
-        console.error("\nUse -m/--mapping to specify which collections to validate against which schemas");
+        console.error(
+          '\nUse -m/--mapping to specify which collections to validate against which schemas'
+        );
       }
     }
 
     // Populate OpenAPI spec with examples if requested
     if (oasOutput) {
       if (!oasSource) {
-        console.error("Error: --oas-source is required when using --oas-output");
+        console.error('Error: --oas-source is required when using --oas-output');
         process.exit(1);
       }
 
@@ -214,7 +218,7 @@ Examples:
       }
     }
   } catch (err) {
-    console.error("Error:", err instanceof Error ? err.message : err);
+    console.error('Error:', err instanceof Error ? err.message : err);
     process.exit(1);
   }
 }

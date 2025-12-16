@@ -12,7 +12,11 @@
     "test": "vitest",
     "dev": "tsc --watch",
     "examples": "for f in examples/*.vague; do echo \"\\n=== $f ===\" && node dist/cli.js \"$f\"; done",
-    "example": "f() { node dist/cli.js \"examples/$1\"; }; f"
+    "example": "f() { node dist/cli.js \"examples/$1\"; }; f",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
   "keywords": [
     "test-data",
@@ -23,8 +27,12 @@
   "license": "ISC",
   "description": "A declarative language for generating realistic test data",
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.2",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.0",
     "vitest": "^4.0.15"
   },
   "dependencies": {

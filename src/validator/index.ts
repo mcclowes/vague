@@ -1,1 +1,1 @@
-export { SchemaValidator, ValidationResult, ValidationError } from "./validator.js";
+export { SchemaValidator, ValidationResult, ValidationError } from './validator.js';

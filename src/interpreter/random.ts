@@ -89,7 +89,7 @@ export function randomBool(probability = 0.5): boolean {
 export function gaussian(mean: number, stddev: number, min?: number, max?: number): number {
   // Box-Muller transform
   let u1 = random();
-  let u2 = random();
+  const u2 = random();
 
   // Avoid log(0)
   while (u1 === 0) u1 = random();
@@ -185,7 +185,7 @@ function gammaVariate(shape: number): number {
   }
 
   // Marsaglia and Tsang's method for shape >= 1
-  const d = shape - 1/3;
+  const d = shape - 1 / 3;
   const c = 1 / Math.sqrt(9 * d);
 
   while (true) {

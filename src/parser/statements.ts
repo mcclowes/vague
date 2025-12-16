@@ -1,4 +1,4 @@
-import { TokenType } from "../lexer/index.js";
+import { TokenType } from '../lexer/index.js';
 import {
   Statement,
   ImportStatement,
@@ -19,8 +19,8 @@ import {
   AssumeClause,
   ThenBlock,
   Mutation,
-} from "../ast/index.js";
-import { TypeParser } from "./types.js";
+} from '../ast/index.js';
+import { TypeParser } from './types.js';
 
 /**
  * Statement parser - handles top-level statements:
@@ -32,7 +32,6 @@ import { TypeParser } from "./types.js";
  * - dataset definitions
  */
 export class StatementParser extends TypeParser {
-
   // ============================================
   // Statement dispatch
   // ============================================
@@ -54,20 +53,20 @@ export class StatementParser extends TypeParser {
 
   private parseImport(): ImportStatement {
     this.consume(TokenType.IMPORT, "Expected 'import'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected import name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected import name').value;
     this.consume(TokenType.FROM, "Expected 'from'");
-    const path = this.consume(TokenType.STRING, "Expected import path").value;
+    const path = this.consume(TokenType.STRING, 'Expected import path').value;
 
-    return { type: "ImportStatement", name, path };
+    return { type: 'ImportStatement', name, path };
   }
 
   private parseLet(): LetStatement {
     this.consume(TokenType.LET, "Expected 'let'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected variable name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected variable name').value;
     this.consume(TokenType.EQUALS, "Expected '='");
     const value = this.parseExpression();
 
-    return { type: "LetStatement", name, value };
+    return { type: 'LetStatement', name, value };
   }
 
   // ============================================
@@ -76,7 +75,7 @@ export class StatementParser extends TypeParser {
 
   private parseSchema(): SchemaDefinition {
     this.consume(TokenType.SCHEMA, "Expected 'schema'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected schema name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected schema name').value;
 
     let base = undefined;
     if (this.match(TokenType.FROM)) {
@@ -95,7 +94,16 @@ export class StatementParser extends TypeParser {
       thenBlock = this.parseThenBlock();
     }
 
-    return { type: "SchemaDefinition", name, base, contexts, fields, constraints, assumes, thenBlock };
+    return {
+      type: 'SchemaDefinition',
+      name,
+      base,
+      contexts,
+      fields,
+      constraints,
+      assumes,
+      thenBlock,
+    };
   }
 
   private parseSchemaBody(): {
@@ -122,7 +130,7 @@ export class StatementParser extends TypeParser {
   }
 
   parseFieldDefinition(): FieldDefinition {
-    const name = this.consume(TokenType.IDENTIFIER, "Expected field name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected field name').value;
     this.consume(TokenType.COLON, "Expected ':'");
 
     const computed = this.match(TokenType.EQUALS);
@@ -132,9 +140,9 @@ export class StatementParser extends TypeParser {
       const optional = this.match(TokenType.QUESTION);
 
       return {
-        type: "FieldDefinition",
+        type: 'FieldDefinition',
         name,
-        fieldType: { type: "ReferenceType", path: { type: "QualifiedName", parts: ["computed"] } },
+        fieldType: { type: 'ReferenceType', path: { type: 'QualifiedName', parts: ['computed'] } },
         optional,
         computed: true,
         distribution: expr,
@@ -161,7 +169,7 @@ export class StatementParser extends TypeParser {
     }
 
     return {
-      type: "FieldDefinition",
+      type: 'FieldDefinition',
       name,
       fieldType,
       optional,
@@ -187,22 +195,22 @@ export class StatementParser extends TypeParser {
     }
 
     this.consume(TokenType.RBRACE, "Expected '}'");
-    return { type: "ThenBlock", mutations };
+    return { type: 'ThenBlock', mutations };
   }
 
   private parseMutation(): Mutation {
     const target = this.parseExpression();
 
-    let operator: "=" | "+=" = "=";
+    let operator: '=' | '+=' = '=';
     if (this.match(TokenType.PLUS_EQUALS)) {
-      operator = "+=";
+      operator = '+=';
     } else {
       this.consume(TokenType.EQUALS, "Expected '=' or '+='");
     }
 
     const value = this.parseExpression();
 
-    return { type: "Mutation", target, operator, value };
+    return { type: 'Mutation', target, operator, value };
   }
 
   // ============================================
@@ -224,12 +232,12 @@ export class StatementParser extends TypeParser {
       }
 
       this.consume(TokenType.RBRACE, "Expected '}'");
-      return { type: "AssumeClause", condition, constraints };
+      return { type: 'AssumeClause', condition, constraints };
     }
 
     // Simple: assume expr
     const constraint = this.parseLogicalExpression();
-    return { type: "AssumeClause", constraints: [constraint] };
+    return { type: 'AssumeClause', constraints: [constraint] };
   }
 
   // ============================================
@@ -247,7 +255,7 @@ export class StatementParser extends TypeParser {
     }
 
     this.consume(TokenType.RBRACE, "Expected '}'");
-    return { type: "ConstraintBlock", constraints };
+    return { type: 'ConstraintBlock', constraints };
   }
 
   // ============================================
@@ -256,13 +264,13 @@ export class StatementParser extends TypeParser {
 
   private parseContext(): ContextDefinition {
     this.consume(TokenType.CONTEXT, "Expected 'context'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected context name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected context name').value;
 
     this.consume(TokenType.LBRACE, "Expected '{'");
     const { fields, affects } = this.parseContextBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    return { type: "ContextDefinition", name, fields, affects };
+    return { type: 'ContextDefinition', name, fields, affects };
   }
 
   private parseContextBody(): { fields: FieldDefinition[]; affects: AffectsClause[] } {
@@ -283,11 +291,11 @@ export class StatementParser extends TypeParser {
 
   private parseAffectsClause(): AffectsClause {
     this.consume(TokenType.AFFECTS, "Expected 'affects'");
-    const field = this.consume(TokenType.IDENTIFIER, "Expected field name").value;
+    const field = this.consume(TokenType.IDENTIFIER, 'Expected field name').value;
     this.consume(TokenType.ARROW, "Expected '=>'");
     const expression = this.parseExpression();
 
-    return { type: "AffectsClause", field, expression };
+    return { type: 'AffectsClause', field, expression };
   }
 
   // ============================================
@@ -306,7 +314,7 @@ export class StatementParser extends TypeParser {
   }
 
   private parseContextApplication(): ContextApplication {
-    const name = this.consume(TokenType.IDENTIFIER, "Expected context name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected context name').value;
     const args: Expression[] = [];
 
     if (this.match(TokenType.LPAREN)) {
@@ -318,7 +326,7 @@ export class StatementParser extends TypeParser {
       this.consume(TokenType.RPAREN, "Expected ')'");
     }
 
-    return { type: "ContextApplication", name, arguments: args };
+    return { type: 'ContextApplication', name, arguments: args };
   }
 
   // ============================================
@@ -327,13 +335,13 @@ export class StatementParser extends TypeParser {
 
   private parseDistribution(): DistributionDefinition {
     this.consume(TokenType.DISTRIBUTION, "Expected 'distribution'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected distribution name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected distribution name').value;
 
     this.consume(TokenType.LBRACE, "Expected '{'");
     const buckets = this.parseDistributionBuckets();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    return { type: "DistributionDefinition", name, buckets };
+    return { type: 'DistributionDefinition', name, buckets };
   }
 
   private parseDistributionBuckets(): DistributionBucket[] {
@@ -342,13 +350,13 @@ export class StatementParser extends TypeParser {
     while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
       const range = this.parseDistributionRange();
       this.consume(TokenType.COLON, "Expected ':'");
-      const weightToken = this.consume(TokenType.NUMBER, "Expected weight");
+      const weightToken = this.consume(TokenType.NUMBER, 'Expected weight');
       this.consume(TokenType.PERCENT, "Expected '%'");
 
       const weight = parseFloat(weightToken.value) / 100;
 
       buckets.push({
-        type: "DistributionBucket",
+        type: 'DistributionBucket',
         range: range as RangeExpression | Expression,
         weight,
       });
@@ -362,14 +370,14 @@ export class StatementParser extends TypeParser {
   private parseDistributionRange(): Expression {
     if (this.check(TokenType.STRING)) {
       const value = this.advance().value;
-      return { type: "Literal", value, dataType: "string" };
+      return { type: 'Literal', value, dataType: 'string' };
     }
 
     const min = this.parsePrimary();
 
     if (this.match(TokenType.DOTDOT)) {
       const max = this.check(TokenType.NUMBER) ? this.parsePrimary() : undefined;
-      return { type: "RangeExpression", min, max };
+      return { type: 'RangeExpression', min, max };
     }
 
     return min;
@@ -381,7 +389,7 @@ export class StatementParser extends TypeParser {
 
   private parseDataset(): DatasetDefinition {
     this.consume(TokenType.DATASET, "Expected 'dataset'");
-    const name = this.consume(TokenType.IDENTIFIER, "Expected dataset name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected dataset name').value;
 
     // Check for 'violating' keyword for negative testing
     const violating = this.match(TokenType.VIOLATING);
@@ -392,7 +400,14 @@ export class StatementParser extends TypeParser {
     const { collections, validation } = this.parseDatasetBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    return { type: "DatasetDefinition", name, violating: violating || undefined, contexts, collections, validation };
+    return {
+      type: 'DatasetDefinition',
+      name,
+      violating: violating || undefined,
+      contexts,
+      collections,
+      validation,
+    };
   }
 
   private parseDatasetBody(): {
@@ -415,18 +430,18 @@ export class StatementParser extends TypeParser {
   }
 
   private parseCollectionDefinition(): CollectionDefinition {
-    const name = this.consume(TokenType.IDENTIFIER, "Expected collection name").value;
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected collection name').value;
     this.consume(TokenType.COLON, "Expected ':'");
 
     const cardinality = this.parseCardinalityOrDynamic();
 
     let perParent: string | undefined;
     if (this.match(TokenType.PER)) {
-      perParent = this.consume(TokenType.IDENTIFIER, "Expected parent name").value;
+      perParent = this.consume(TokenType.IDENTIFIER, 'Expected parent name').value;
     }
 
     this.consume(TokenType.STAR, "Expected '*'");
-    const schemaRef = this.consume(TokenType.IDENTIFIER, "Expected schema name").value;
+    const schemaRef = this.consume(TokenType.IDENTIFIER, 'Expected schema name').value;
 
     const contexts = this.parseContextApplications();
 
@@ -441,7 +456,7 @@ export class StatementParser extends TypeParser {
     }
 
     return {
-      type: "CollectionDefinition",
+      type: 'CollectionDefinition',
       name,
       cardinality,
       perParent,
@@ -466,6 +481,6 @@ export class StatementParser extends TypeParser {
     }
 
     this.consume(TokenType.RBRACE, "Expected '}'");
-    return { type: "ValidationBlock", validations };
+    return { type: 'ValidationBlock', validations };
   }
 }

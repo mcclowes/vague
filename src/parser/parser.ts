@@ -1,6 +1,6 @@
-import { Token } from "../lexer/index.js";
-import { Program, Statement } from "../ast/index.js";
-import { StatementParser } from "./statements.js";
+import { Token } from '../lexer/index.js';
+import { Program, Statement } from '../ast/index.js';
+import { StatementParser } from './statements.js';
 
 /**
  * Main Parser class - orchestrates parsing of Vague source code.
@@ -28,6 +28,6 @@ export class Parser extends StatementParser {
       if (stmt) statements.push(stmt);
     }
 
-    return { type: "Program", statements };
+    return { type: 'Program', statements };
   }
 }

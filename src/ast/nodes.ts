@@ -10,7 +10,7 @@ export type ASTNode =
   | Expression;
 
 export interface Program {
-  type: "Program";
+  type: 'Program';
   statements: Statement[];
 }
 
@@ -24,21 +24,21 @@ export type Statement =
 
 // import codat from "codat-openapi.json"
 export interface ImportStatement {
-  type: "ImportStatement";
+  type: 'ImportStatement';
   name: string;
   path: string;
 }
 
 // let x = 5
 export interface LetStatement {
-  type: "LetStatement";
+  type: 'LetStatement';
   name: string;
   value: Expression;
 }
 
 // schema Invoice from codat.Invoice { ... }
 export interface SchemaDefinition {
-  type: "SchemaDefinition";
+  type: 'SchemaDefinition';
   name: string;
   base?: QualifiedName; // from codat.Invoice
   contexts?: ContextApplication[];
@@ -50,28 +50,28 @@ export interface SchemaDefinition {
 
 // then { invoice.status = "paid", invoice.amount_paid += amount }
 export interface ThenBlock {
-  type: "ThenBlock";
+  type: 'ThenBlock';
   mutations: Mutation[];
 }
 
 // invoice.status = "paid" or invoice.amount_paid += amount
 export interface Mutation {
-  type: "Mutation";
+  type: 'Mutation';
   target: Expression; // invoice.status
-  operator: "=" | "+="; // assignment or compound
+  operator: '=' | '+='; // assignment or compound
   value: Expression; // "paid" or amount
 }
 
 // assume due_date >= issued_date
 export interface AssumeClause {
-  type: "AssumeClause";
+  type: 'AssumeClause';
   condition?: Expression; // if condition (for assume if)
   constraints: Expression[]; // the constraints to enforce
 }
 
 // context Geography { ... }
 export interface ContextDefinition {
-  type: "ContextDefinition";
+  type: 'ContextDefinition';
   name: string;
   parameters?: ParameterDefinition[];
   fields: FieldDefinition[];
@@ -80,7 +80,7 @@ export interface ContextDefinition {
 
 // distribution AgeStructure { ... }
 export interface DistributionDefinition {
-  type: "DistributionDefinition";
+  type: 'DistributionDefinition';
   name: string;
   buckets: DistributionBucket[];
 }
@@ -88,7 +88,7 @@ export interface DistributionDefinition {
 // dataset TestData with Geography("en_GB") { ... }
 // dataset Invalid violating { ... }  -- generates constraint-violating data
 export interface DatasetDefinition {
-  type: "DatasetDefinition";
+  type: 'DatasetDefinition';
   name: string;
   violating?: boolean; // If true, generate data that violates schema constraints
   contexts?: ContextApplication[];
@@ -98,7 +98,7 @@ export interface DatasetDefinition {
 
 // Field definitions
 export interface FieldDefinition {
-  type: "FieldDefinition";
+  type: 'FieldDefinition';
   name: string;
   fieldType: FieldType;
   optional?: boolean; // ?
@@ -119,29 +119,29 @@ export type FieldType =
   | GeneratorType;
 
 export interface ExpressionType {
-  type: "ExpressionType";
+  type: 'ExpressionType';
   expression: Expression;
 }
 
 export interface PrimitiveType {
-  type: "PrimitiveType";
-  name: "int" | "decimal" | "string" | "date" | "boolean";
+  type: 'PrimitiveType';
+  name: 'int' | 'decimal' | 'string' | 'date' | 'boolean';
 }
 
 // Plugin-provided generator: uuid, email, faker.company(), etc.
 export interface GeneratorType {
-  type: "GeneratorType";
+  type: 'GeneratorType';
   name: string; // Full name including namespace: "uuid", "faker.company"
   arguments: Expression[]; // Optional arguments: phone("US")
 }
 
 export interface ReferenceType {
-  type: "ReferenceType";
+  type: 'ReferenceType';
   path: QualifiedName;
 }
 
 export interface SuperpositionType {
-  type: "SuperpositionType";
+  type: 'SuperpositionType';
   options: WeightedOption[];
 }
 
@@ -151,14 +151,14 @@ export interface WeightedOption {
 }
 
 export interface RangeType {
-  type: "RangeType";
+  type: 'RangeType';
   baseType: PrimitiveType;
   min?: Expression;
   max?: Expression;
 }
 
 export interface CollectionType {
-  type: "CollectionType";
+  type: 'CollectionType';
   cardinality: Cardinality | DynamicCardinality;
   elementType: FieldType;
   perParent?: QualifiedName;
@@ -166,14 +166,14 @@ export interface CollectionType {
 
 // Cardinality: 100, 1..10, 50..500, or (condition ? 1..5 : 10..20)
 export interface Cardinality {
-  type: "Cardinality";
+  type: 'Cardinality';
   min: number;
   max: number;
 }
 
 // Dynamic cardinality: expression that evaluates to a number or range
 export interface DynamicCardinality {
-  type: "DynamicCardinality";
+  type: 'DynamicCardinality';
   expression: Expression;
 }
 
@@ -196,84 +196,84 @@ export type Expression =
 
 // and, or
 export interface LogicalExpression {
-  type: "LogicalExpression";
-  operator: "and" | "or";
+  type: 'LogicalExpression';
+  operator: 'and' | 'or';
   left: Expression;
   right: Expression;
 }
 
 // not
 export interface NotExpression {
-  type: "NotExpression";
+  type: 'NotExpression';
   operand: Expression;
 }
 
 export interface Literal {
-  type: "Literal";
+  type: 'Literal';
   value: string | number | boolean | null;
-  dataType: "string" | "number" | "boolean" | "null";
+  dataType: 'string' | 'number' | 'boolean' | 'null';
 }
 
 export interface Identifier {
-  type: "Identifier";
+  type: 'Identifier';
   name: string;
 }
 
 // codat.Invoice or company.currency
 export interface QualifiedName {
-  type: "QualifiedName";
+  type: 'QualifiedName';
   parts: string[];
 }
 
 export interface BinaryExpression {
-  type: "BinaryExpression";
+  type: 'BinaryExpression';
   operator: string;
   left: Expression;
   right: Expression;
 }
 
 export interface UnaryExpression {
-  type: "UnaryExpression";
+  type: 'UnaryExpression';
   operator: string;
   operand: Expression;
 }
 
 // sum(line_items.amount)
 export interface CallExpression {
-  type: "CallExpression";
+  type: 'CallExpression';
   callee: string;
   arguments: Expression[];
 }
 
 // 0.7: "paid" | 0.2: "pending" | 0.1: "overdue"
 export interface SuperpositionExpression {
-  type: "SuperpositionExpression";
+  type: 'SuperpositionExpression';
   options: WeightedOption[];
 }
 
 // 18..65
 export interface RangeExpression {
-  type: "RangeExpression";
+  type: 'RangeExpression';
   min?: Expression;
   max?: Expression;
 }
 
 // ^company.currency
 export interface ParentReference {
-  type: "ParentReference";
+  type: 'ParentReference';
   path: QualifiedName;
 }
 
 // any of companies
 export interface AnyOfExpression {
-  type: "AnyOfExpression";
+  type: 'AnyOfExpression';
   collection: Expression;
   condition?: Expression; // where clause
 }
 
 // match locale { "en_GB" => "GBP", ... }
 export interface MatchExpression {
-  type: "MatchExpression";
+  type: 'MatchExpression';
   value: Expression;
   arms: MatchArm[];
 }
@@ -285,7 +285,7 @@ export interface MatchArm {
 
 // condition ? consequent : alternate
 export interface TernaryExpression {
-  type: "TernaryExpression";
+  type: 'TernaryExpression';
   condition: Expression;
   consequent: Expression;
   alternate: Expression;
@@ -293,35 +293,35 @@ export interface TernaryExpression {
 
 // Context application: Geography("en_GB")
 export interface ContextApplication {
-  type: "ContextApplication";
+  type: 'ContextApplication';
   name: string;
   arguments: Expression[];
 }
 
 // affects currency => match locale { ... }
 export interface AffectsClause {
-  type: "AffectsClause";
+  type: 'AffectsClause';
   field: string;
   expression: Expression;
 }
 
 // Parameter definition: level: 0.0..1.0
 export interface ParameterDefinition {
-  type: "ParameterDefinition";
+  type: 'ParameterDefinition';
   name: string;
   paramType: FieldType;
 }
 
 // Distribution bucket: 0..17: 20%
 export interface DistributionBucket {
-  type: "DistributionBucket";
+  type: 'DistributionBucket';
   range: RangeExpression | Expression;
   weight: number;
 }
 
 /// Collection in dataset: companies: 100 * Company
 export interface CollectionDefinition {
-  type: "CollectionDefinition";
+  type: 'CollectionDefinition';
   name: string;
   cardinality: Cardinality | DynamicCardinality;
   perParent?: string;
@@ -332,12 +332,12 @@ export interface CollectionDefinition {
 
 // constraints { ... }
 export interface ConstraintBlock {
-  type: "ConstraintBlock";
+  type: 'ConstraintBlock';
   constraints: Expression[];
 }
 
 // validate { ... }
 export interface ValidationBlock {
-  type: "ValidationBlock";
+  type: 'ValidationBlock';
   validations: Expression[];
 }

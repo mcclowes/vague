@@ -1,4 +1,4 @@
-import { TokenType } from "../lexer/index.js";
+import { TokenType } from '../lexer/index.js';
 import {
   Expression,
   WeightedOption,
@@ -8,8 +8,8 @@ import {
   Cardinality,
   DynamicCardinality,
   GeneratorType,
-} from "../ast/index.js";
-import { ExpressionParser } from "./expressions.js";
+} from '../ast/index.js';
+import { ExpressionParser } from './expressions.js';
 
 /**
  * Type parser - handles field type parsing including:
@@ -23,7 +23,6 @@ import { ExpressionParser } from "./expressions.js";
  * - Nullable types (string?, int | null)
  */
 export class TypeParser extends ExpressionParser {
-
   // ============================================
   // Main entry point
   // ============================================
@@ -44,11 +43,11 @@ export class TypeParser extends ExpressionParser {
         // Range type: int in 18..65
         if (this.match(TokenType.IN)) {
           const range = this.parseRangeExpression();
-          if (primitiveOrGenerator.type !== "PrimitiveType") {
-            throw this.error("Range type requires a primitive base type (int, decimal, date)");
+          if (primitiveOrGenerator.type !== 'PrimitiveType') {
+            throw this.error('Range type requires a primitive base type (int, decimal, date)');
           }
           const rangeType = {
-            type: "RangeType",
+            type: 'RangeType',
             baseType: primitiveOrGenerator,
             min: range.min,
             max: range.max,
@@ -57,11 +56,13 @@ export class TypeParser extends ExpressionParser {
           // Check for superposition after range: int in 10..500 | other_value
           // Also supports weights: 0.7: int in 10..500 | 0.3: other_value (weight on range comes before 'int')
           if (this.check(TokenType.PIPE)) {
-            const options: WeightedOption[] = [{ value: { type: "RangeExpression", min: range.min, max: range.max } as Expression }];
+            const options: WeightedOption[] = [
+              { value: { type: 'RangeExpression', min: range.min, max: range.max } as Expression },
+            ];
             while (this.match(TokenType.PIPE)) {
               options.push(this.parseSuperpositionOptionForType());
             }
-            return { type: "SuperpositionType", options };
+            return { type: 'SuperpositionType', options };
           }
 
           return rangeType;
@@ -69,21 +70,24 @@ export class TypeParser extends ExpressionParser {
 
         // Nullable shorthand: string?, int?
         if (this.match(TokenType.QUESTION)) {
-          const baseExpr: Expression = { type: "Identifier", name: primitiveOrGenerator.name };
-          const nullLiteral: Expression = { type: "Literal", value: null, dataType: "null" };
-          return { type: "SuperpositionType", options: [{ value: baseExpr }, { value: nullLiteral }] };
+          const baseExpr: Expression = { type: 'Identifier', name: primitiveOrGenerator.name };
+          const nullLiteral: Expression = { type: 'Literal', value: null, dataType: 'null' };
+          return {
+            type: 'SuperpositionType',
+            options: [{ value: baseExpr }, { value: nullLiteral }],
+          };
         }
 
         // Superposition with primitive: string | null, int | "special"
         if (this.check(TokenType.PIPE)) {
-          const baseExpr: Expression = { type: "Identifier", name: primitiveOrGenerator.name };
+          const baseExpr: Expression = { type: 'Identifier', name: primitiveOrGenerator.name };
           const options: WeightedOption[] = [{ value: baseExpr }];
 
           while (this.match(TokenType.PIPE)) {
             const nextExpr = this.parsePrimary();
             options.push({ value: nextExpr });
           }
-          return { type: "SuperpositionType", options };
+          return { type: 'SuperpositionType', options };
         }
 
         return primitiveOrGenerator;
@@ -110,14 +114,14 @@ export class TypeParser extends ExpressionParser {
 
   private parsePrimitiveType(): PrimitiveType | GeneratorType | null {
     // Built-in primitive keywords
-    if (this.match(TokenType.INT)) return { type: "PrimitiveType", name: "int" };
-    if (this.match(TokenType.DECIMAL)) return { type: "PrimitiveType", name: "decimal" };
-    if (this.match(TokenType.DATE)) return { type: "PrimitiveType", name: "date" };
+    if (this.match(TokenType.INT)) return { type: 'PrimitiveType', name: 'int' };
+    if (this.match(TokenType.DECIMAL)) return { type: 'PrimitiveType', name: 'decimal' };
+    if (this.match(TokenType.DATE)) return { type: 'PrimitiveType', name: 'date' };
 
     // Identifier-based types (string, boolean, or generators)
-    const id = this.consume(TokenType.IDENTIFIER, "Expected type name").value;
-    if (id === "string") return { type: "PrimitiveType", name: "string" };
-    if (id === "boolean") return { type: "PrimitiveType", name: "boolean" };
+    const id = this.consume(TokenType.IDENTIFIER, 'Expected type name').value;
+    if (id === 'string') return { type: 'PrimitiveType', name: 'string' };
+    if (id === 'boolean') return { type: 'PrimitiveType', name: 'boolean' };
 
     // Check for generator type: qualified (faker.uuid) or with args (uuid())
     let name = id;
@@ -128,7 +132,7 @@ export class TypeParser extends ExpressionParser {
       isGenerator = true;
       while (this.match(TokenType.DOT)) {
         const part = this.consume(TokenType.IDENTIFIER, "Expected identifier after '.'").value;
-        name += "." + part;
+        name += '.' + part;
       }
     }
 
@@ -146,7 +150,7 @@ export class TypeParser extends ExpressionParser {
     }
 
     if (isGenerator) {
-      return { type: "GeneratorType", name, arguments: args };
+      return { type: 'GeneratorType', name, arguments: args };
     }
 
     // Bare identifier - not a primitive or generator, restore position
@@ -179,7 +183,7 @@ export class TypeParser extends ExpressionParser {
     const elementType = this.parseFieldType();
 
     return {
-      type: "CollectionType",
+      type: 'CollectionType',
       cardinality,
       elementType,
       perParent,
@@ -191,7 +195,7 @@ export class TypeParser extends ExpressionParser {
     if (this.match(TokenType.LPAREN)) {
       const expression = this.parseExpression();
       this.consume(TokenType.RPAREN, "Expected ')'");
-      return { type: "DynamicCardinality", expression };
+      return { type: 'DynamicCardinality', expression };
     }
 
     // Static cardinality: 100 or 1..10
@@ -199,14 +203,14 @@ export class TypeParser extends ExpressionParser {
   }
 
   parseCardinality(): Cardinality {
-    const min = parseInt(this.consume(TokenType.NUMBER, "Expected number").value, 10);
+    const min = parseInt(this.consume(TokenType.NUMBER, 'Expected number').value, 10);
 
     if (this.match(TokenType.DOTDOT)) {
-      const max = parseInt(this.consume(TokenType.NUMBER, "Expected number").value, 10);
-      return { type: "Cardinality", min, max };
+      const max = parseInt(this.consume(TokenType.NUMBER, 'Expected number').value, 10);
+      return { type: 'Cardinality', min, max };
     }
 
-    return { type: "Cardinality", min, max: min };
+    return { type: 'Cardinality', min, max: min };
   }
 
   // ============================================
@@ -245,7 +249,7 @@ export class TypeParser extends ExpressionParser {
       options.push(this.parseSuperpositionOptionForType());
     }
 
-    return { type: "SuperpositionType", options };
+    return { type: 'SuperpositionType', options };
   }
 
   private isDynamicCardinality(): boolean {
@@ -300,11 +304,11 @@ export class TypeParser extends ExpressionParser {
     if (this.checkPrimitive()) {
       const saved = this.savePosition();
       const primitive = this.parsePrimitiveType();
-      if (primitive?.type === "PrimitiveType" && this.match(TokenType.IN)) {
+      if (primitive?.type === 'PrimitiveType' && this.match(TokenType.IN)) {
         const range = this.parseRangeExpression();
         return {
           weight,
-          value: { type: "RangeExpression", min: range.min, max: range.max } as Expression,
+          value: { type: 'RangeExpression', min: range.min, max: range.max } as Expression,
         };
       }
       this.restorePosition(saved);
@@ -322,34 +326,32 @@ export class TypeParser extends ExpressionParser {
   private parseExpressionAsFieldType(): FieldType {
     const expr = this.parseExpression();
 
-    if (expr.type === "SuperpositionExpression") {
+    if (expr.type === 'SuperpositionExpression') {
       return {
-        type: "SuperpositionType",
+        type: 'SuperpositionType',
         options: expr.options,
       };
     }
 
     // Single literal as single-value superposition
-    if (expr.type === "Literal") {
+    if (expr.type === 'Literal') {
       return {
-        type: "SuperpositionType",
+        type: 'SuperpositionType',
         options: [{ value: expr }],
       };
     }
 
-    if (expr.type === "QualifiedName" || expr.type === "Identifier") {
+    if (expr.type === 'QualifiedName' || expr.type === 'Identifier') {
       return {
-        type: "ReferenceType",
-        path: expr.type === "Identifier"
-          ? { type: "QualifiedName", parts: [expr.name] }
-          : expr,
+        type: 'ReferenceType',
+        path: expr.type === 'Identifier' ? { type: 'QualifiedName', parts: [expr.name] } : expr,
       };
     }
 
     // Expression types (any of, parent reference)
-    if (expr.type === "AnyOfExpression" || expr.type === "ParentReference") {
+    if (expr.type === 'AnyOfExpression' || expr.type === 'ParentReference') {
       return {
-        type: "ExpressionType",
+        type: 'ExpressionType',
         expression: expr,
       };
     }

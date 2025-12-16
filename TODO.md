@@ -9,6 +9,7 @@
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 - [ ] Explore other keywords for fields, like unique
 - [ ] 'Match' syntax
+- [ ] Logging functionality generally
 
 ## Dataset-Level Features
 
@@ -49,8 +50,6 @@
 ## Code quality and organisation
 
 - [ ] Break up the generator
-- [ ] Install and run prettier
-- [ ] Install and run eslint
 
 ## Output & Tooling
 
@@ -134,3 +133,4 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Date functions** - `now()`, `today()`, `daysAgo()`, `daysFromNow()`, `datetime()`, `dateBetween()`, `formatDate()`
 - [x] **Sequential/stateful generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)` for auto-incrementing values
 - [x] **Previous references** - `previous("field")` for referencing the previous record in a collection
+- [x] **Prettier and ESLint** - Code formatting and linting with `npm run format` and `npm run lint`

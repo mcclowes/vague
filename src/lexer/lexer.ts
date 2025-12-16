@@ -1,4 +1,4 @@
-import { Token, TokenType, KEYWORDS } from "./tokens.js";
+import { Token, TokenType, KEYWORDS } from './tokens.js';
 
 export class Lexer {
   private source: string;
@@ -20,7 +20,7 @@ export class Lexer {
       }
     }
 
-    tokens.push(this.makeToken(TokenType.EOF, ""));
+    tokens.push(this.makeToken(TokenType.EOF, ''));
     return tokens;
   }
 
@@ -32,14 +32,14 @@ export class Lexer {
     const char = this.peek();
 
     // Skip comments
-    if (char === "/" && this.peekNext() === "/") {
+    if (char === '/' && this.peekNext() === '/') {
       this.skipLineComment();
       return null;
     }
 
     // Newlines (significant for statement termination)
-    if (char === "\n") {
-      const token = this.makeToken(TokenType.NEWLINE, "\n");
+    if (char === '\n') {
+      const token = this.makeToken(TokenType.NEWLINE, '\n');
       this.advance();
       this.line++;
       this.column = 1;
@@ -63,17 +63,26 @@ export class Lexer {
     const startColumn = this.column;
     this.advance(); // consume opening quote
 
-    let value = "";
+    let value = '';
     while (!this.isAtEnd() && this.peek() !== '"') {
-      if (this.peek() === "\\") {
+      if (this.peek() === '\\') {
         this.advance();
         const escaped = this.advance();
         switch (escaped) {
-          case "n": value += "\n"; break;
-          case "t": value += "\t"; break;
-          case "\\": value += "\\"; break;
-          case '"': value += '"'; break;
-          default: value += escaped;
+          case 'n':
+            value += '\n';
+            break;
+          case 't':
+            value += '\t';
+            break;
+          case '\\':
+            value += '\\';
+            break;
+          case '"':
+            value += '"';
+            break;
+          default:
+            value += escaped;
         }
       } else {
         value += this.advance();
@@ -95,14 +104,14 @@ export class Lexer {
 
   private readNumber(): Token {
     const startColumn = this.column;
-    let value = "";
+    let value = '';
 
     while (this.isDigit(this.peek())) {
       value += this.advance();
     }
 
     // Handle decimals
-    if (this.peek() === "." && this.isDigit(this.peekNext())) {
+    if (this.peek() === '.' && this.isDigit(this.peekNext())) {
       value += this.advance(); // consume '.'
       while (this.isDigit(this.peek())) {
         value += this.advance();
@@ -110,7 +119,7 @@ export class Lexer {
     }
 
     // Handle underscores in numbers (e.g., 100_000)
-    value = value.replace(/_/g, "");
+    value = value.replace(/_/g, '');
 
     return {
       type: TokenType.NUMBER,
@@ -122,9 +131,9 @@ export class Lexer {
 
   private readIdentifier(): Token {
     const startColumn = this.column;
-    let value = "";
+    let value = '';
 
-    while (this.isAlphaNumeric(this.peek()) || this.peek() === "_") {
+    while (this.isAlphaNumeric(this.peek()) || this.peek() === '_') {
       value += this.advance();
     }
 
@@ -138,12 +147,12 @@ export class Lexer {
 
     const twoChar = char + this.peek();
     const twoCharOps: Record<string, TokenType> = {
-      "..": TokenType.DOTDOT,
-      "=>": TokenType.ARROW,
-      "==": TokenType.DOUBLE_EQUALS,
-      "+=": TokenType.PLUS_EQUALS,
-      "<=": TokenType.LTE,
-      ">=": TokenType.GTE,
+      '..': TokenType.DOTDOT,
+      '=>': TokenType.ARROW,
+      '==': TokenType.DOUBLE_EQUALS,
+      '+=': TokenType.PLUS_EQUALS,
+      '<=': TokenType.LTE,
+      '>=': TokenType.GTE,
     };
 
     if (twoCharOps[twoChar]) {
@@ -152,27 +161,27 @@ export class Lexer {
     }
 
     const singleCharOps: Record<string, TokenType> = {
-      "|": TokenType.PIPE,
-      "~": TokenType.TILDE,
-      ":": TokenType.COLON,
-      "=": TokenType.EQUALS,
-      "+": TokenType.PLUS,
-      "-": TokenType.MINUS,
-      "*": TokenType.STAR,
-      "/": TokenType.SLASH,
-      ".": TokenType.DOT,
-      "^": TokenType.CARET,
-      "%": TokenType.PERCENT,
-      "<": TokenType.LT,
-      ">": TokenType.GT,
-      "?": TokenType.QUESTION,
-      ",": TokenType.COMMA,
-      "(": TokenType.LPAREN,
-      ")": TokenType.RPAREN,
-      "{": TokenType.LBRACE,
-      "}": TokenType.RBRACE,
-      "[": TokenType.LBRACKET,
-      "]": TokenType.RBRACKET,
+      '|': TokenType.PIPE,
+      '~': TokenType.TILDE,
+      ':': TokenType.COLON,
+      '=': TokenType.EQUALS,
+      '+': TokenType.PLUS,
+      '-': TokenType.MINUS,
+      '*': TokenType.STAR,
+      '/': TokenType.SLASH,
+      '.': TokenType.DOT,
+      '^': TokenType.CARET,
+      '%': TokenType.PERCENT,
+      '<': TokenType.LT,
+      '>': TokenType.GT,
+      '?': TokenType.QUESTION,
+      ',': TokenType.COMMA,
+      '(': TokenType.LPAREN,
+      ')': TokenType.RPAREN,
+      '{': TokenType.LBRACE,
+      '}': TokenType.RBRACE,
+      '[': TokenType.LBRACKET,
+      ']': TokenType.RBRACKET,
     };
 
     const type = singleCharOps[char];
@@ -186,7 +195,7 @@ export class Lexer {
   private skipWhitespace(): void {
     while (!this.isAtEnd()) {
       const char = this.peek();
-      if (char === " " || char === "\t" || char === "\r") {
+      if (char === ' ' || char === '\t' || char === '\r') {
         this.advance();
       } else {
         break;
@@ -195,7 +204,7 @@ export class Lexer {
   }
 
   private skipLineComment(): void {
-    while (!this.isAtEnd() && this.peek() !== "\n") {
+    while (!this.isAtEnd() && this.peek() !== '\n') {
       this.advance();
     }
   }
@@ -205,11 +214,11 @@ export class Lexer {
   }
 
   private peek(): string {
-    return this.source[this.pos] ?? "\0";
+    return this.source[this.pos] ?? '\0';
   }
 
   private peekNext(): string {
-    return this.source[this.pos + 1] ?? "\0";
+    return this.source[this.pos + 1] ?? '\0';
   }
 
   private advance(): string {
@@ -224,11 +233,11 @@ export class Lexer {
   }
 
   private isDigit(char: string): boolean {
-    return char >= "0" && char <= "9";
+    return char >= '0' && char <= '9';
   }
 
   private isAlpha(char: string): boolean {
-    return (char >= "a" && char <= "z") || (char >= "A" && char <= "Z") || char === "_";
+    return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_';
   }
 
   private isAlphaNumeric(char: string): boolean {

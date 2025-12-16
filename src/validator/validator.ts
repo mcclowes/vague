@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
-import SwaggerParser from "@apidevtools/swagger-parser";
-import { readFileSync } from "node:fs";
-import type { OpenAPIV3 } from "openapi-types";
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
+import SwaggerParser from '@apidevtools/swagger-parser';
+import { readFileSync } from 'node:fs';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export interface ValidationError {
   path: string;
@@ -62,8 +62,8 @@ export class SchemaValidator {
     } catch (err) {
       // Fall back to direct JSON parsing for 3.1.x
       const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes("Unsupported OpenAPI version")) {
-        api = JSON.parse(readFileSync(specPath, "utf-8")) as OpenAPIV3.Document;
+      if (errMsg.includes('Unsupported OpenAPI version')) {
+        api = JSON.parse(readFileSync(specPath, 'utf-8')) as OpenAPIV3.Document;
       } else {
         throw err;
       }
@@ -81,12 +81,9 @@ export class SchemaValidator {
     const allSchemas = api.components.schemas;
 
     for (const [name, schema] of Object.entries(allSchemas)) {
-      if (!("$ref" in schema)) {
+      if (!('$ref' in schema)) {
         // Convert OpenAPI schema to JSON Schema, resolving refs
-        const jsonSchema = this.openApiToJsonSchema(
-          this.resolveRefs(schema, allSchemas),
-          name
-        );
+        const jsonSchema = this.openApiToJsonSchema(this.resolveRefs(schema, allSchemas), name);
         this.schemas.set(name, jsonSchema);
         loadedSchemas.push(name);
       }
@@ -105,11 +102,11 @@ export class SchemaValidator {
     depth: number = 0
   ): OpenAPIV3.SchemaObject {
     // Limit recursion depth to prevent stack overflow
-    if (depth > 10 || !schema || typeof schema !== "object") {
+    if (depth > 10 || !schema || typeof schema !== 'object') {
       return schema;
     }
 
-    if ("$ref" in schema) {
+    if ('$ref' in schema) {
       const refPath = schema.$ref as string;
 
       // Extract schema name from #/components/schemas/Name
@@ -117,7 +114,7 @@ export class SchemaValidator {
       if (match) {
         const refName = match[1];
         const refSchema = allSchemas[refName];
-        if (refSchema && !("$ref" in refSchema)) {
+        if (refSchema && !('$ref' in refSchema)) {
           return this.resolveRefs(refSchema, allSchemas, depth + 1);
         }
       }
@@ -128,7 +125,7 @@ export class SchemaValidator {
     const resolved: any = Array.isArray(schema) ? [] : {};
 
     for (const [key, value] of Object.entries(schema)) {
-      if (typeof value === "object" && value !== null) {
+      if (typeof value === 'object' && value !== null) {
         resolved[key] = this.resolveRefs(value, allSchemas, depth + 1);
       } else {
         resolved[key] = value;
@@ -162,9 +159,9 @@ export class SchemaValidator {
         valid: false,
         errors: [
           {
-            path: "",
+            path: '',
             message: `Schema '${schemaName}' not found`,
-            keyword: "schema",
+            keyword: 'schema',
             params: { schemaName },
           },
         ],
@@ -194,9 +191,9 @@ export class SchemaValidator {
         valid: false,
         errors: [
           {
-            path: "",
+            path: '',
             message: `Schema '${schemaName}' not found`,
-            keyword: "schema",
+            keyword: 'schema',
             params: { schemaName },
           },
         ],
@@ -246,9 +243,9 @@ export class SchemaValidator {
             valid: false,
             errors: [
               {
-                path: "",
+                path: '',
                 message: `Collection '${collectionName}' not found in data`,
-                keyword: "collection",
+                keyword: 'collection',
                 params: { collectionName },
               },
             ],
@@ -272,19 +269,16 @@ export class SchemaValidator {
   /**
    * Convert OpenAPI schema to JSON Schema format
    */
-  private openApiToJsonSchema(
-    schema: OpenAPIV3.SchemaObject,
-    name: string
-  ): object {
+  private openApiToJsonSchema(schema: OpenAPIV3.SchemaObject, name: string): object {
     const jsonSchema: Record<string, unknown> = {
       $id: `#/schemas/${name}`,
-      type: schema.type || "object",
+      type: schema.type || 'object',
     };
 
     if (schema.properties) {
       jsonSchema.properties = {};
       for (const [propName, propSchema] of Object.entries(schema.properties)) {
-        if (!("$ref" in propSchema)) {
+        if (!('$ref' in propSchema)) {
           (jsonSchema.properties as Record<string, unknown>)[propName] =
             this.convertProperty(propSchema);
         }
@@ -347,22 +341,21 @@ export class SchemaValidator {
     if (schema.nullable) {
       // JSON Schema handles nullable differently
       if (prop.type) {
-        prop.type = [prop.type, "null"];
+        prop.type = [prop.type, 'null'];
       }
     }
 
-    if (schema.type === "array" && schema.items) {
-      if (!("$ref" in schema.items)) {
+    if (schema.type === 'array' && schema.items) {
+      if (!('$ref' in schema.items)) {
         prop.items = this.convertProperty(schema.items);
       }
     }
 
-    if (schema.type === "object" && schema.properties) {
+    if (schema.type === 'object' && schema.properties) {
       prop.properties = {};
       for (const [name, subSchema] of Object.entries(schema.properties)) {
-        if (!("$ref" in subSchema)) {
-          (prop.properties as Record<string, unknown>)[name] =
-            this.convertProperty(subSchema);
+        if (!('$ref' in subSchema)) {
+          (prop.properties as Record<string, unknown>)[name] = this.convertProperty(subSchema);
         }
       }
       prop.additionalProperties = true;
@@ -371,10 +364,10 @@ export class SchemaValidator {
     return prop;
   }
 
-  private formatErrors(errors: ErrorObject[], prefix = ""): ValidationError[] {
+  private formatErrors(errors: ErrorObject[], prefix = ''): ValidationError[] {
     return errors.map((err) => ({
-      path: prefix + (err.instancePath || ""),
-      message: err.message || "Validation failed",
+      path: prefix + (err.instancePath || ''),
+      message: err.message || 'Validation failed',
       keyword: err.keyword,
       params: err.params as Record<string, unknown>,
     }));

@@ -1,4 +1,4 @@
-import { TokenType } from "../lexer/index.js";
+import { TokenType } from '../lexer/index.js';
 import {
   Expression,
   WeightedOption,
@@ -9,8 +9,8 @@ import {
   LogicalExpression,
   NotExpression,
   TernaryExpression,
-} from "../ast/index.js";
-import { ParserBase } from "./base.js";
+} from '../ast/index.js';
+import { ParserBase } from './base.js';
 
 /**
  * Expression parser - handles all expression parsing with precedence.
@@ -19,7 +19,6 @@ import { ParserBase } from "./base.js";
  * ternary → or → and → not → superposition → comparison → range → additive → multiplicative → unary → call → primary
  */
 export class ExpressionParser extends ParserBase {
-
   // ============================================
   // Main entry point
   // ============================================
@@ -45,7 +44,7 @@ export class ExpressionParser extends ParserBase {
       this.consume(TokenType.COLON, "Expected ':' in ternary expression");
       const alternate = this.parseTernaryBranch();
       return {
-        type: "TernaryExpression",
+        type: 'TernaryExpression',
         condition,
         consequent,
         alternate,
@@ -64,7 +63,7 @@ export class ExpressionParser extends ParserBase {
       this.consume(TokenType.COLON, "Expected ':' in ternary expression");
       const alternate = this.parseTernaryBranch();
       return {
-        type: "TernaryExpression",
+        type: 'TernaryExpression',
         condition: expr,
         consequent,
         alternate,
@@ -79,7 +78,7 @@ export class ExpressionParser extends ParserBase {
 
     while (this.match(TokenType.OR)) {
       const right = this.parseTernaryBranchAnd();
-      left = { type: "LogicalExpression", operator: "or", left, right } as LogicalExpression;
+      left = { type: 'LogicalExpression', operator: 'or', left, right } as LogicalExpression;
     }
 
     return left;
@@ -90,7 +89,7 @@ export class ExpressionParser extends ParserBase {
 
     while (this.match(TokenType.AND)) {
       const right = this.parseTernaryBranchNot();
-      left = { type: "LogicalExpression", operator: "and", left, right } as LogicalExpression;
+      left = { type: 'LogicalExpression', operator: 'and', left, right } as LogicalExpression;
     }
 
     return left;
@@ -99,7 +98,7 @@ export class ExpressionParser extends ParserBase {
   private parseTernaryBranchNot(): Expression {
     if (this.match(TokenType.NOT)) {
       const operand = this.parseTernaryBranchNot();
-      return { type: "NotExpression", operand } as NotExpression;
+      return { type: 'NotExpression', operand } as NotExpression;
     }
 
     // Skip superposition, go directly to comparison
@@ -115,7 +114,7 @@ export class ExpressionParser extends ParserBase {
 
     while (this.match(TokenType.OR)) {
       const right = this.parseAnd();
-      left = { type: "LogicalExpression", operator: "or", left, right } as LogicalExpression;
+      left = { type: 'LogicalExpression', operator: 'or', left, right } as LogicalExpression;
     }
 
     return left;
@@ -126,7 +125,7 @@ export class ExpressionParser extends ParserBase {
 
     while (this.match(TokenType.AND)) {
       const right = this.parseNot();
-      left = { type: "LogicalExpression", operator: "and", left, right } as LogicalExpression;
+      left = { type: 'LogicalExpression', operator: 'and', left, right } as LogicalExpression;
     }
 
     return left;
@@ -135,7 +134,7 @@ export class ExpressionParser extends ParserBase {
   private parseNot(): Expression {
     if (this.match(TokenType.NOT)) {
       const operand = this.parseNot();
-      return { type: "NotExpression", operand } as NotExpression;
+      return { type: 'NotExpression', operand } as NotExpression;
     }
 
     return this.parseSuperposition();
@@ -155,7 +154,7 @@ export class ExpressionParser extends ParserBase {
         options.push(this.parseSuperpositionOption());
       }
 
-      return { type: "SuperpositionExpression", options };
+      return { type: 'SuperpositionExpression', options };
     }
 
     return first.value;
@@ -165,7 +164,7 @@ export class ExpressionParser extends ParserBase {
     const expr = this.parseComparison();
 
     // Check for weighted option: number followed by colon
-    if (expr.type === "Literal" && expr.dataType === "number" && this.check(TokenType.COLON)) {
+    if (expr.type === 'Literal' && expr.dataType === 'number' && this.check(TokenType.COLON)) {
       this.advance();
       const value = this.parseComparison();
       return { weight: expr.value as number, value };
@@ -190,18 +189,18 @@ export class ExpressionParser extends ParserBase {
     ) {
       const operator = this.advance().value;
       const right = this.parseRange();
-      left = { type: "BinaryExpression", operator, left, right };
+      left = { type: 'BinaryExpression', operator, left, right };
     }
 
     return left;
   }
 
   parseRange(): Expression {
-    let left = this.parseAdditive();
+    const left = this.parseAdditive();
 
     if (this.match(TokenType.DOTDOT)) {
       const right = this.check(TokenType.NUMBER) ? this.parseAdditive() : undefined;
-      return { type: "RangeExpression", min: left, max: right };
+      return { type: 'RangeExpression', min: left, max: right };
     }
 
     return left;
@@ -213,7 +212,7 @@ export class ExpressionParser extends ParserBase {
     while (this.check(TokenType.PLUS) || this.check(TokenType.MINUS)) {
       const operator = this.advance().value;
       const right = this.parseMultiplicative();
-      left = { type: "BinaryExpression", operator, left, right };
+      left = { type: 'BinaryExpression', operator, left, right };
     }
 
     return left;
@@ -225,7 +224,7 @@ export class ExpressionParser extends ParserBase {
     while (this.check(TokenType.STAR) || this.check(TokenType.SLASH)) {
       const operator = this.advance().value;
       const right = this.parseUnary();
-      left = { type: "BinaryExpression", operator, left, right };
+      left = { type: 'BinaryExpression', operator, left, right };
     }
 
     return left;
@@ -238,7 +237,7 @@ export class ExpressionParser extends ParserBase {
   private parseUnary(): Expression {
     if (this.match(TokenType.CARET)) {
       const path = this.parseQualifiedName();
-      return { type: "ParentReference", path };
+      return { type: 'ParentReference', path };
     }
 
     return this.parseCall();
@@ -257,16 +256,16 @@ export class ExpressionParser extends ParserBase {
         }
         this.consume(TokenType.RPAREN, "Expected ')'");
 
-        if (expr.type === "Identifier") {
-          expr = { type: "CallExpression", callee: expr.name, arguments: args };
-        } else if (expr.type === "QualifiedName") {
-          expr = { type: "CallExpression", callee: expr.parts.join("."), arguments: args };
+        if (expr.type === 'Identifier') {
+          expr = { type: 'CallExpression', callee: expr.name, arguments: args };
+        } else if (expr.type === 'QualifiedName') {
+          expr = { type: 'CallExpression', callee: expr.parts.join('.'), arguments: args };
         }
       } else if (this.match(TokenType.DOT)) {
-        const name = this.consume(TokenType.IDENTIFIER, "Expected property name").value;
-        if (expr.type === "Identifier") {
-          expr = { type: "QualifiedName", parts: [expr.name, name] };
-        } else if (expr.type === "QualifiedName") {
+        const name = this.consume(TokenType.IDENTIFIER, 'Expected property name').value;
+        if (expr.type === 'Identifier') {
+          expr = { type: 'QualifiedName', parts: [expr.name, name] };
+        } else if (expr.type === 'QualifiedName') {
           expr.parts.push(name);
         }
       } else {
@@ -295,7 +294,7 @@ export class ExpressionParser extends ParserBase {
       if (this.match(TokenType.WHERE)) {
         condition = this.parseExpression();
       }
-      return { type: "AnyOfExpression", collection, condition };
+      return { type: 'AnyOfExpression', collection, condition };
     }
 
     // Parenthesized expression
@@ -308,38 +307,38 @@ export class ExpressionParser extends ParserBase {
     // Number literal
     if (this.check(TokenType.NUMBER)) {
       const value = parseFloat(this.advance().value);
-      return { type: "Literal", value, dataType: "number" };
+      return { type: 'Literal', value, dataType: 'number' };
     }
 
     // String literal
     if (this.check(TokenType.STRING)) {
       const value = this.advance().value;
-      return { type: "Literal", value, dataType: "string" };
+      return { type: 'Literal', value, dataType: 'string' };
     }
 
     // Null literal
     if (this.match(TokenType.NULL)) {
-      return { type: "Literal", value: null, dataType: "null" };
+      return { type: 'Literal', value: null, dataType: 'null' };
     }
 
     // Boolean literals
     if (this.match(TokenType.TRUE)) {
-      return { type: "Literal", value: true, dataType: "boolean" };
+      return { type: 'Literal', value: true, dataType: 'boolean' };
     }
     if (this.match(TokenType.FALSE)) {
-      return { type: "Literal", value: false, dataType: "boolean" };
+      return { type: 'Literal', value: false, dataType: 'boolean' };
     }
 
     // Identifier
     if (this.check(TokenType.IDENTIFIER)) {
       const name = this.advance().value;
-      return { type: "Identifier", name };
+      return { type: 'Identifier', name };
     }
 
     // .field shorthand for current scope field access
     if (this.match(TokenType.DOT)) {
       const name = this.consume(TokenType.IDENTIFIER, "Expected field name after '.'").value;
-      return { type: "Identifier", name };
+      return { type: 'Identifier', name };
     }
 
     throw this.error(`Unexpected token: ${this.peek().value}`);
@@ -363,7 +362,7 @@ export class ExpressionParser extends ParserBase {
     }
 
     this.consume(TokenType.RBRACE, "Expected '}'");
-    return { type: "MatchExpression", value, arms };
+    return { type: 'MatchExpression', value, arms };
   }
 
   // ============================================
@@ -372,21 +371,22 @@ export class ExpressionParser extends ParserBase {
 
   parseQualifiedName(): QualifiedName {
     const parts: string[] = [];
-    parts.push(this.consume(TokenType.IDENTIFIER, "Expected identifier").value);
+    parts.push(this.consume(TokenType.IDENTIFIER, 'Expected identifier').value);
 
     while (this.match(TokenType.DOT)) {
-      parts.push(this.consume(TokenType.IDENTIFIER, "Expected identifier").value);
+      parts.push(this.consume(TokenType.IDENTIFIER, 'Expected identifier').value);
     }
 
-    return { type: "QualifiedName", parts };
+    return { type: 'QualifiedName', parts };
   }
 
   parseRangeExpression(): RangeExpression {
     const min = this.parseAdditive();
     this.consume(TokenType.DOTDOT, "Expected '..'");
-    const max = this.check(TokenType.RBRACE) || this.check(TokenType.COMMA)
-      ? undefined
-      : this.parseAdditive();
-    return { type: "RangeExpression", min, max };
+    const max =
+      this.check(TokenType.RBRACE) || this.check(TokenType.COMMA)
+        ? undefined
+        : this.parseAdditive();
+    return { type: 'RangeExpression', min, max };
   }
 }

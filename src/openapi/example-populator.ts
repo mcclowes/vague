@@ -1,7 +1,7 @@
-import SwaggerParser from "@apidevtools/swagger-parser";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import type { OpenAPIV3 } from "openapi-types";
+import SwaggerParser from '@apidevtools/swagger-parser';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export interface PopulatorOptions {
   externalRefs: boolean;
@@ -33,17 +33,14 @@ export class OpenAPIExamplePopulator {
     } catch (err) {
       // Fall back to direct JSON parsing for 3.1.x
       const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes("Unsupported OpenAPI version")) {
-        return JSON.parse(readFileSync(path, "utf-8")) as OpenAPIV3.Document;
+      if (errMsg.includes('Unsupported OpenAPI version')) {
+        return JSON.parse(readFileSync(path, 'utf-8')) as OpenAPIV3.Document;
       }
       throw err;
     }
   }
 
-  detectMapping(
-    collections: string[],
-    schemaNames: string[]
-  ): Record<string, string> {
+  detectMapping(collections: string[], schemaNames: string[]): Record<string, string> {
     const mapping: Record<string, string> = {};
     const schemaLookup = new Map<string, string>();
 
@@ -90,38 +87,33 @@ export class OpenAPIExamplePopulator {
   }
 
   private singularize(word: string): string {
-    if (word.endsWith("ies")) {
-      return word.slice(0, -3) + "y";
+    if (word.endsWith('ies')) {
+      return word.slice(0, -3) + 'y';
     }
-    if (word.endsWith("es") && !word.endsWith("ses")) {
+    if (word.endsWith('es') && !word.endsWith('ses')) {
       return word.slice(0, -2);
     }
-    if (word.endsWith("s") && !word.endsWith("ss")) {
+    if (word.endsWith('s') && !word.endsWith('ss')) {
       return word.slice(0, -1);
     }
     return word;
   }
 
   private pluralize(word: string): string {
-    if (word.endsWith("y")) {
-      return word.slice(0, -1) + "ies";
+    if (word.endsWith('y')) {
+      return word.slice(0, -1) + 'ies';
     }
-    if (
-      word.endsWith("s") ||
-      word.endsWith("x") ||
-      word.endsWith("ch") ||
-      word.endsWith("sh")
-    ) {
-      return word + "es";
+    if (word.endsWith('s') || word.endsWith('x') || word.endsWith('ch') || word.endsWith('sh')) {
+      return word + 'es';
     }
-    return word + "s";
+    return word + 's';
   }
 
   private snakeToPascal(str: string): string {
     return str
-      .split("_")
+      .split('_')
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join("");
+      .join('');
   }
 
   populate(
@@ -153,14 +145,14 @@ export class OpenAPIExamplePopulator {
         result,
         data,
         options.exampleCount,
-        options.outputDir ?? ".",
+        options.outputDir ?? '.',
         externalFiles
       );
       this.populatePathExamplesExternal(
         result,
         data,
         options.exampleCount,
-        options.outputDir ?? ".",
+        options.outputDir ?? '.',
         externalFiles
       );
     } else {
@@ -212,7 +204,7 @@ export class OpenAPIExamplePopulator {
   ): void {
     if (!doc.components?.schemas) return;
 
-    const examplesDir = join(outputDir, "examples");
+    const examplesDir = join(outputDir, 'examples');
 
     for (const [schemaName, schema] of Object.entries(doc.components.schemas)) {
       if (this.isReferenceObject(schema)) continue;
@@ -303,16 +295,16 @@ export class OpenAPIExamplePopulator {
     if (!doc.paths) return;
 
     let pathIndex = 0;
-    for (const [path, pathItem] of Object.entries(doc.paths)) {
+    for (const [_path, pathItem] of Object.entries(doc.paths)) {
       if (!pathItem) continue;
       pathIndex++;
 
       const operations: [string, OperationObject | undefined][] = [
-        ["get", pathItem.get],
-        ["post", pathItem.post],
-        ["put", pathItem.put],
-        ["patch", pathItem.patch],
-        ["delete", pathItem.delete],
+        ['get', pathItem.get],
+        ['post', pathItem.post],
+        ['put', pathItem.put],
+        ['patch', pathItem.patch],
+        ['delete', pathItem.delete],
       ];
 
       for (const [method, operation] of operations) {
@@ -395,7 +387,7 @@ export class OpenAPIExamplePopulator {
   ): void {
     if (!content) return;
 
-    const examplesDir = join(outputDir, "examples");
+    const examplesDir = join(outputDir, 'examples');
 
     for (const [mimeType, mediaType] of Object.entries(content)) {
       const schemaName = this.extractSchemaName(mediaType.schema);
@@ -409,7 +401,7 @@ export class OpenAPIExamplePopulator {
       const count = Math.min(exampleCount, items.length);
 
       // Sanitize mime type for filename
-      const mimeSlug = mimeType.replace(/[^a-z0-9]/gi, "-");
+      const mimeSlug = mimeType.replace(/[^a-z0-9]/gi, '-');
 
       if (count === 1) {
         const filename = `${prefix}-${mimeSlug}.json`;
@@ -438,9 +430,7 @@ export class OpenAPIExamplePopulator {
     }
   }
 
-  private extractSchemaName(
-    schema: SchemaObject | ReferenceObject | undefined
-  ): string | null {
+  private extractSchemaName(schema: SchemaObject | ReferenceObject | undefined): string | null {
     if (!schema) return null;
 
     if (this.isReferenceObject(schema)) {
@@ -451,23 +441,21 @@ export class OpenAPIExamplePopulator {
     }
 
     // Check for array with ref items
-    if (schema.type === "array" && schema.items) {
+    if (schema.type === 'array' && schema.items) {
       return this.extractSchemaName(schema.items as SchemaObject | ReferenceObject);
     }
 
     return null;
   }
 
-  private isArraySchema(
-    schema: SchemaObject | ReferenceObject | undefined
-  ): boolean {
+  private isArraySchema(schema: SchemaObject | ReferenceObject | undefined): boolean {
     if (!schema) return false;
     if (this.isReferenceObject(schema)) return false;
-    return schema.type === "array";
+    return schema.type === 'array';
   }
 
   private isReferenceObject(obj: unknown): obj is ReferenceObject {
-    return typeof obj === "object" && obj !== null && "$ref" in obj;
+    return typeof obj === 'object' && obj !== null && '$ref' in obj;
   }
 
   writeExternalFiles(files: Map<string, string>): void {

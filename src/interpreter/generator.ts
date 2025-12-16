@@ -24,25 +24,27 @@ import {
   Mutation,
   QualifiedName,
   TernaryExpression,
-} from "../ast/index.js";
-import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
-import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
+} from '../ast/index.js';
+import { OpenAPILoader, ImportedSchema } from '../openapi/index.js';
+import {
+  generateCompanyName,
+  generatePersonName,
+  generateProductName,
+  generateText,
+} from './markov.js';
 import {
   random,
   randomInt,
   randomFloat,
-  randomChoice,
-  randomBool,
-  setSeed,
   gaussian,
   exponential,
   lognormal,
   poisson,
   beta,
-} from "./random.js";
+} from './random.js';
 
 // Re-export seed functions for external use
-export { setSeed, getSeed } from "./random.js";
+export { setSeed, getSeed } from './random.js';
 
 // Plugin system types
 export type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
@@ -100,10 +102,10 @@ export class Generator {
   async generate(program: Program): Promise<Record<string, unknown[]>> {
     // First pass: collect schemas and process imports
     for (const stmt of program.statements) {
-      if (stmt.type === "ImportStatement") {
+      if (stmt.type === 'ImportStatement') {
         const schemas = await this.openApiLoader.load(stmt.path);
         this.ctx.importedSchemas.set(stmt.name, schemas);
-      } else if (stmt.type === "SchemaDefinition") {
+      } else if (stmt.type === 'SchemaDefinition') {
         this.ctx.schemas.set(stmt.name, stmt);
       }
     }
@@ -112,7 +114,7 @@ export class Generator {
     const result: Record<string, unknown[]> = {};
 
     for (const stmt of program.statements) {
-      if (stmt.type === "DatasetDefinition") {
+      if (stmt.type === 'DatasetDefinition') {
         const data = this.generateDataset(stmt);
         Object.assign(result, data);
       }
@@ -139,7 +141,8 @@ export class Generator {
 
       // Check dataset-level constraints
       // In violating mode, we want constraints to FAIL (inverted logic)
-      const constraintsPass = !dataset.validation || this.validateDatasetConstraints(dataset.validation, result);
+      const constraintsPass =
+        !dataset.validation || this.validateDatasetConstraints(dataset.validation, result);
       if (dataset.violating ? !constraintsPass : constraintsPass) {
         return result;
       }
@@ -151,7 +154,7 @@ export class Generator {
     }
 
     // Fallback: return last attempt with warning
-    const mode = dataset.violating ? "violating" : "satisfying";
+    const mode = dataset.violating ? 'violating' : 'satisfying';
     console.warn(`Warning: Could not generate ${mode} data after ${maxAttempts} attempts`);
     const result: Record<string, unknown[]> = {};
     for (const collection of dataset.collections) {
@@ -175,7 +178,7 @@ export class Generator {
     for (const constraint of validation.validations) {
       try {
         const result = this.evaluateExpression(constraint);
-        if (!Boolean(result)) {
+        if (!result) {
           return false;
         }
       } catch {
@@ -234,8 +237,10 @@ export class Generator {
     }
 
     // If we couldn't generate desired data, return last attempt with warning
-    const mode = this.ctx.violating ? "violating" : "satisfying";
-    console.warn(`Warning: Could not generate ${mode} data for ${schema.name} after ${maxAttempts} attempts`);
+    const mode = this.ctx.violating ? 'violating' : 'satisfying';
+    console.warn(
+      `Warning: Could not generate ${mode} data for ${schema.name} after ${maxAttempts} attempts`
+    );
     const instance = this.generateInstanceAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
     return instance;
@@ -259,15 +264,15 @@ export class Generator {
     }
   }
 
-  private executeMutation(
-    mutation: Mutation,
-    instance: Record<string, unknown>
-  ): void {
+  private executeMutation(mutation: Mutation, instance: Record<string, unknown>): void {
     // Resolve the target path to get the object and final field name
-    const { target: targetObj, field: fieldName } = this.resolveMutationTarget(mutation.target, instance);
+    const { target: targetObj, field: fieldName } = this.resolveMutationTarget(
+      mutation.target,
+      instance
+    );
 
     if (!targetObj || !fieldName) {
-      console.warn("Could not resolve mutation target");
+      console.warn('Could not resolve mutation target');
       return;
     }
 
@@ -275,7 +280,7 @@ export class Generator {
     const value = this.evaluateExpression(mutation.value);
 
     // Apply the mutation
-    if (mutation.operator === "+=") {
+    if (mutation.operator === '+=') {
       const current = (targetObj as Record<string, unknown>)[fieldName];
       (targetObj as Record<string, unknown>)[fieldName] = (current as number) + (value as number);
     } else {
@@ -288,7 +293,7 @@ export class Generator {
     instance: Record<string, unknown>
   ): { target: unknown; field: string | null } {
     // Handle qualified names like invoice.status
-    if (expr.type === "QualifiedName") {
+    if (expr.type === 'QualifiedName') {
       const parts = (expr as QualifiedName).parts;
       if (parts.length < 2) {
         return { target: null, field: null };
@@ -299,7 +304,7 @@ export class Generator {
 
       // Navigate through intermediate parts
       for (let i = 1; i < parts.length - 1; i++) {
-        if (target && typeof target === "object") {
+        if (target && typeof target === 'object') {
           target = (target as Record<string, unknown>)[parts[i]];
         } else {
           return { target: null, field: null };
@@ -310,14 +315,14 @@ export class Generator {
     }
 
     // Handle binary expression with dot operator: invoice.status
-    if (expr.type === "BinaryExpression" && (expr as BinaryExpression).operator === ".") {
+    if (expr.type === 'BinaryExpression' && (expr as BinaryExpression).operator === '.') {
       const binExpr = expr as BinaryExpression;
 
       // Get the base object
       let target: unknown;
-      if (binExpr.left.type === "Identifier") {
+      if (binExpr.left.type === 'Identifier') {
         target = instance[(binExpr.left as { name: string }).name];
-      } else if (binExpr.left.type === "BinaryExpression") {
+      } else if (binExpr.left.type === 'BinaryExpression') {
         // Nested: invoice.customer.name - resolve left side first
         const nested = this.resolveMutationTarget(binExpr.left, instance);
         if (nested.target && nested.field) {
@@ -326,7 +331,7 @@ export class Generator {
       }
 
       // Get the field name
-      if (binExpr.right.type === "Identifier") {
+      if (binExpr.right.type === 'Identifier') {
         return { target, field: (binExpr.right as { name: string }).name };
       }
     }
@@ -381,7 +386,7 @@ export class Generator {
       }
 
       // Defer collection fields
-      if (field.fieldType.type === "CollectionType") {
+      if (field.fieldType.type === 'CollectionType') {
         collectionFields.push([name, field]);
         continue;
       }
@@ -409,10 +414,7 @@ export class Generator {
     return instance;
   }
 
-  private validateConstraints(
-    assumes: AssumeClause[],
-    instance: Record<string, unknown>
-  ): boolean {
+  private validateConstraints(assumes: AssumeClause[], instance: Record<string, unknown>): boolean {
     const oldCurrent = this.ctx.current;
     this.ctx.current = instance;
 
@@ -430,7 +432,7 @@ export class Generator {
         // All constraints in the clause must be true
         for (const constraint of assume.constraints) {
           const result = this.evaluateExpression(constraint);
-          if (!Boolean(result)) {
+          if (!result) {
             return false;
           }
         }
@@ -462,26 +464,31 @@ export class Generator {
 
   private generateFromImportedField(field: unknown, fieldName?: string): unknown {
     // Basic type generation for imported fields
-    const f = field as { type: { kind: string; type?: string }; enum?: unknown[]; name?: string; format?: string };
+    const f = field as {
+      type: { kind: string; type?: string };
+      enum?: unknown[];
+      name?: string;
+      format?: string;
+    };
     if (f.enum && f.enum.length > 0) {
       return f.enum[Math.floor(random() * f.enum.length)];
     }
 
     switch (f.type.kind) {
-      case "primitive":
+      case 'primitive':
         switch (f.type.type) {
-          case "string":
+          case 'string':
             return this.generateStringFromFormat(f.format, fieldName ?? f.name);
-          case "integer":
+          case 'integer':
             return Math.floor(random() * 1000);
-          case "number":
+          case 'number':
             return random() * 1000;
-          case "boolean":
+          case 'boolean':
             return random() > 0.5;
           default:
             return null;
         }
-      case "array":
+      case 'array':
         return [];
       default:
         return null;
@@ -504,41 +511,55 @@ export class Generator {
 
       // Handle common OpenAPI/JSON Schema formats
       switch (format) {
-        case "uuid":
-          return this.tryPluginGenerator("uuid") ?? crypto.randomUUID();
-        case "email":
-          return this.tryPluginGenerator("email") ?? `user${randomInt(1, 9999)}@example.com`;
-        case "phone":
-        case "phone-number":
-          return this.tryPluginGenerator("phone") ?? `+1${randomInt(200, 999)}${randomInt(100, 999)}${randomInt(1000, 9999)}`;
-        case "uri":
-        case "url":
-          return this.tryPluginGenerator("url") ?? `https://example.com/${randomInt(1, 9999)}`;
-        case "hostname":
+        case 'uuid':
+          return this.tryPluginGenerator('uuid') ?? crypto.randomUUID();
+        case 'email':
+          return this.tryPluginGenerator('email') ?? `user${randomInt(1, 9999)}@example.com`;
+        case 'phone':
+        case 'phone-number':
+          return (
+            this.tryPluginGenerator('phone') ??
+            `+1${randomInt(200, 999)}${randomInt(100, 999)}${randomInt(1000, 9999)}`
+          );
+        case 'uri':
+        case 'url':
+          return this.tryPluginGenerator('url') ?? `https://example.com/${randomInt(1, 9999)}`;
+        case 'hostname':
           return `host${randomInt(1, 999)}.example.com`;
-        case "ipv4":
+        case 'ipv4':
           return `${randomInt(1, 255)}.${randomInt(0, 255)}.${randomInt(0, 255)}.${randomInt(1, 254)}`;
-        case "ipv6":
-          return this.tryPluginGenerator("internet.ipv6") ??
-            Array.from({ length: 8 }, () => randomInt(0, 65535).toString(16).padStart(4, "0")).join(":");
-        case "date":
+        case 'ipv6':
+          return (
+            this.tryPluginGenerator('internet.ipv6') ??
+            Array.from({ length: 8 }, () => randomInt(0, 65535).toString(16).padStart(4, '0')).join(
+              ':'
+            )
+          );
+        case 'date':
           // YYYY-MM-DD format
           return this.generateRandomDate();
-        case "date-time":
+        case 'date-time':
           // ISO 8601 format
           return this.generateRandomDateTime();
-        case "time":
+        case 'time':
           // HH:MM:SS format
-          return `${String(randomInt(0, 23)).padStart(2, "0")}:${String(randomInt(0, 59)).padStart(2, "0")}:${String(randomInt(0, 59)).padStart(2, "0")}`;
-        case "byte":
+          return `${String(randomInt(0, 23)).padStart(2, '0')}:${String(randomInt(0, 59)).padStart(2, '0')}:${String(randomInt(0, 59)).padStart(2, '0')}`;
+        case 'byte':
           // Base64 encoded string
-          return Buffer.from(Array.from({ length: 16 }, () => randomInt(0, 255))).toString("base64");
-        case "binary":
-          return Array.from({ length: 16 }, () => randomInt(0, 255).toString(16).padStart(2, "0")).join("");
-        case "password":
-          return this.tryPluginGenerator("internet.password") ?? `Pass${randomInt(1000, 9999)}!`;
-        case "iban":
-          return this.tryPluginGenerator("iban") ?? `GB${randomInt(10, 99)}MOCK${randomInt(10000000, 99999999)}`;
+          return Buffer.from(Array.from({ length: 16 }, () => randomInt(0, 255))).toString(
+            'base64'
+          );
+        case 'binary':
+          return Array.from({ length: 16 }, () =>
+            randomInt(0, 255).toString(16).padStart(2, '0')
+          ).join('');
+        case 'password':
+          return this.tryPluginGenerator('internet.password') ?? `Pass${randomInt(1000, 9999)}!`;
+        case 'iban':
+          return (
+            this.tryPluginGenerator('iban') ??
+            `GB${randomInt(10, 99)}MOCK${randomInt(10000000, 99999999)}`
+          );
       }
     }
 
@@ -550,18 +571,18 @@ export class Generator {
    * Try to call a plugin generator, return undefined if not found
    */
   private tryPluginGenerator(name: string): unknown | undefined {
-    const parts = name.split(".");
+    const parts = name.split('.');
 
     if (parts.length > 1) {
       // Qualified name like "internet.ipv6"
       const pluginName = parts[0];
-      const generatorPath = parts.slice(1).join(".");
+      const generatorPath = parts.slice(1).join('.');
       const plugin = pluginRegistry.get(pluginName);
       if (plugin?.generators[generatorPath]) {
         return plugin.generators[generatorPath]([], this.ctx);
       }
       // Also check faker plugin with full path
-      const fakerPlugin = pluginRegistry.get("faker");
+      const fakerPlugin = pluginRegistry.get('faker');
       if (fakerPlugin?.generators[name]) {
         return fakerPlugin.generators[name]([], this.ctx);
       }
@@ -580,7 +601,7 @@ export class Generator {
     const year = randomInt(2020, 2024);
     const month = randomInt(1, 12);
     const day = randomInt(1, 28);
-    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   private generateRandomDateTime(): string {
@@ -588,7 +609,7 @@ export class Generator {
     const hours = randomInt(0, 23);
     const minutes = randomInt(0, 59);
     const seconds = randomInt(0, 59);
-    return `${date}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.000Z`;
+    return `${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000Z`;
   }
 
   private generateField(field: FieldDefinition, _baseField?: unknown): unknown {
@@ -623,35 +644,33 @@ export class Generator {
     }
 
     // Fallback: return last generated value with warning
-    console.warn(`Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`);
+    console.warn(
+      `Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`
+    );
     return this.generateFromFieldType(field.fieldType, field.name);
   }
 
   private generateFromFieldType(fieldType: FieldType, fieldName?: string): unknown {
     switch (fieldType.type) {
-      case "PrimitiveType":
+      case 'PrimitiveType':
         return this.generatePrimitive(fieldType.name, fieldName);
 
-      case "RangeType":
-        return this.generateInRange(
-          fieldType.baseType.name,
-          fieldType.min,
-          fieldType.max
-        );
+      case 'RangeType':
+        return this.generateInRange(fieldType.baseType.name, fieldType.min, fieldType.max);
 
-      case "SuperpositionType":
+      case 'SuperpositionType':
         return this.pickWeighted(fieldType.options);
 
-      case "CollectionType":
+      case 'CollectionType':
         return this.generateCollectionField(fieldType);
 
-      case "ReferenceType":
+      case 'ReferenceType':
         return this.resolveReference(fieldType.path.parts);
 
-      case "ExpressionType":
+      case 'ExpressionType':
         return this.evaluateExpression(fieldType.expression);
 
-      case "GeneratorType":
+      case 'GeneratorType':
         return this.generateFromPlugin(fieldType);
 
       default:
@@ -663,16 +682,16 @@ export class Generator {
     const { name, arguments: args } = genType;
 
     // Evaluate arguments
-    const evaluatedArgs = args.map(arg => this.evaluateExpression(arg));
+    const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg));
 
     // Try to find generator: "faker.person.firstName" -> plugin "faker", generator "person.firstName"
     // Or simple: "uuid" -> any plugin with generator "uuid"
-    const parts = name.split(".");
+    const parts = name.split('.');
 
     if (parts.length > 1) {
       // Qualified name: faker.person.firstName
       const pluginName = parts[0];
-      const generatorPath = parts.slice(1).join(".");
+      const generatorPath = parts.slice(1).join('.');
 
       const plugin = pluginRegistry.get(pluginName);
       if (plugin) {
@@ -682,7 +701,9 @@ export class Generator {
         }
         throw new Error(`Generator '${generatorPath}' not found in plugin '${pluginName}'`);
       }
-      throw new Error(`Plugin '${pluginName}' not registered. Use registerPlugin() to register it.`);
+      throw new Error(
+        `Plugin '${pluginName}' not registered. Use registerPlugin() to register it.`
+      );
     }
 
     // Simple name: uuid - search all plugins
@@ -699,50 +720,42 @@ export class Generator {
   }
 
   private generatePrimitive(
-    type: "int" | "decimal" | "string" | "date" | "boolean",
+    type: 'int' | 'decimal' | 'string' | 'date' | 'boolean',
     fieldName?: string
   ): unknown {
     switch (type) {
-      case "int":
+      case 'int':
         return Math.floor(random() * 1000);
-      case "decimal":
+      case 'decimal':
         return Math.round(random() * 10000) / 100;
-      case "string":
+      case 'string':
         return this.randomString(fieldName);
-      case "date":
+      case 'date':
         return this.randomDate();
-      case "boolean":
+      case 'boolean':
         return random() > 0.5;
     }
   }
 
-  private generateInRange(
-    type: string,
-    min?: Expression,
-    max?: Expression
-  ): unknown {
+  private generateInRange(type: string, min?: Expression, max?: Expression): unknown {
     const minVal = min ? (this.evaluateExpression(min) as number) : 0;
     const maxVal = max ? (this.evaluateExpression(max) as number) : 1000;
 
-    if (type === "int") {
+    if (type === 'int') {
       return Math.floor(random() * (maxVal - minVal + 1)) + minVal;
     }
 
-    if (type === "date") {
+    if (type === 'date') {
       const minDate = new Date(minVal, 0, 1);
       const maxDate = new Date(maxVal, 11, 31);
       const diff = maxDate.getTime() - minDate.getTime();
-      return new Date(minDate.getTime() + random() * diff)
-        .toISOString()
-        .split("T")[0];
+      return new Date(minDate.getTime() + random() * diff).toISOString().split('T')[0];
     }
 
     return random() * (maxVal - minVal) + minVal;
   }
 
-  private pickWeighted(
-    options: { weight?: number; value: Expression }[]
-  ): unknown {
+  private pickWeighted(options: { weight?: number; value: Expression }[]): unknown {
     // If no weights, equal probability
     const hasWeights = options.some((o) => o.weight !== undefined);
 
@@ -769,7 +782,7 @@ export class Generator {
     }
 
     // If result is a range object, pick a random value from it
-    if (result && typeof result === "object" && "min" in result && "max" in result) {
+    if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
       const min = result.min as number;
       const max = result.max as number;
       return randomInt(min, max);
@@ -790,7 +803,7 @@ export class Generator {
 
     for (let i = 0; i < count; i++) {
       // If element type is a reference to a schema, generate an instance
-      if (fieldType.elementType.type === "ReferenceType") {
+      if (fieldType.elementType.type === 'ReferenceType') {
         const schemaName = fieldType.elementType.path.parts[0];
         const schema = this.ctx.schemas.get(schemaName);
         if (schema) {
@@ -826,13 +839,15 @@ export class Generator {
       // Continue with remaining parts
       for (const part of rest) {
         if (Array.isArray(value)) {
-          value = value.map((item) => {
-            if (item && typeof item === "object" && part in item) {
-              return (item as Record<string, unknown>)[part];
-            }
-            return null;
-          }).filter((v) => v !== null);
-        } else if (value && typeof value === "object" && part in value) {
+          value = value
+            .map((item) => {
+              if (item && typeof item === 'object' && part in item) {
+                return (item as Record<string, unknown>)[part];
+              }
+              return null;
+            })
+            .filter((v) => v !== null);
+        } else if (value && typeof value === 'object' && part in value) {
           value = (value as Record<string, unknown>)[part];
         } else {
           return null;
@@ -845,13 +860,15 @@ export class Generator {
     for (const part of parts) {
       if (Array.isArray(value)) {
         // Map over array to extract field from each item
-        value = value.map((item) => {
-          if (item && typeof item === "object" && part in item) {
-            return (item as Record<string, unknown>)[part];
-          }
-          return null;
-        }).filter((v) => v !== null);
-      } else if (value && typeof value === "object" && part in value) {
+        value = value
+          .map((item) => {
+            if (item && typeof item === 'object' && part in item) {
+              return (item as Record<string, unknown>)[part];
+            }
+            return null;
+          })
+          .filter((v) => v !== null);
+      } else if (value && typeof value === 'object' && part in value) {
         value = (value as Record<string, unknown>)[part];
       } else {
         return null;
@@ -863,14 +880,14 @@ export class Generator {
 
   private evaluateExpression(expr: Expression): unknown {
     switch (expr.type) {
-      case "Literal":
+      case 'Literal':
         return (expr as Literal).value;
 
-      case "Identifier": {
+      case 'Identifier': {
         const name = (expr as { name: string }).name;
         // Check if it's a primitive type name (for superposition like "string | null")
-        if (["string", "int", "decimal", "boolean", "date"].includes(name)) {
-          return this.generatePrimitive(name as "string" | "int" | "decimal" | "boolean" | "date");
+        if (['string', 'int', 'decimal', 'boolean', 'date'].includes(name)) {
+          return this.generatePrimitive(name as 'string' | 'int' | 'decimal' | 'boolean' | 'date');
         }
         // Check collections first (for dataset-level validation)
         if (this.ctx.collections.has(name)) {
@@ -880,15 +897,15 @@ export class Generator {
         return this.ctx.current?.[name] ?? null;
       }
 
-      case "QualifiedName": {
+      case 'QualifiedName': {
         const parts = (expr as { parts: string[] }).parts;
         return this.resolveReference(parts);
       }
 
-      case "SuperpositionExpression":
+      case 'SuperpositionExpression':
         return this.pickWeighted((expr as SuperpositionExpression).options);
 
-      case "RangeExpression": {
+      case 'RangeExpression': {
         const range = expr as RangeExpression;
         const min = range.min ? (this.evaluateExpression(range.min) as number) : 0;
         const max = range.max ? (this.evaluateExpression(range.max) as number) : 100;
@@ -896,13 +913,13 @@ export class Generator {
         return { min, max };
       }
 
-      case "CallExpression":
+      case 'CallExpression':
         return this.evaluateCall(expr as CallExpression);
 
-      case "BinaryExpression":
+      case 'BinaryExpression':
         return this.evaluateBinary(expr as BinaryExpression);
 
-      case "ParentReference": {
+      case 'ParentReference': {
         const ref = expr as ParentReference;
         if (this.ctx.parent) {
           return this.resolveFromObject(this.ctx.parent, ref.path.parts);
@@ -910,10 +927,10 @@ export class Generator {
         return null;
       }
 
-      case "AnyOfExpression": {
+      case 'AnyOfExpression': {
         const anyOf = expr as AnyOfExpression;
         const collectionName =
-          anyOf.collection.type === "Identifier"
+          anyOf.collection.type === 'Identifier'
             ? (anyOf.collection as { name: string }).name
             : null;
         if (collectionName) {
@@ -937,10 +954,10 @@ export class Generator {
         return null;
       }
 
-      case "LogicalExpression": {
+      case 'LogicalExpression': {
         const logical = expr as LogicalExpression;
         const left = Boolean(this.evaluateExpression(logical.left));
-        if (logical.operator === "and") {
+        if (logical.operator === 'and') {
           // Short-circuit: if left is false, return false
           if (!left) return false;
           return Boolean(this.evaluateExpression(logical.right));
@@ -951,12 +968,12 @@ export class Generator {
         }
       }
 
-      case "NotExpression": {
+      case 'NotExpression': {
         const not = expr as NotExpression;
-        return !Boolean(this.evaluateExpression(not.operand));
+        return !this.evaluateExpression(not.operand);
       }
 
-      case "TernaryExpression": {
+      case 'TernaryExpression': {
         const ternary = expr as TernaryExpression;
         const condition = Boolean(this.evaluateExpression(ternary.condition));
         return condition
@@ -973,51 +990,51 @@ export class Generator {
     const args = call.arguments.map((a) => this.evaluateExpression(a));
 
     switch (call.callee) {
-      case "sum": {
+      case 'sum': {
         const arr = args[0];
         if (Array.isArray(arr)) {
           return arr.reduce((sum: number, item) => {
-            if (typeof item === "number") return sum + item;
+            if (typeof item === 'number') return sum + item;
             return sum;
           }, 0);
         }
         return 0;
       }
-      case "count": {
+      case 'count': {
         const arr = args[0];
         return Array.isArray(arr) ? arr.length : 0;
       }
-      case "min": {
+      case 'min': {
         const arr = args[0];
         if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === "number");
+          const nums = arr.filter((x): x is number => typeof x === 'number');
           return nums.length > 0 ? Math.min(...nums) : 0;
         }
         // Fallback for direct number arguments
-        const nums = args.filter((x): x is number => typeof x === "number");
+        const nums = args.filter((x): x is number => typeof x === 'number');
         return nums.length > 0 ? Math.min(...nums) : 0;
       }
-      case "max": {
+      case 'max': {
         const arr = args[0];
         if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === "number");
+          const nums = arr.filter((x): x is number => typeof x === 'number');
           return nums.length > 0 ? Math.max(...nums) : 0;
         }
         // Fallback for direct number arguments
-        const nums = args.filter((x): x is number => typeof x === "number");
+        const nums = args.filter((x): x is number => typeof x === 'number');
         return nums.length > 0 ? Math.max(...nums) : 0;
       }
-      case "avg": {
+      case 'avg': {
         const arr = args[0];
         if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === "number");
+          const nums = arr.filter((x): x is number => typeof x === 'number');
           if (nums.length === 0) return 0;
           const sum = nums.reduce((s, n) => s + n, 0);
           return sum / nums.length;
         }
         return 0;
       }
-      case "all": {
+      case 'all': {
         // all(collection, predicate) - returns true if predicate holds for all items
         // The predicate uses .field syntax to reference item fields
         const arr = args[0];
@@ -1029,7 +1046,7 @@ export class Generator {
           for (const item of arr) {
             this.ctx.current = item as Record<string, unknown>;
             const result = this.evaluateExpression(predicate);
-            if (!Boolean(result)) {
+            if (!result) {
               return false;
             }
           }
@@ -1038,7 +1055,7 @@ export class Generator {
           this.ctx.current = oldCurrent;
         }
       }
-      case "some": {
+      case 'some': {
         // some(collection, predicate) - returns true if predicate holds for at least one item
         const arr = args[0];
         const predicate = call.arguments[1];
@@ -1049,7 +1066,7 @@ export class Generator {
           for (const item of arr) {
             this.ctx.current = item as Record<string, unknown>;
             const result = this.evaluateExpression(predicate);
-            if (Boolean(result)) {
+            if (result) {
               return true;
             }
           }
@@ -1058,7 +1075,7 @@ export class Generator {
           this.ctx.current = oldCurrent;
         }
       }
-      case "none": {
+      case 'none': {
         // none(collection, predicate) - returns true if predicate holds for no items
         const arr = args[0];
         const predicate = call.arguments[1];
@@ -1069,7 +1086,7 @@ export class Generator {
           for (const item of arr) {
             this.ctx.current = item as Record<string, unknown>;
             const result = this.evaluateExpression(predicate);
-            if (Boolean(result)) {
+            if (result) {
               return false;
             }
           }
@@ -1078,28 +1095,28 @@ export class Generator {
           this.ctx.current = oldCurrent;
         }
       }
-      case "round": {
+      case 'round': {
         // round(value, decimals?) - round to specified decimal places (default 0)
         const value = args[0] as number;
         const decimals = (args[1] as number) ?? 0;
         const factor = Math.pow(10, decimals);
         return Math.round(value * factor) / factor;
       }
-      case "floor": {
+      case 'floor': {
         // floor(value, decimals?) - floor to specified decimal places (default 0)
         const value = args[0] as number;
         const decimals = (args[1] as number) ?? 0;
         const factor = Math.pow(10, decimals);
         return Math.floor(value * factor) / factor;
       }
-      case "ceil": {
+      case 'ceil': {
         // ceil(value, decimals?) - ceil to specified decimal places (default 0)
         const value = args[0] as number;
         const decimals = (args[1] as number) ?? 0;
         const factor = Math.pow(10, decimals);
         return Math.ceil(value * factor) / factor;
       }
-      case "unique": {
+      case 'unique': {
         // unique(key, generator_expr) - ensures generated value is unique within key namespace
         // The key identifies the uniqueness scope (e.g., "invoices.id")
         // Retries generation up to 100 times to find a unique value
@@ -1120,15 +1137,17 @@ export class Generator {
           }
         }
         // Fallback: return last generated value with warning
-        console.warn(`Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`);
+        console.warn(
+          `Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`
+        );
         return this.evaluateExpression(generatorExpr);
       }
 
       // ============================================
       // Distribution functions
       // ============================================
-      case "gaussian":
-      case "normal": {
+      case 'gaussian':
+      case 'normal': {
         // gaussian(mean, stddev, min?, max?) - normal distribution
         const mean = (args[0] as number) ?? 0;
         const stddev = (args[1] as number) ?? 1;
@@ -1136,14 +1155,14 @@ export class Generator {
         const max = args[3] as number | undefined;
         return gaussian(mean, stddev, min, max);
       }
-      case "exponential": {
+      case 'exponential': {
         // exponential(rate, min?, max?) - exponential distribution
         const rate = (args[0] as number) ?? 1;
         const min = (args[1] as number) ?? 0;
         const max = args[2] as number | undefined;
         return exponential(rate, min, max);
       }
-      case "lognormal": {
+      case 'lognormal': {
         // lognormal(mu, sigma, min?, max?) - log-normal distribution
         const mu = (args[0] as number) ?? 0;
         const sigma = (args[1] as number) ?? 1;
@@ -1151,18 +1170,18 @@ export class Generator {
         const max = args[3] as number | undefined;
         return lognormal(mu, sigma, min, max);
       }
-      case "poisson": {
+      case 'poisson': {
         // poisson(lambda) - Poisson distribution for count data
         const lambda = (args[0] as number) ?? 1;
         return poisson(lambda);
       }
-      case "beta": {
+      case 'beta': {
         // beta(alpha, beta) - beta distribution (0-1 range)
         const alpha = (args[0] as number) ?? 1;
         const betaParam = (args[1] as number) ?? 1;
         return beta(alpha, betaParam);
       }
-      case "uniform": {
+      case 'uniform': {
         // uniform(min, max) - uniform distribution (explicit)
         const min = (args[0] as number) ?? 0;
         const max = (args[1] as number) ?? 1;
@@ -1172,15 +1191,15 @@ export class Generator {
       // ============================================
       // Date functions
       // ============================================
-      case "now": {
+      case 'now': {
         // now() - current ISO 8601 datetime
         return new Date().toISOString();
       }
-      case "today": {
+      case 'today': {
         // today() - current date in YYYY-MM-DD format
-        return new Date().toISOString().split("T")[0];
+        return new Date().toISOString().split('T')[0];
       }
-      case "datetime": {
+      case 'datetime': {
         // datetime(min?, max?) - random datetime, optionally within range
         // min/max can be ISO strings or year numbers
         const minArg = args[0];
@@ -1191,7 +1210,7 @@ export class Generator {
 
         if (minArg === undefined) {
           minDate = new Date(2020, 0, 1);
-        } else if (typeof minArg === "number") {
+        } else if (typeof minArg === 'number') {
           minDate = new Date(minArg, 0, 1);
         } else {
           minDate = new Date(minArg as string);
@@ -1199,7 +1218,7 @@ export class Generator {
 
         if (maxArg === undefined) {
           maxDate = new Date();
-        } else if (typeof maxArg === "number") {
+        } else if (typeof maxArg === 'number') {
           maxDate = new Date(maxArg, 11, 31, 23, 59, 59);
         } else {
           maxDate = new Date(maxArg as string);
@@ -1210,21 +1229,21 @@ export class Generator {
         );
         return date.toISOString();
       }
-      case "daysAgo": {
+      case 'daysAgo': {
         // daysAgo(n) - date n days in the past
         const days = (args[0] as number) ?? 0;
         const date = new Date();
         date.setDate(date.getDate() - days);
-        return date.toISOString().split("T")[0];
+        return date.toISOString().split('T')[0];
       }
-      case "daysFromNow": {
+      case 'daysFromNow': {
         // daysFromNow(n) - date n days in the future
         const days = (args[0] as number) ?? 0;
         const date = new Date();
         date.setDate(date.getDate() + days);
-        return date.toISOString().split("T")[0];
+        return date.toISOString().split('T')[0];
       }
-      case "dateBetween": {
+      case 'dateBetween': {
         // dateBetween(start, end) - random date between two dates
         // start/end can be ISO strings, "today", or year numbers
         const startArg = args[0];
@@ -1233,19 +1252,19 @@ export class Generator {
         let startDate: Date;
         let endDate: Date;
 
-        if (startArg === "today") {
+        if (startArg === 'today') {
           startDate = new Date();
           startDate.setHours(0, 0, 0, 0);
-        } else if (typeof startArg === "number") {
+        } else if (typeof startArg === 'number') {
           startDate = new Date(startArg, 0, 1);
         } else {
           startDate = new Date(startArg as string);
         }
 
-        if (endArg === "today") {
+        if (endArg === 'today') {
           endDate = new Date();
           endDate.setHours(23, 59, 59, 999);
-        } else if (typeof endArg === "number") {
+        } else if (typeof endArg === 'number') {
           endDate = new Date(endArg, 11, 31);
         } else {
           endDate = new Date(endArg as string);
@@ -1254,38 +1273,38 @@ export class Generator {
         const date = new Date(
           startDate.getTime() + random() * (endDate.getTime() - startDate.getTime())
         );
-        return date.toISOString().split("T")[0];
+        return date.toISOString().split('T')[0];
       }
-      case "formatDate": {
+      case 'formatDate': {
         // formatDate(date, format) - format a date string
         // Supports: YYYY, MM, DD, HH, mm, ss
         const dateStr = args[0] as string;
-        const format = (args[1] as string) ?? "YYYY-MM-DD";
+        const format = (args[1] as string) ?? 'YYYY-MM-DD';
         const date = new Date(dateStr);
 
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        const seconds = String(date.getSeconds()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
 
         return format
-          .replace("YYYY", String(year))
-          .replace("MM", month)
-          .replace("DD", day)
-          .replace("HH", hours)
-          .replace("mm", minutes)
-          .replace("ss", seconds);
+          .replace('YYYY', String(year))
+          .replace('MM', month)
+          .replace('DD', day)
+          .replace('HH', hours)
+          .replace('mm', minutes)
+          .replace('ss', seconds);
       }
 
       // ============================================
       // Sequential/stateful functions
       // ============================================
-      case "sequence": {
+      case 'sequence': {
         // sequence(prefix, start?) - auto-incrementing values
         // e.g., sequence("INV-", 1001) returns "INV-1001", "INV-1002", etc.
-        const prefix = (args[0] as string) ?? "";
+        const prefix = (args[0] as string) ?? '';
         const start = (args[1] as number) ?? 1;
 
         const key = `seq:${prefix}`;
@@ -1298,10 +1317,10 @@ export class Generator {
 
         return `${prefix}${current}`;
       }
-      case "sequenceInt": {
+      case 'sequenceInt': {
         // sequenceInt(name, start?) - auto-incrementing integer
         // e.g., sequenceInt("order_id", 1000) returns 1000, 1001, 1002, etc.
-        const name = (args[0] as string) ?? "default";
+        const name = (args[0] as string) ?? 'default';
         const start = (args[1] as number) ?? 1;
 
         const key = `seqInt:${name}`;
@@ -1314,7 +1333,7 @@ export class Generator {
 
         return current;
       }
-      case "previous": {
+      case 'previous': {
         // previous(field) - get field from previous record in collection
         // Returns null if no previous record exists
         const fieldName = args[0] as string;
@@ -1334,33 +1353,30 @@ export class Generator {
     const right = this.evaluateExpression(expr.right);
 
     switch (expr.operator) {
-      case "+":
+      case '+':
         return (left as number) + (right as number);
-      case "-":
+      case '-':
         return (left as number) - (right as number);
-      case "*":
+      case '*':
         return (left as number) * (right as number);
-      case "/":
+      case '/':
         return (left as number) / (right as number);
-      case "==":
+      case '==':
         return left === right;
-      case "<":
+      case '<':
         return (left as number) < (right as number);
-      case ">":
+      case '>':
         return (left as number) > (right as number);
-      case "<=":
+      case '<=':
         return (left as number) <= (right as number);
-      case ">=":
+      case '>=':
         return (left as number) >= (right as number);
       default:
         return null;
     }
   }
 
-  private evaluateCondition(
-    condition: Expression,
-    instance: Record<string, unknown>
-  ): boolean {
+  private evaluateCondition(condition: Expression, instance: Record<string, unknown>): boolean {
     const oldCurrent = this.ctx.current;
     this.ctx.current = instance;
     const result = this.evaluateExpression(condition);
@@ -1371,7 +1387,7 @@ export class Generator {
   private resolveFromObject(obj: Record<string, unknown>, parts: string[]): unknown {
     let value: unknown = obj;
     for (const part of parts) {
-      if (value && typeof value === "object" && part in value) {
+      if (value && typeof value === 'object' && part in value) {
         value = (value as Record<string, unknown>)[part];
       } else {
         return null;
@@ -1381,66 +1397,72 @@ export class Generator {
   }
 
   private resolveCardinality(cardinality: Cardinality | DynamicCardinality): number {
-    if (cardinality.type === "DynamicCardinality") {
+    if (cardinality.type === 'DynamicCardinality') {
       // Evaluate the expression - should return a number or RangeExpression
       const result = this.evaluateExpression(cardinality.expression);
 
-      if (typeof result === "number") {
+      if (typeof result === 'number') {
         return Math.floor(result);
       }
 
       // If result is an object with min/max (from RangeExpression evaluation)
-      if (result && typeof result === "object" && "min" in result && "max" in result) {
+      if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
         const min = result.min as number;
         const max = result.max as number;
         return Math.floor(random() * (max - min + 1)) + min;
       }
 
-      throw new Error(`Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`);
+      throw new Error(
+        `Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`
+      );
     }
 
     // Static cardinality
     if (cardinality.min === cardinality.max) {
       return cardinality.min;
     }
-    return (
-      Math.floor(random() * (cardinality.max - cardinality.min + 1)) +
-      cardinality.min
-    );
+    return Math.floor(random() * (cardinality.max - cardinality.min + 1)) + cardinality.min;
   }
 
   private randomString(fieldName?: string): string {
     // Use field name and schema context to pick appropriate generator
-    const field = fieldName?.toLowerCase() ?? "";
-    const schema = this.ctx.currentSchemaName?.toLowerCase() ?? "";
+    const field = fieldName?.toLowerCase() ?? '';
+    const schema = this.ctx.currentSchemaName?.toLowerCase() ?? '';
 
     // Check schema context first
-    if (schema.includes("company") || schema.includes("business") || schema.includes("organization")) {
-      if (field === "name" || field.includes("company")) {
+    if (
+      schema.includes('company') ||
+      schema.includes('business') ||
+      schema.includes('organization')
+    ) {
+      if (field === 'name' || field.includes('company')) {
         return generateCompanyName();
       }
     }
 
     // Then field name heuristics
-    if (field.includes("company") || field.includes("business") || field.includes("organization")) {
+    if (field.includes('company') || field.includes('business') || field.includes('organization')) {
       return generateCompanyName();
     }
-    if (field === "name" || field.includes("person") || field.includes("customer") || field.includes("contact")) {
+    if (
+      field === 'name' ||
+      field.includes('person') ||
+      field.includes('customer') ||
+      field.includes('contact')
+    ) {
       return generatePersonName();
     }
-    if (field.includes("product") || field.includes("item") || field.includes("description")) {
+    if (field.includes('product') || field.includes('item') || field.includes('description')) {
       return generateProductName();
     }
 
-    return generateText("word");
+    return generateText('word');
   }
 
   private randomDate(): string {
     const start = new Date(2020, 0, 1);
     const end = new Date();
-    const date = new Date(
-      start.getTime() + random() * (end.getTime() - start.getTime())
-    );
-    return date.toISOString().split("T")[0];
+    const date = new Date(start.getTime() + random() * (end.getTime() - start.getTime()));
+    return date.toISOString().split('T')[0];
   }
 }

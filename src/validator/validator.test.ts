@@ -1,152 +1,149 @@
-import { describe, it, expect } from "vitest";
-import { SchemaValidator } from "./validator.js";
-import { compile } from "../index.js";
-import { resolve } from "node:path";
+import { describe, it, expect } from 'vitest';
+import { SchemaValidator } from './validator.js';
+import { compile } from '../index.js';
+import { resolve } from 'node:path';
 
-describe("SchemaValidator", () => {
-  describe("basic validation", () => {
-    it("validates a simple object against a JSON schema", () => {
+describe('SchemaValidator', () => {
+  describe('basic validation', () => {
+    it('validates a simple object against a JSON schema', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Person", {
-        type: "object",
+      validator.loadSchema('Person', {
+        type: 'object',
         properties: {
-          name: { type: "string" },
-          age: { type: "integer" },
+          name: { type: 'string' },
+          age: { type: 'integer' },
         },
-        required: ["name"],
+        required: ['name'],
       });
 
-      const result = validator.validateItem({ name: "John", age: 30 }, "Person");
+      const result = validator.validateItem({ name: 'John', age: 30 }, 'Person');
       expect(result.valid).toBe(true);
       expect(result.errors).toHaveLength(0);
     });
 
-    it("detects validation errors", () => {
+    it('detects validation errors', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Person", {
-        type: "object",
+      validator.loadSchema('Person', {
+        type: 'object',
         properties: {
-          name: { type: "string" },
-          age: { type: "integer" },
+          name: { type: 'string' },
+          age: { type: 'integer' },
         },
-        required: ["name"],
+        required: ['name'],
       });
 
-      const result = validator.validateItem({ age: "not a number" }, "Person");
+      const result = validator.validateItem({ age: 'not a number' }, 'Person');
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
     });
 
-    it("returns error for unknown schema", () => {
+    it('returns error for unknown schema', () => {
       const validator = new SchemaValidator();
-      const result = validator.validateItem({}, "NonExistent");
+      const result = validator.validateItem({}, 'NonExistent');
       expect(result.valid).toBe(false);
-      expect(result.errors[0].message).toContain("not found");
+      expect(result.errors[0].message).toContain('not found');
     });
   });
 
-  describe("collection validation", () => {
-    it("validates all items in a collection", () => {
+  describe('collection validation', () => {
+    it('validates all items in a collection', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Item", {
-        type: "object",
+      validator.loadSchema('Item', {
+        type: 'object',
         properties: {
-          id: { type: "string" },
+          id: { type: 'string' },
         },
-        required: ["id"],
+        required: ['id'],
       });
 
-      const result = validator.validateCollection(
-        [{ id: "1" }, { id: "2" }, { id: "3" }],
-        "Item"
-      );
+      const result = validator.validateCollection([{ id: '1' }, { id: '2' }, { id: '3' }], 'Item');
       expect(result.valid).toBe(true);
       expect(result.itemsValidated).toBe(3);
       expect(result.itemsFailed).toBe(0);
     });
 
-    it("reports failures with item indices", () => {
+    it('reports failures with item indices', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Item", {
-        type: "object",
+      validator.loadSchema('Item', {
+        type: 'object',
         properties: {
-          id: { type: "string" },
+          id: { type: 'string' },
         },
-        required: ["id"],
+        required: ['id'],
       });
 
       const result = validator.validateCollection(
-        [{ id: "1" }, { noId: true }, { id: "3" }],
-        "Item"
+        [{ id: '1' }, { noId: true }, { id: '3' }],
+        'Item'
       );
       expect(result.valid).toBe(false);
       expect(result.itemsValidated).toBe(3);
       expect(result.itemsFailed).toBe(1);
-      expect(result.errors[0].path).toContain("[1]");
+      expect(result.errors[0].path).toContain('[1]');
     });
   });
 
-  describe("dataset validation", () => {
-    it("validates multiple collections with schema mapping", () => {
+  describe('dataset validation', () => {
+    it('validates multiple collections with schema mapping', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("User", {
-        type: "object",
+      validator.loadSchema('User', {
+        type: 'object',
         properties: {
-          username: { type: "string" },
+          username: { type: 'string' },
         },
-        required: ["username"],
+        required: ['username'],
       });
-      validator.loadSchema("Product", {
-        type: "object",
+      validator.loadSchema('Product', {
+        type: 'object',
         properties: {
-          sku: { type: "string" },
+          sku: { type: 'string' },
         },
-        required: ["sku"],
+        required: ['sku'],
       });
 
       const data = {
-        users: [{ username: "alice" }, { username: "bob" }],
-        products: [{ sku: "ABC123" }],
+        users: [{ username: 'alice' }, { username: 'bob' }],
+        products: [{ sku: 'ABC123' }],
       };
 
       const results = validator.validateDataset(data, {
-        users: "User",
-        products: "Product",
+        users: 'User',
+        products: 'Product',
       });
 
       expect(results).toHaveLength(2);
       expect(results.every((r) => r.result.valid)).toBe(true);
     });
 
-    it("reports missing collections", () => {
+    it('reports missing collections', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("User", {
-        type: "object",
+      validator.loadSchema('User', {
+        type: 'object',
         properties: {},
       });
 
-      const results = validator.validateDataset({}, { users: "User" });
+      const results = validator.validateDataset({}, { users: 'User' });
 
       expect(results[0].result.valid).toBe(false);
-      expect(results[0].result.errors[0].message).toContain("not found in data");
+      expect(results[0].result.errors[0].message).toContain('not found in data');
     });
   });
 
-  describe("OpenAPI schema loading", () => {
-    it("loads schemas from OpenAPI 3.1 spec", async () => {
+  describe('OpenAPI schema loading', () => {
+    it('loads schemas from OpenAPI 3.1 spec', async () => {
       const validator = new SchemaValidator();
-      const specPath = resolve(__dirname, "../../examples/codat/Codat-Lending.json");
+      const specPath = resolve(__dirname, '../../examples/codat/Codat-Lending.json');
 
       const schemas = await validator.loadOpenAPISchemas(specPath);
 
       expect(schemas.length).toBeGreaterThan(0);
-      expect(schemas).toContain("AccountingAccount");
-      expect(schemas).toContain("AccountingCustomer");
+      expect(schemas).toContain('AccountingAccount');
+      expect(schemas).toContain('AccountingCustomer');
     });
 
-    it("validates generated data against OpenAPI schemas", async () => {
+    it('validates generated data against OpenAPI schemas', async () => {
       const validator = new SchemaValidator();
-      const specPath = resolve(__dirname, "../../examples/codat/Codat-Lending.json");
+      const specPath = resolve(__dirname, '../../examples/codat/Codat-Lending.json');
 
       await validator.loadOpenAPISchemas(specPath);
 
@@ -166,60 +163,45 @@ describe("SchemaValidator", () => {
       `;
       const data = await compile(source);
 
-      const result = validator.validateCollection(
-        data.accounts as unknown[],
-        "AccountingAccount"
-      );
+      const result = validator.validateCollection(data.accounts as unknown[], 'AccountingAccount');
 
       expect(result.valid).toBe(true);
       expect(result.itemsValidated).toBe(5);
     });
   });
 
-  describe("format validation", () => {
-    it("validates date-time format", () => {
+  describe('format validation', () => {
+    it('validates date-time format', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Event", {
-        type: "object",
+      validator.loadSchema('Event', {
+        type: 'object',
         properties: {
-          timestamp: { type: "string", format: "date-time" },
+          timestamp: { type: 'string', format: 'date-time' },
         },
-        required: ["timestamp"],
+        required: ['timestamp'],
       });
 
-      const validResult = validator.validateItem(
-        { timestamp: "2024-01-15T10:30:00Z" },
-        "Event"
-      );
+      const validResult = validator.validateItem({ timestamp: '2024-01-15T10:30:00Z' }, 'Event');
       expect(validResult.valid).toBe(true);
 
-      const invalidResult = validator.validateItem(
-        { timestamp: "not-a-date" },
-        "Event"
-      );
+      const invalidResult = validator.validateItem({ timestamp: 'not-a-date' }, 'Event');
       expect(invalidResult.valid).toBe(false);
     });
 
-    it("validates email format", () => {
+    it('validates email format', () => {
       const validator = new SchemaValidator();
-      validator.loadSchema("Contact", {
-        type: "object",
+      validator.loadSchema('Contact', {
+        type: 'object',
         properties: {
-          email: { type: "string", format: "email" },
+          email: { type: 'string', format: 'email' },
         },
-        required: ["email"],
+        required: ['email'],
       });
 
-      const validResult = validator.validateItem(
-        { email: "test@example.com" },
-        "Contact"
-      );
+      const validResult = validator.validateItem({ email: 'test@example.com' }, 'Contact');
       expect(validResult.valid).toBe(true);
 
-      const invalidResult = validator.validateItem(
-        { email: "not-an-email" },
-        "Contact"
-      );
+      const invalidResult = validator.validateItem({ email: 'not-an-email' }, 'Contact');
       expect(invalidResult.valid).toBe(false);
     });
   });

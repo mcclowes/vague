@@ -1,6 +1,6 @@
-import SwaggerParser from "@apidevtools/swagger-parser";
-import { readFileSync } from "node:fs";
-import type { OpenAPIV3 } from "openapi-types";
+import SwaggerParser from '@apidevtools/swagger-parser';
+import { readFileSync } from 'node:fs';
+import type { OpenAPIV3 } from 'openapi-types';
 
 export interface ImportedSchema {
   name: string;
@@ -18,10 +18,10 @@ export interface ImportedField {
 }
 
 export type ImportedFieldType =
-  | { kind: "primitive"; type: "string" | "number" | "integer" | "boolean" }
-  | { kind: "array"; items: ImportedFieldType }
-  | { kind: "object"; schema: string }
-  | { kind: "ref"; ref: string };
+  | { kind: 'primitive'; type: 'string' | 'number' | 'integer' | 'boolean' }
+  | { kind: 'array'; items: ImportedFieldType }
+  | { kind: 'object'; schema: string }
+  | { kind: 'ref'; ref: string };
 
 export class OpenAPILoader {
   private schemas: Map<string, ImportedSchema> = new Map();
@@ -35,8 +35,8 @@ export class OpenAPILoader {
     } catch (err) {
       // Fall back to direct JSON parsing for 3.1.x
       const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes("Unsupported OpenAPI version")) {
-        api = JSON.parse(readFileSync(path, "utf-8")) as OpenAPIV3.Document;
+      if (errMsg.includes('Unsupported OpenAPI version')) {
+        api = JSON.parse(readFileSync(path, 'utf-8')) as OpenAPIV3.Document;
       } else {
         throw err;
       }
@@ -78,42 +78,42 @@ export class OpenAPILoader {
   }
 
   private parseFieldType(schema: OpenAPIV3.SchemaObject): ImportedFieldType {
-    if (schema.type === "array" && schema.items) {
+    if (schema.type === 'array' && schema.items) {
       const items = this.isSchemaObject(schema.items)
         ? this.parseFieldType(schema.items)
-        : { kind: "primitive" as const, type: "string" as const };
-      return { kind: "array", items };
+        : { kind: 'primitive' as const, type: 'string' as const };
+      return { kind: 'array', items };
     }
 
-    if (schema.type === "object") {
+    if (schema.type === 'object') {
       // Inline object - we'd need to handle this specially
-      return { kind: "primitive", type: "string" };
+      return { kind: 'primitive', type: 'string' };
     }
 
-    if (schema.type === "string") {
-      return { kind: "primitive", type: "string" };
+    if (schema.type === 'string') {
+      return { kind: 'primitive', type: 'string' };
     }
 
-    if (schema.type === "integer") {
-      return { kind: "primitive", type: "integer" };
+    if (schema.type === 'integer') {
+      return { kind: 'primitive', type: 'integer' };
     }
 
-    if (schema.type === "number") {
-      return { kind: "primitive", type: "number" };
+    if (schema.type === 'number') {
+      return { kind: 'primitive', type: 'number' };
     }
 
-    if (schema.type === "boolean") {
-      return { kind: "primitive", type: "boolean" };
+    if (schema.type === 'boolean') {
+      return { kind: 'primitive', type: 'boolean' };
     }
 
     // Default fallback
-    return { kind: "primitive", type: "string" };
+    return { kind: 'primitive', type: 'string' };
   }
 
   private isSchemaObject(
     schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
   ): schema is OpenAPIV3.SchemaObject {
-    return !("$ref" in schema);
+    return !('$ref' in schema);
   }
 
   getSchema(name: string): ImportedSchema | undefined {
