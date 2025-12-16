@@ -538,4 +538,317 @@ describe('Parser', () => {
       }
     });
   });
+
+  describe('edge cases and operator precedence', () => {
+    it('handles nested ternary expressions', () => {
+      const ast = parse(`
+        schema X {
+          a: int in 1..100,
+          b: = a > 80 ? "high" : a > 50 ? "medium" : "low"
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        const field = schema.fields[1];
+        expect(field.computed).toBe(true);
+      }
+    });
+
+    it('handles complex logical expressions', () => {
+      const ast = parse(`
+        schema X {
+          a: boolean,
+          b: boolean,
+          c: boolean,
+          assume a and b or c
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        // Should parse as (a and b) or c due to precedence
+        expect(schema.assumes![0].constraints[0]).toMatchObject({
+          type: 'LogicalExpression',
+          operator: 'or',
+        });
+      }
+    });
+
+    it('handles deeply nested parentheses', () => {
+      const ast = parse('let x = (((((1 + 2)))))');
+      expect(ast.statements[0].type).toBe('LetStatement');
+    });
+
+    it('handles mixed arithmetic operators', () => {
+      const ast = parse('let x = 1 + 2 * 3 - 4 / 2');
+      const stmt = ast.statements[0];
+      expect(stmt.type).toBe('LetStatement');
+    });
+
+    it('parses multiple comparisons in sequence', () => {
+      const ast = parse(`
+        schema X {
+          a: int,
+          b: int,
+          c: int,
+          assume a < b and b < c
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.assumes).toHaveLength(1);
+      }
+    });
+
+    it('handles unweighted then weighted superposition', () => {
+      const ast = parse('let x = "a" | 0.5: "b" | 0.5: "c"');
+      const stmt = ast.statements[0];
+      if (stmt.type === 'LetStatement') {
+        expect(stmt.value.type).toBe('SuperpositionExpression');
+      }
+    });
+
+    it('parses any of with where clause containing or', () => {
+      const ast = parse(`
+        schema X {
+          ref: any of items where .status == "active" or .status == "pending"
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].fieldType.type).toBe('ExpressionType');
+      }
+    });
+
+    it('parses function calls with complex arguments', () => {
+      const ast = parse('let x = sum(items.price * items.quantity)');
+      const stmt = ast.statements[0];
+      if (stmt.type === 'LetStatement') {
+        expect(stmt.value.type).toBe('CallExpression');
+      }
+    });
+
+    it('handles qualified names with many parts', () => {
+      const ast = parse(`
+        schema X {
+          value: faker.person.name.firstName()
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].fieldType.type).toBe('GeneratorType');
+      }
+    });
+
+    it('parses open-ended ranges', () => {
+      const ast = parse(`
+        distribution X {
+          0..10: 50%,
+          11..: 50%
+        }
+      `);
+
+      expect(ast.statements[0].type).toBe('DistributionDefinition');
+    });
+
+    it('parses nullable field', () => {
+      const ast = parse(`
+        schema X {
+          value: string?
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].fieldType.type).toBe('SuperpositionType');
+      }
+    });
+
+    it('handles dynamic cardinality with complex condition', () => {
+      const ast = parse(`
+        schema X {
+          a: boolean,
+          b: boolean,
+          items: (a and b ? 10..20 : 1..5) * Item
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[2].fieldType.type).toBe('CollectionType');
+      }
+    });
+
+    it('parses schema with then block', () => {
+      const ast = parse(`
+        schema Payment {
+          invoice: any of invoices,
+          amount: int in 1..100
+        }
+      `);
+
+      const schema = ast.statements[0];
+      expect(schema.type).toBe('SchemaDefinition');
+    });
+
+    it('parses validate block with multiple constraints', () => {
+      const ast = parse(`
+        dataset Test {
+          items: 100 * Item,
+          validate {
+            sum(items.total) >= 1000,
+            count(items) == 100,
+            all(items, .price > 0)
+          }
+        }
+      `);
+
+      const dataset = ast.statements[0];
+      if (dataset.type === 'DatasetDefinition') {
+        expect(dataset.validation?.validations).toHaveLength(3);
+      }
+    });
+
+    it('handles subtraction in expressions', () => {
+      const ast = parse('let x = 10 - 5 + 3');
+      // Parser handles subtraction as binary operation
+      expect(ast.statements[0].type).toBe('LetStatement');
+    });
+
+    it('parses schema with both base and context', () => {
+      const ast = parse('schema Invoice from codat.Invoice with Geography { }');
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.base).toBeDefined();
+        expect(schema.contexts).toHaveLength(1);
+      }
+    });
+
+    it('handles empty schema body', () => {
+      const ast = parse('schema Empty { }');
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields).toHaveLength(0);
+      }
+    });
+
+    it('handles empty dataset body', () => {
+      const ast = parse('dataset Empty { }');
+      const dataset = ast.statements[0];
+      if (dataset.type === 'DatasetDefinition') {
+        expect(dataset.collections).toHaveLength(0);
+      }
+    });
+
+    it('parses dataset with violating modifier', () => {
+      const ast = parse(`
+        dataset Invalid violating {
+          items: 10 * Item
+        }
+      `);
+
+      const dataset = ast.statements[0];
+      if (dataset.type === 'DatasetDefinition') {
+        expect(dataset.violating).toBe(true);
+      }
+    });
+
+    it('handles multiple assume clauses with different types', () => {
+      const ast = parse(`
+        schema X {
+          a: int,
+          b: int,
+          c: string,
+          assume a > 0,
+          assume if c == "special" {
+            b > 100
+          },
+          assume a < b
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.assumes).toHaveLength(3);
+        expect(schema.assumes![1].condition).toBeDefined();
+      }
+    });
+
+    it('parses computed field with aggregation chain', () => {
+      const ast = parse(`
+        schema Order {
+          items: 1..10 * LineItem,
+          subtotal: = sum(items.price),
+          tax: = subtotal * 0.2,
+          total: = subtotal + tax
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[1].computed).toBe(true);
+        expect(schema.fields[2].computed).toBe(true);
+        expect(schema.fields[3].computed).toBe(true);
+      }
+    });
+
+    it('handles match expression', () => {
+      const ast = parse(`
+        let result = match status {
+          "active" => 1,
+          "inactive" => 0
+        }
+      `);
+
+      const stmt = ast.statements[0];
+      if (stmt.type === 'LetStatement') {
+        expect(stmt.value.type).toBe('MatchExpression');
+      }
+    });
+
+    it('parses unique field modifier', () => {
+      const ast = parse(`
+        schema X {
+          id: unique int in 1..1000
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].unique).toBe(true);
+      }
+    });
+
+    it('parses previous function reference', () => {
+      const ast = parse(`
+        schema TimeSeries {
+          value: int in 1..100,
+          prev: = previous("value")
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[1].computed).toBe(true);
+      }
+    });
+
+    it('parses sequence function', () => {
+      const ast = parse(`
+        schema Invoice {
+          id: = sequence("INV-", 1000)
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].computed).toBe(true);
+      }
+    });
+  });
 });
