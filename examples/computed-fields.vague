@@ -3,11 +3,13 @@
 schema LineItem {
   description: string,
   quantity: int in 1..10,
-  unit_price: int in 10..200
+  unit_price: int in 10..200,
+  discount_code: string?             // Nullable field - sometimes null
 }
 
 schema Invoice {
   customer_name: string,
+  notes: string | null,              // Explicit nullable using pipe syntax
   line_items: 2..5 * LineItem,
 
   // Computed fields - evaluated after line_items are generated

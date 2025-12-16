@@ -27,6 +27,7 @@ import {
   DistributionBucket,
   CollectionDefinition,
   Cardinality,
+  DynamicCardinality,
   ConstraintBlock,
   ValidationBlock,
   FieldType,
@@ -263,6 +264,30 @@ export class Parser {
           } as RangeType;
         }
 
+        // Check for nullable shorthand: string?, int?
+        if (this.match(TokenType.QUESTION)) {
+          const baseExpr: Expression = primitiveOrGenerator.type === "PrimitiveType"
+            ? { type: "Identifier", name: primitiveOrGenerator.name }
+            : { type: "Identifier", name: primitiveOrGenerator.name };
+          const nullLiteral: Expression = { type: "Literal", value: null, dataType: "null" };
+          return { type: "SuperpositionType", options: [{ value: baseExpr }, { value: nullLiteral }] };
+        }
+
+        // Check for superposition: string | null, int | "special"
+        if (this.check(TokenType.PIPE)) {
+          // Convert primitive to an identifier-like expression for superposition parsing
+          const baseExpr: Expression = primitiveOrGenerator.type === "PrimitiveType"
+            ? { type: "Identifier", name: primitiveOrGenerator.name }
+            : { type: "Identifier", name: primitiveOrGenerator.name };
+
+          const options: WeightedOption[] = [{ value: baseExpr }];
+          while (this.match(TokenType.PIPE)) {
+            const nextExpr = this.parsePrimary();
+            options.push({ value: nextExpr });
+          }
+          return { type: "SuperpositionType", options };
+        }
+
         return primitiveOrGenerator;
       }
     }
@@ -270,6 +295,11 @@ export class Parser {
     // Check for cardinality: 100 * Company or 1..10 * LineItem
     // BUT NOT weighted superposition like 0.7: "paid"
     if (this.check(TokenType.NUMBER) && this.isCardinalityNotWeight()) {
+      return this.parseCollectionType();
+    }
+
+    // Check for dynamic cardinality: (condition ? 1..5 : 10..20) * Item
+    if (this.check(TokenType.LPAREN) && this.isDynamicCardinality()) {
       return this.parseCollectionType();
     }
 
@@ -291,8 +321,36 @@ export class Parser {
     return next === TokenType.STAR || next === TokenType.DOTDOT || next === TokenType.PER;
   }
 
+  private isDynamicCardinality(): boolean {
+    // Look ahead to determine if ( starts a dynamic cardinality expression
+    // that ends with ) * (followed by a type)
+    // This is a heuristic - we scan for ) * pattern
+    const saved = this.pos;
+    let depth = 0;
+
+    while (!this.isAtEnd()) {
+      const token = this.peek();
+      if (token.type === TokenType.LPAREN) {
+        depth++;
+      } else if (token.type === TokenType.RPAREN) {
+        depth--;
+        if (depth === 0) {
+          this.advance(); // consume the )
+          const afterParen = this.peek().type;
+          this.pos = saved;
+          // If ) is followed by *, it's a dynamic cardinality
+          return afterParen === TokenType.STAR || afterParen === TokenType.PER;
+        }
+      }
+      this.advance();
+    }
+
+    this.pos = saved;
+    return false;
+  }
+
   private parseCollectionType(): FieldType {
-    const cardinality = this.parseCardinality();
+    const cardinality = this.parseCardinalityOrDynamic();
 
     let perParent: QualifiedName | undefined;
     if (this.match(TokenType.PER)) {
@@ -308,6 +366,18 @@ export class Parser {
       elementType,
       perParent,
     };
+  }
+
+  private parseCardinalityOrDynamic(): Cardinality | DynamicCardinality {
+    // Dynamic cardinality: (expression) where expression evaluates to number or range
+    if (this.match(TokenType.LPAREN)) {
+      const expression = this.parseExpression();
+      this.consume(TokenType.RPAREN, "Expected ')'");
+      return { type: "DynamicCardinality", expression };
+    }
+
+    // Static cardinality: 100 or 1..10
+    return this.parseCardinality();
   }
 
   private parseCardinality(): Cardinality {
@@ -546,7 +616,7 @@ export class Parser {
     const name = this.consume(TokenType.IDENTIFIER, "Expected collection name").value;
     this.consume(TokenType.COLON, "Expected ':'");
 
-    const cardinality = this.parseCardinality();
+    const cardinality = this.parseCardinalityOrDynamic();
 
     let perParent: string | undefined;
     if (this.match(TokenType.PER)) {
@@ -634,14 +704,15 @@ export class Parser {
     return { type: "ContextApplication", name, arguments: args };
   }
 
-  // Expression parsing with precedence
+  // Expression parsing with precedence (lowest to highest):
+  // ternary → or → and → not → comparison → superposition → range → additive → multiplicative → unary → call → primary
   private parseExpression(): Expression {
     return this.parseTernary();
   }
 
   // Ternary: condition ? consequent : alternate
   private parseTernary(): Expression {
-    const condition = this.parseSuperposition();
+    const condition = this.parseOr();
 
     if (this.match(TokenType.QUESTION)) {
       // Parse consequent - can be a ternary (for nesting) but not a weighted superposition
@@ -661,9 +732,9 @@ export class Parser {
   }
 
   // Parse a ternary branch (consequent or alternate)
-  // Allows nested ternaries but not weighted superpositions
+  // Allows nested ternaries and logical ops but not weighted superpositions
   private parseTernaryBranch(): Expression {
-    const expr = this.parseComparison();
+    const expr = this.parseTernaryBranchOr();
 
     // Allow nested ternary
     if (this.match(TokenType.QUESTION)) {
@@ -681,11 +752,42 @@ export class Parser {
     return expr;
   }
 
-  // Logical expressions for constraints: and, or (lowest precedence in constraints)
-  private parseLogicalExpression(): Expression {
-    return this.parseOr();
+  // Logical OR within ternary branch (skips superposition to avoid weight/colon conflict)
+  private parseTernaryBranchOr(): Expression {
+    let left = this.parseTernaryBranchAnd();
+
+    while (this.match(TokenType.OR)) {
+      const right = this.parseTernaryBranchAnd();
+      left = { type: "LogicalExpression", operator: "or", left, right } as LogicalExpression;
+    }
+
+    return left;
   }
 
+  // Logical AND within ternary branch
+  private parseTernaryBranchAnd(): Expression {
+    let left = this.parseTernaryBranchNot();
+
+    while (this.match(TokenType.AND)) {
+      const right = this.parseTernaryBranchNot();
+      left = { type: "LogicalExpression", operator: "and", left, right } as LogicalExpression;
+    }
+
+    return left;
+  }
+
+  // Logical NOT within ternary branch
+  private parseTernaryBranchNot(): Expression {
+    if (this.match(TokenType.NOT)) {
+      const operand = this.parseTernaryBranchNot();
+      return { type: "NotExpression", operand } as NotExpression;
+    }
+
+    // Skip superposition, go directly to comparison
+    return this.parseComparison();
+  }
+
+  // Logical OR (lowest precedence logical operator)
   private parseOr(): Expression {
     let left = this.parseAnd();
 
@@ -697,6 +799,7 @@ export class Parser {
     return left;
   }
 
+  // Logical AND
   private parseAnd(): Expression {
     let left = this.parseNot();
 
@@ -708,13 +811,19 @@ export class Parser {
     return left;
   }
 
+  // Logical NOT (highest precedence logical operator)
   private parseNot(): Expression {
     if (this.match(TokenType.NOT)) {
       const operand = this.parseNot();
       return { type: "NotExpression", operand } as NotExpression;
     }
 
-    return this.parseComparison();
+    return this.parseSuperposition();
+  }
+
+  // For backward compatibility - parseLogicalExpression now just calls parseOr
+  private parseLogicalExpression(): Expression {
+    return this.parseOr();
   }
 
   private parseSuperposition(): Expression {
@@ -877,6 +986,19 @@ export class Parser {
     if (this.check(TokenType.STRING)) {
       const value = this.advance().value;
       return { type: "Literal", value, dataType: "string" };
+    }
+
+    // Null literal
+    if (this.match(TokenType.NULL)) {
+      return { type: "Literal", value: null, dataType: "null" };
+    }
+
+    // Boolean literals
+    if (this.match(TokenType.TRUE)) {
+      return { type: "Literal", value: true, dataType: "boolean" };
+    }
+    if (this.match(TokenType.FALSE)) {
+      return { type: "Literal", value: false, dataType: "boolean" };
     }
 
     // Identifier

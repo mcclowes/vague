@@ -156,16 +156,22 @@ export interface RangeType {
 
 export interface CollectionType {
   type: "CollectionType";
-  cardinality: Cardinality;
+  cardinality: Cardinality | DynamicCardinality;
   elementType: FieldType;
   perParent?: QualifiedName;
 }
 
-// Cardinality: 100, 1..10, 50..500
+// Cardinality: 100, 1..10, 50..500, or (condition ? 1..5 : 10..20)
 export interface Cardinality {
   type: "Cardinality";
   min: number;
   max: number;
+}
+
+// Dynamic cardinality: expression that evaluates to a number or range
+export interface DynamicCardinality {
+  type: "DynamicCardinality";
+  expression: Expression;
 }
 
 // Expressions
@@ -201,8 +207,8 @@ export interface NotExpression {
 
 export interface Literal {
   type: "Literal";
-  value: string | number | boolean;
-  dataType: "string" | "number" | "boolean";
+  value: string | number | boolean | null;
+  dataType: "string" | "number" | "boolean" | "null";
 }
 
 export interface Identifier {
@@ -310,11 +316,11 @@ export interface DistributionBucket {
   weight: number;
 }
 
-// Collection in dataset: companies: 100 * Company
+/// Collection in dataset: companies: 100 * Company
 export interface CollectionDefinition {
   type: "CollectionDefinition";
   name: string;
-  cardinality: Cardinality;
+  cardinality: Cardinality | DynamicCardinality;
   perParent?: string;
   schemaRef: string;
   contexts?: ContextApplication[];

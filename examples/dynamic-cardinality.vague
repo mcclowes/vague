@@ -1,0 +1,49 @@
+// Dynamic cardinality example
+// Collection size determined by field values at generation time
+
+schema LineItem {
+  product: string,
+  quantity: int in 1..10,
+  unit_price: int in 10..100
+}
+
+schema Order {
+  id: int in 1..10000,
+  customer: string,
+  size: "small" | "medium" | "large",
+  is_priority: boolean,
+
+  // Dynamic cardinality: large orders have more items
+  items: (size == "large" ? 5..10 : size == "medium" ? 3..5 : 1..2) * LineItem,
+
+  // Computed fields work with dynamic collections
+  subtotal: = sum(items.unit_price),
+  item_count: = count(items),
+
+  // Logical operators in ternary
+  shipping: = is_priority or size == "large" ? "express" : "standard"
+}
+
+schema Shipment {
+  order: any of orders,
+  is_bulk: boolean,
+
+  // Cardinality with logical conditions
+  packages: (is_bulk and order.is_priority ? 10..20 : 1..3) * Package
+}
+
+schema Package {
+  tracking_id: string,
+  weight: int in 1..50
+}
+
+dataset OrderData {
+  orders: 20 * Order,
+  shipments: 15 * Shipment,
+
+  validate {
+    // Ensure reasonable totals
+    sum(orders.subtotal) >= 5000,
+    count(shipments) <= count(orders)
+  }
+}

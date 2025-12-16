@@ -10,7 +10,6 @@
 - [ ] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
-- [ ] **Dynamic cardinality** - Cardinality based on other fields: `items: if tier == "premium" then 5..10 else 1..2 * Item`
 - [ ] **String transformations** - Derived strings: `slug: = kebabCase(title)`, `upper: = uppercase(name)`
 - [ ] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
@@ -107,3 +106,7 @@
 - [x] **Dataset-wide constraints** - `validate { sum(invoices.total) >= 100000 }` with rejection sampling
 - [x] **Aggregate constraints** - Cross-collection constraints like `sum(payments.amount) <= sum(invoices.total)`
 - [x] **`then` blocks** - Side effects to mutate referenced records: `schema Payment { ... } then { invoice.status = "paid" }`
+- [x] **Ternary expressions** - `condition ? value : other` for conditional values
+- [x] **Logical operators in expressions** - `and`, `or`, `not` work everywhere (comparisons, ternaries, etc.)
+- [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) * Item` for conditional collection sizes
+- [x] **Nullable fields** - `string?` and `int | null` syntax for fields that can be null

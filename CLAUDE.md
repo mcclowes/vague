@@ -46,6 +46,13 @@ status: "draft" | "sent" | "paid"           // Equal weight
 status: 0.7: "paid" | 0.2: "pending" | 0.1: "draft"  // Weighted
 ```
 
+### Nullable Fields
+```vague
+nickname: string?           // Shorthand: sometimes null
+notes: string | null        // Explicit: equivalent to string?
+priority: int | null        // Works with any primitive type
+```
+
 ### Ranges
 ```vague
 age: int in 18..65
@@ -116,6 +123,30 @@ schema Item {
   // Nested ternary for multiple conditions
   grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
 }
+
+schema Order {
+  total: int in 10..200,
+  is_member: boolean,
+  has_coupon: boolean,
+  // Logical operators: and, or, not
+  discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+}
+```
+
+### Dynamic Cardinality
+```vague
+schema Order {
+  size: "small" | "large",
+  // Cardinality depends on field value
+  items: (size == "large" ? 5..10 : 1..3) * LineItem
+}
+
+schema Shipment {
+  is_bulk: boolean,
+  is_priority: boolean,
+  // Logical conditions in cardinality
+  packages: (is_bulk and is_priority ? 20..30 : 1..5) * Package
+}
 ```
 
 ### Datasets
@@ -136,7 +167,12 @@ dataset TestData {
     sum(invoices.total) >= 100000,
     sum(invoices.total) <= 500000,
     sum(payments.amount) <= sum(invoices.total),
-    count(payments) <= count(invoices)
+    count(payments) <= count(invoices),
+
+    // Predicate functions for collection-wide checks
+    all(invoices, .amount_paid <= .total),  // All items must satisfy
+    some(invoices, .status == "paid"),      // At least one must satisfy
+    none(invoices, .total < 0)              // No items should satisfy
   }
 }
 ```
@@ -190,7 +226,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 102 tests covering lexer, parser, generator, and validator.
+Currently 118 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -222,8 +258,12 @@ Currently 102 tests covering lexer, parser, generator, and validator.
 - [x] Faker plugin for semantic types
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
+- [x] Collection predicates (`all()`, `some()`, `none()` for validation)
 - [x] Side effects (`then { }` blocks for mutating referenced objects)
 - [x] Ternary expressions (`condition ? value : other`)
+- [x] Logical operators in expressions (`and`, `or`, `not`)
+- [x] Dynamic cardinality (`(condition ? 5..10 : 1..3) * Item`)
+- [x] Nullable fields (`string?`, `int | null`)
 
 See TODO.md for planned features.
 

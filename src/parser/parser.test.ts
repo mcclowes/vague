@@ -133,7 +133,7 @@ describe("Parser", () => {
       }
     });
 
-    it("parses optional field", () => {
+    it("parses nullable field with question mark syntax", () => {
       const ast = parse(`
         schema Invoice {
           notes: string?
@@ -142,7 +142,12 @@ describe("Parser", () => {
 
       const schema = ast.statements[0];
       if (schema.type === "SchemaDefinition") {
-        expect(schema.fields[0].optional).toBe(true);
+        // string? becomes SuperpositionType with string and null options
+        expect(schema.fields[0].fieldType.type).toBe("SuperpositionType");
+        const superposition = schema.fields[0].fieldType as { options: Array<{ value: unknown }> };
+        expect(superposition.options).toHaveLength(2);
+        expect((superposition.options[0].value as { name: string }).name).toBe("string");
+        expect((superposition.options[1].value as { value: unknown }).value).toBe(null);
       }
     });
 

@@ -4,7 +4,7 @@
 schema Invoice {
   id: int in 1..10000,
   customer: string,
-  total: int in 100..500,
+  total: int in 200..1000,
   amount_paid: int in 0..0,
   status: "unpaid" | "draft",
 }
@@ -12,9 +12,10 @@ schema Invoice {
 schema Payment {
   id: int in 1..10000,
   invoice: any of invoices,
-  amount: int in 50..200,
+  amount: int in 10..500,
 
-  assume amount <= invoice.total
+  // Payment cannot exceed remaining balance
+  assume amount <= invoice.total - invoice.amount_paid
 } then {
   invoice.amount_paid += amount,
   // Use ternary to set status based on whether fully paid
@@ -23,17 +24,21 @@ schema Payment {
 
 dataset FinancialData {
   invoices: 20 * Invoice,
-  payments: 30 * Payment,
+  payments: 40 * Payment,
 
   validate {
     // Total invoices should be in a reasonable range
-    sum(invoices.total) >= 3000,
-    sum(invoices.total) <= 8000,
+    // 20 invoices * 200-1000 each = 4000-20000 range
+    sum(invoices.total) >= 5000,
+    sum(invoices.total) <= 18000,
 
     // Payments can't exceed invoices
     sum(payments.amount) <= sum(invoices.total),
 
     // Can't have more payments than invoices
-    count(payments) <= count(invoices) * 3
+    count(payments) <= count(invoices) * 3,
+
+    // No invoice should be overpaid (amount_paid must not exceed total)
+    all(invoices, .amount_paid <= .total)
   }
 }

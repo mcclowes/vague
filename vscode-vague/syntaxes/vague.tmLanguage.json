@@ -93,9 +93,9 @@
           "match": "\\b(string|int|decimal|boolean|date)\\b"
         },
         {
-          "comment": "Boolean literals",
-          "name": "constant.language.boolean.vague",
-          "match": "\\b(true|false)\\b"
+          "comment": "Boolean and null literals",
+          "name": "constant.language.vague",
+          "match": "\\b(true|false|null)\\b"
         }
       ]
     },

@@ -110,7 +110,7 @@ describe("Generator", () => {
     expect(paidCount).toBeGreaterThan(70);
   });
 
-  it("generates optional fields sometimes", async () => {
+  it("generates nullable fields with question mark shorthand", async () => {
     const source = `
       schema Item {
         name: string,
@@ -125,19 +125,117 @@ describe("Generator", () => {
     const result = await compile(source);
 
     let withNotes = 0;
-    let withoutNotes = 0;
+    let withNull = 0;
 
     for (const item of result.items) {
-      if ("notes" in (item as object)) {
-        withNotes++;
+      const i = item as { name: string, notes: string | null };
+      // Field should always exist with new nullable semantics
+      expect("notes" in i).toBe(true);
+      if (i.notes === null) {
+        withNull++;
       } else {
-        withoutNotes++;
+        withNotes++;
       }
     }
 
-    // Both should occur with 50 samples (optional has 70% presence rate)
+    // Both should occur with 50 samples (50/50 null vs value)
     expect(withNotes).toBeGreaterThan(0);
-    expect(withoutNotes).toBeGreaterThan(0);
+    expect(withNull).toBeGreaterThan(0);
+  });
+
+  it("generates null values in superposition", async () => {
+    const source = `
+      schema User {
+        name: string,
+        nickname: string | null
+      }
+
+      dataset TestData {
+        users: 50 * User
+      }
+    `;
+
+    const result = await compile(source);
+
+    let withNickname = 0;
+    let withNull = 0;
+
+    for (const user of result.users) {
+      const u = user as { name: string, nickname: string | null };
+      if (u.nickname === null) {
+        withNull++;
+      } else {
+        withNickname++;
+      }
+    }
+
+    // Both should occur with 50 samples
+    expect(withNickname).toBeGreaterThan(0);
+    expect(withNull).toBeGreaterThan(0);
+  });
+
+  it("generates nullable fields with question mark syntax", async () => {
+    const source = `
+      schema User {
+        name: string,
+        bio: string?,
+        age: int?
+      }
+
+      dataset TestData {
+        users: 50 * User
+      }
+    `;
+
+    const result = await compile(source);
+
+    let bioNull = 0;
+    let bioSet = 0;
+    let ageNull = 0;
+    let ageSet = 0;
+
+    for (const user of result.users) {
+      const u = user as { name: string, bio: string | null, age: number | null };
+      if (u.bio === null) bioNull++;
+      else bioSet++;
+      if (u.age === null) ageNull++;
+      else ageSet++;
+    }
+
+    // Both should occur with 50 samples
+    expect(bioNull).toBeGreaterThan(0);
+    expect(bioSet).toBeGreaterThan(0);
+    expect(ageNull).toBeGreaterThan(0);
+    expect(ageSet).toBeGreaterThan(0);
+  });
+
+  it("generates boolean literals correctly", async () => {
+    const source = `
+      schema Config {
+        enabled: true | false,
+        debug: false
+      }
+
+      dataset TestData {
+        configs: 30 * Config
+      }
+    `;
+
+    const result = await compile(source);
+
+    let trueCount = 0;
+    let falseCount = 0;
+
+    for (const config of result.configs) {
+      const c = config as { enabled: boolean, debug: boolean };
+      if (c.enabled === true) trueCount++;
+      if (c.enabled === false) falseCount++;
+      expect(c.debug).toBe(false);
+    }
+
+    // Both should occur with 30 samples
+    expect(trueCount).toBeGreaterThan(0);
+    expect(falseCount).toBeGreaterThan(0);
   });
 
   it("generates collection fields", async () => {
@@ -798,6 +896,94 @@ describe("Generator", () => {
 
       expect(result.bs.length).toBeLessThanOrEqual(result.as.length);
     });
+
+    it("enforces all() predicate on collection", async () => {
+      const source = `
+        schema Item {
+          value: int in 10..100
+        }
+
+        dataset TestData {
+          items: 10 * Item,
+          validate {
+            all(items, .value >= 10)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { value: number }[];
+
+      for (const item of items) {
+        expect(item.value).toBeGreaterThanOrEqual(10);
+      }
+    });
+
+    it("enforces all() with comparison between fields", async () => {
+      const source = `
+        schema Account {
+          balance: int in 100..500,
+          min_balance: int in 0..50
+        }
+
+        dataset TestData {
+          accounts: 10 * Account,
+          validate {
+            all(accounts, .balance >= .min_balance)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+      const accounts = result.accounts as { balance: number; min_balance: number }[];
+
+      for (const account of accounts) {
+        expect(account.balance).toBeGreaterThanOrEqual(account.min_balance);
+      }
+    });
+
+    it("enforces some() predicate on collection", async () => {
+      const source = `
+        schema Item {
+          value: int in 1..100
+        }
+
+        dataset TestData {
+          items: 20 * Item,
+          validate {
+            some(items, .value >= 50)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { value: number }[];
+
+      const hasHighValue = items.some(item => item.value >= 50);
+      expect(hasHighValue).toBe(true);
+    });
+
+    it("enforces none() predicate on collection", async () => {
+      const source = `
+        schema Item {
+          value: int in 1..50
+        }
+
+        dataset TestData {
+          items: 10 * Item,
+          validate {
+            none(items, .value > 50)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { value: number }[];
+
+      for (const item of items) {
+        expect(item.value).toBeLessThanOrEqual(50);
+      }
+    });
   });
 
   describe("then blocks", () => {
@@ -1036,6 +1222,197 @@ describe("Generator", () => {
           expect(order.discount).toBe(0.1);
         } else {
           expect(order.discount).toBe(0);
+        }
+      }
+    });
+
+    it("supports logical AND in ternary condition", async () => {
+      const source = `
+        schema Order {
+          quantity: int in 1..20,
+          is_premium: boolean,
+          discount: = quantity >= 10 and is_premium ? 0.2 : 0
+        }
+
+        dataset TestData {
+          orders: 30 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { quantity: number, is_premium: boolean, discount: number }[];
+      for (const order of orders) {
+        if (order.quantity >= 10 && order.is_premium) {
+          expect(order.discount).toBe(0.2);
+        } else {
+          expect(order.discount).toBe(0);
+        }
+      }
+    });
+
+    it("supports logical OR in ternary condition", async () => {
+      const source = `
+        schema Product {
+          on_sale: boolean,
+          low_stock: boolean,
+          highlight: = on_sale or low_stock ? "featured" : "normal"
+        }
+
+        dataset TestData {
+          products: 30 * Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      const products = result.products as { on_sale: boolean, low_stock: boolean, highlight: string }[];
+      for (const product of products) {
+        if (product.on_sale || product.low_stock) {
+          expect(product.highlight).toBe("featured");
+        } else {
+          expect(product.highlight).toBe("normal");
+        }
+      }
+    });
+
+    it("supports NOT in ternary condition", async () => {
+      const source = `
+        schema User {
+          is_banned: boolean,
+          status: = not is_banned ? "active" : "banned"
+        }
+
+        dataset TestData {
+          users: 20 * User
+        }
+      `;
+
+      const result = await compile(source);
+
+      const users = result.users as { is_banned: boolean, status: string }[];
+      for (const user of users) {
+        if (!user.is_banned) {
+          expect(user.status).toBe("active");
+        } else {
+          expect(user.status).toBe("banned");
+        }
+      }
+    });
+
+    it("supports complex logical expressions in ternary", async () => {
+      const source = `
+        schema Order {
+          total: int in 10..200,
+          is_member: boolean,
+          has_coupon: boolean,
+          discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+        }
+
+        dataset TestData {
+          orders: 40 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { total: number, is_member: boolean, has_coupon: boolean, discount: number }[];
+      for (const order of orders) {
+        if ((order.total >= 100 && order.is_member) || order.has_coupon) {
+          expect(order.discount).toBe(0.15);
+        } else {
+          expect(order.discount).toBe(0);
+        }
+      }
+    });
+  });
+
+  describe("dynamic cardinality", () => {
+    it("supports simple dynamic cardinality with ternary", async () => {
+      const source = `
+        schema Order {
+          size: "small" | "large",
+          items: (size == "large" ? 5..10 : 1..3) * Item
+        }
+
+        schema Item {
+          name: string
+        }
+
+        dataset TestData {
+          orders: 20 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { size: string, items: unknown[] }[];
+      for (const order of orders) {
+        if (order.size === "large") {
+          expect(order.items.length).toBeGreaterThanOrEqual(5);
+          expect(order.items.length).toBeLessThanOrEqual(10);
+        } else {
+          expect(order.items.length).toBeGreaterThanOrEqual(1);
+          expect(order.items.length).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+
+    it("supports dynamic cardinality with fixed numbers", async () => {
+      const source = `
+        schema Container {
+          is_bulk: boolean,
+          items: (is_bulk ? 100 : 10) * Item
+        }
+
+        schema Item {
+          id: int
+        }
+
+        dataset TestData {
+          containers: 10 * Container
+        }
+      `;
+
+      const result = await compile(source);
+
+      const containers = result.containers as { is_bulk: boolean, items: unknown[] }[];
+      for (const container of containers) {
+        if (container.is_bulk) {
+          expect(container.items.length).toBe(100);
+        } else {
+          expect(container.items.length).toBe(10);
+        }
+      }
+    });
+
+    it("supports dynamic cardinality with logical conditions", async () => {
+      const source = `
+        schema Order {
+          is_wholesale: boolean,
+          is_priority: boolean,
+          items: (is_wholesale and is_priority ? 20..30 : 1..5) * Item
+        }
+
+        schema Item {
+          sku: string
+        }
+
+        dataset TestData {
+          orders: 20 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { is_wholesale: boolean, is_priority: boolean, items: unknown[] }[];
+      for (const order of orders) {
+        if (order.is_wholesale && order.is_priority) {
+          expect(order.items.length).toBeGreaterThanOrEqual(20);
+          expect(order.items.length).toBeLessThanOrEqual(30);
+        } else {
+          expect(order.items.length).toBeGreaterThanOrEqual(1);
+          expect(order.items.length).toBeLessThanOrEqual(5);
         }
       }
     });

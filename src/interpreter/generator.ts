@@ -17,6 +17,7 @@ import {
   AssumeClause,
   FieldType,
   Cardinality,
+  DynamicCardinality,
   GeneratorType,
   ValidationBlock,
   ThenBlock,
@@ -599,7 +600,7 @@ export class Generator {
   }
 
   private generateCollectionField(fieldType: {
-    cardinality: Cardinality;
+    cardinality: Cardinality | DynamicCardinality;
     elementType: FieldType;
   }): unknown[] {
     const count = this.resolveCardinality(fieldType.cardinality);
@@ -688,6 +689,10 @@ export class Generator {
 
       case "Identifier": {
         const name = (expr as { name: string }).name;
+        // Check if it's a primitive type name (for superposition like "string | null")
+        if (["string", "int", "decimal", "boolean", "date"].includes(name)) {
+          return this.generatePrimitive(name as "string" | "int" | "decimal" | "boolean" | "date");
+        }
         // Check collections first (for dataset-level validation)
         if (this.ctx.collections.has(name)) {
           return this.ctx.collections.get(name);
@@ -708,7 +713,8 @@ export class Generator {
         const range = expr as RangeExpression;
         const min = range.min ? (this.evaluateExpression(range.min) as number) : 0;
         const max = range.max ? (this.evaluateExpression(range.max) as number) : 100;
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+        // Return range object - caller can use it as bounds or pick a random value
+        return { min, max };
       }
 
       case "CallExpression":
@@ -832,6 +838,67 @@ export class Generator {
         }
         return 0;
       }
+      case "all": {
+        // all(collection, predicate) - returns true if predicate holds for all items
+        // The predicate uses .field syntax to reference item fields
+        const arr = args[0];
+        const predicate = call.arguments[1]; // Get the raw AST node
+        if (!Array.isArray(arr) || !predicate) return true;
+
+        const oldCurrent = this.ctx.current;
+        try {
+          for (const item of arr) {
+            this.ctx.current = item as Record<string, unknown>;
+            const result = this.evaluateExpression(predicate);
+            if (!Boolean(result)) {
+              return false;
+            }
+          }
+          return true;
+        } finally {
+          this.ctx.current = oldCurrent;
+        }
+      }
+      case "some": {
+        // some(collection, predicate) - returns true if predicate holds for at least one item
+        const arr = args[0];
+        const predicate = call.arguments[1];
+        if (!Array.isArray(arr) || !predicate) return false;
+
+        const oldCurrent = this.ctx.current;
+        try {
+          for (const item of arr) {
+            this.ctx.current = item as Record<string, unknown>;
+            const result = this.evaluateExpression(predicate);
+            if (Boolean(result)) {
+              return true;
+            }
+          }
+          return false;
+        } finally {
+          this.ctx.current = oldCurrent;
+        }
+      }
+      case "none": {
+        // none(collection, predicate) - returns true if predicate holds for no items
+        const arr = args[0];
+        const predicate = call.arguments[1];
+        if (!Array.isArray(arr) || !predicate) return true;
+
+        const oldCurrent = this.ctx.current;
+        try {
+          for (const item of arr) {
+            this.ctx.current = item as Record<string, unknown>;
+            const result = this.evaluateExpression(predicate);
+            if (Boolean(result)) {
+              return false;
+            }
+          }
+          return true;
+        } finally {
+          this.ctx.current = oldCurrent;
+        }
+      }
       default:
         return null;
     }
@@ -888,7 +955,26 @@ export class Generator {
     return value;
   }
 
-  private resolveCardinality(cardinality: Cardinality): number {
+  private resolveCardinality(cardinality: Cardinality | DynamicCardinality): number {
+    if (cardinality.type === "DynamicCardinality") {
+      // Evaluate the expression - should return a number or RangeExpression
+      const result = this.evaluateExpression(cardinality.expression);
+
+      if (typeof result === "number") {
+        return Math.floor(result);
+      }
+
+      // If result is an object with min/max (from RangeExpression evaluation)
+      if (result && typeof result === "object" && "min" in result && "max" in result) {
+        const min = result.min as number;
+        const max = result.max as number;
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      throw new Error(`Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`);
+    }
+
+    // Static cardinality
     if (cardinality.min === cardinality.max) {
       return cardinality.min;
     }
