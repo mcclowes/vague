@@ -1822,4 +1822,158 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("date functions", () => {
+    it("today() returns current date in YYYY-MM-DD format", async () => {
+      const source = `
+        schema Event {
+          event_date: = today()
+        }
+
+        dataset TestData {
+          events: 1 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const event = result.events[0] as { event_date: string };
+
+      // Should match YYYY-MM-DD format
+      expect(event.event_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+      // Should be today's date
+      const todayStr = new Date().toISOString().split("T")[0];
+      expect(event.event_date).toBe(todayStr);
+    });
+
+    it("now() returns current datetime in ISO 8601 format", async () => {
+      const source = `
+        schema Event {
+          timestamp: = now()
+        }
+
+        dataset TestData {
+          events: 1 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const event = result.events[0] as { timestamp: string };
+
+      // Should be valid ISO 8601 datetime
+      expect(event.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+      expect(new Date(event.timestamp).toISOString()).toBe(event.timestamp);
+    });
+
+    it("daysAgo() returns date in the past", async () => {
+      const source = `
+        schema Event {
+          past_date: = daysAgo(30)
+        }
+
+        dataset TestData {
+          events: 1 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const event = result.events[0] as { past_date: string };
+
+      const expected = new Date();
+      expected.setDate(expected.getDate() - 30);
+      const expectedStr = expected.toISOString().split("T")[0];
+
+      expect(event.past_date).toBe(expectedStr);
+    });
+
+    it("daysFromNow() returns date in the future", async () => {
+      const source = `
+        schema Event {
+          future_date: = daysFromNow(90)
+        }
+
+        dataset TestData {
+          events: 1 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const event = result.events[0] as { future_date: string };
+
+      const expected = new Date();
+      expected.setDate(expected.getDate() + 90);
+      const expectedStr = expected.toISOString().split("T")[0];
+
+      expect(event.future_date).toBe(expectedStr);
+    });
+
+    it("datetime() generates random datetime within range", async () => {
+      const source = `
+        schema Event {
+          timestamp: = datetime(2020, 2022)
+        }
+
+        dataset TestData {
+          events: 20 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const events = result.events as { timestamp: string }[];
+
+      for (const event of events) {
+        const date = new Date(event.timestamp);
+        expect(date.getFullYear()).toBeGreaterThanOrEqual(2020);
+        expect(date.getFullYear()).toBeLessThanOrEqual(2022);
+      }
+    });
+
+    it("dateBetween() generates random date within range", async () => {
+      const source = `
+        schema Event {
+          event_date: = dateBetween("2023-06-01", "2023-06-30")
+        }
+
+        dataset TestData {
+          events: 20 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const events = result.events as { event_date: string }[];
+
+      for (const event of events) {
+        const d = new Date(event.event_date);
+        expect(d.getMonth()).toBe(5); // June is month 5
+        expect(d.getFullYear()).toBe(2023);
+      }
+    });
+
+    it("date type generates ISO 8601 date strings", async () => {
+      const source = `
+        schema Event {
+          created: date,
+          founded: date in 2000..2020
+        }
+
+        dataset TestData {
+          events: 10 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const events = result.events as { created: string, founded: string }[];
+
+      for (const event of events) {
+        // Both should be YYYY-MM-DD format
+        expect(event.created).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(event.founded).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+        // Founded year should be in range
+        const year = parseInt(event.founded.split("-")[0]);
+        expect(year).toBeGreaterThanOrEqual(2000);
+        expect(year).toBeLessThanOrEqual(2020);
+      }
+    });
+  });
 });

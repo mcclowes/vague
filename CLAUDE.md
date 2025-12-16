@@ -134,6 +134,33 @@ schema Invoice {
 }
 ```
 
+### Date Functions
+```vague
+schema Event {
+  // Current date/time
+  created_at: = now(),              // Full ISO 8601: "2025-01-15T10:30:00.000Z"
+  created_date: = today(),          // Date only: "2025-01-15"
+
+  // Relative dates
+  past_event: = daysAgo(30),        // 30 days in the past
+  future_event: = daysFromNow(90),  // 90 days in the future
+
+  // Random datetime with range (years or ISO strings)
+  timestamp: = datetime(2020, 2024),
+  specific: = datetime("2023-01-01", "2023-12-31"),
+
+  // Random date between two dates
+  event_date: = dateBetween("2023-06-01", "2023-06-30"),
+
+  // Format dates (YYYY, MM, DD, HH, mm, ss)
+  formatted: = formatDate(now(), "YYYY-MM-DD HH:mm"),
+
+  // Date type generates ISO 8601 strings
+  simple_date: date,                // Random date (YYYY-MM-DD)
+  ranged_date: date in 2000..2023   // Date within year range
+}
+```
+
 ### Statistical Distributions
 ```vague
 schema Person {
@@ -294,7 +321,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 136 tests covering lexer, parser, generator, and validator.
+Currently 143 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -340,6 +367,7 @@ Currently 136 tests covering lexer, parser, generator, and validator.
 - [x] Decimal precision functions (`round()`, `floor()`, `ceil()`)
 - [x] Unique values (`id: int in 1..1000 unique`)
 - [x] Statistical distributions (`gaussian`, `exponential`, `lognormal`, `poisson`, `beta`, `uniform`)
+- [x] Date functions (`now`, `today`, `daysAgo`, `daysFromNow`, `datetime`, `dateBetween`, `formatDate`)
 
 See TODO.md for planned features.
 

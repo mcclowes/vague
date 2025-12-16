@@ -12,10 +12,6 @@
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 
-## Data Quality
-
-- [ ] **Date formatting** - ISO 8601 output, configurable formats
-
 ## Dataset-Level Features
 
 - [ ] **Balance constraints** - Special handling for `sum(debits) == sum(credits)` with adjustment strategy
@@ -110,3 +106,4 @@
 - [x] **Decimal precision** - `round()`, `floor()`, `ceil()` functions with decimal places
 - [x] **Unique values** - `id: int in 1..1000 unique` ensures no duplicates
 - [x] **Built-in distributions** - `gaussian()`, `exponential()`, `lognormal()`, `poisson()`, `beta()`, `uniform()`
+- [x] **Date functions** - `now()`, `today()`, `daysAgo()`, `daysFromNow()`, `datetime()`, `dateBetween()`, `formatDate()`
