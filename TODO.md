@@ -8,8 +8,12 @@
 
 ## Core Language
 
+- [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
+- [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
+- [ ] **Dynamic cardinality** - Cardinality based on other fields: `items: if tier == "premium" then 5..10 else 1..2 * Item`
+- [ ] **String transformations** - Derived strings: `slug: = kebabCase(title)`, `upper: = uppercase(name)`
 - [ ] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
-- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`
+- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 
@@ -21,7 +25,6 @@
 
 ## Dataset-Level Features
 
-- [ ] **Use OAS for schema** - Import OpenAPI spec and reference schemas: `schema BankAccount = Codat.BankAccount`
 - [ ] **Dataset-wide constraints** - `validate { sum(invoices.total) in 100_000..500_000 }`
 - [ ] **Aggregate constraints** - Balance debits/credits across records
 
@@ -33,6 +36,7 @@
 
 ## Advanced Features
 
+- [ ] **Sequential/stateful generation** - `invoiceNumber: sequence("INV-", 1001)` for auto-incrementing values across dataset
 - [ ] **Previous references** - `date > previous.date` for sequential coherence
 - [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
 - [ ] **Constraint analysis** - Warn on unsatisfiable constraints, estimate rejection probability
@@ -61,6 +65,13 @@
 
 - [ ] **Type safety in generator** - Reduce `unknown` and `any` usage
 - [ ] **Error recovery in parser** - Continue parsing after errors
+- [ ] **Modular parser** - Split into statements, expressions, primaries, functions (like Lea)
+
+## Inspired by Lea
+
+- [ ] **Richer builtins** - Expand beyond 5 aggregate functions (Lea has 60+)
+- [ ] **REPL** - Interactive mode for experimenting with schemas
+- [ ] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
 
 ---
 
@@ -80,3 +91,4 @@
 - [x] **Markov chain strings** - Context-aware realistic text generation
 - [x] **Schema validation** - Validate generated data against OpenAPI specs (3.0.x/3.1.x)
 - [x] **CLI validation flags** - `-v`, `-m`, `--validate-only` for CI integration
+- [x] **OpenAPI schema import** - `schema Pet from petstore.Pet { }` inherits fields from OpenAPI spec

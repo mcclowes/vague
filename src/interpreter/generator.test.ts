@@ -609,4 +609,84 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("OpenAPI schema import", () => {
+    it("imports fields from OpenAPI spec", async () => {
+      const source = `
+        import petstore from "examples/petstore.json"
+
+        schema TestPet from petstore.Pet { }
+
+        dataset TestData {
+          pets: 5 * TestPet
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.pets).toHaveLength(5);
+      for (const pet of result.pets) {
+        const p = pet as Record<string, unknown>;
+        // Fields from OpenAPI spec should be generated
+        expect(p).toHaveProperty("id");
+        expect(p).toHaveProperty("name");
+        expect(p).toHaveProperty("species");
+        expect(typeof p.id).toBe("number");
+        expect(typeof p.name).toBe("string");
+        expect(["dog", "cat", "bird", "fish"]).toContain(p.species);
+      }
+    });
+
+    it("allows overriding imported fields", async () => {
+      const source = `
+        import petstore from "examples/petstore.json"
+
+        schema CustomPet from petstore.Pet {
+          age: int in 1..5
+        }
+
+        dataset TestData {
+          pets: 10 * CustomPet
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const pet of result.pets) {
+        const p = pet as Record<string, unknown>;
+        // Base fields still exist
+        expect(p).toHaveProperty("id");
+        expect(p).toHaveProperty("name");
+        // Override field has constrained range
+        expect(p.age).toBeGreaterThanOrEqual(1);
+        expect(p.age).toBeLessThanOrEqual(5);
+      }
+    });
+
+    it("allows adding custom fields to imported schema", async () => {
+      const source = `
+        import petstore from "examples/petstore.json"
+
+        schema ExtendedOwner from petstore.Owner {
+          tier: "Gold" | "Silver" | "Bronze"
+        }
+
+        dataset TestData {
+          owners: 5 * ExtendedOwner
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const owner of result.owners) {
+        const o = owner as Record<string, unknown>;
+        // Base fields from OpenAPI
+        expect(o).toHaveProperty("id");
+        expect(o).toHaveProperty("name");
+        expect(o).toHaveProperty("email");
+        // Custom field
+        expect(["Gold", "Silver", "Bronze"]).toContain(o.tier);
+      }
+    });
+  });
 });

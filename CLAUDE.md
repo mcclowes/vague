@@ -110,6 +110,21 @@ dataset TestData {
 }
 ```
 
+### OpenAPI Schema Import
+```vague
+import petstore from "petstore.json"
+
+// Inherit fields from OpenAPI schema
+schema Pet from petstore.Pet {
+  // Override or add fields
+  age: int in 1..15
+}
+
+dataset TestData {
+  pets: 50 * Pet
+}
+```
+
 ### Schema Validation (CLI)
 ```bash
 # Validate against OpenAPI spec
@@ -123,7 +138,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 75 tests covering lexer, parser, generator, and validator.
+Currently 93 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 

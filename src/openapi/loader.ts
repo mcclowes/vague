@@ -1,4 +1,5 @@
 import SwaggerParser from "@apidevtools/swagger-parser";
+import { readFileSync } from "node:fs";
 import type { OpenAPIV3 } from "openapi-types";
 
 export interface ImportedSchema {
@@ -25,7 +26,20 @@ export class OpenAPILoader {
   private schemas: Map<string, ImportedSchema> = new Map();
 
   async load(path: string): Promise<Map<string, ImportedSchema>> {
-    const api = (await SwaggerParser.dereference(path)) as OpenAPIV3.Document;
+    let api: OpenAPIV3.Document;
+
+    try {
+      // Try swagger-parser first (works for 3.0.x)
+      api = (await SwaggerParser.dereference(path)) as OpenAPIV3.Document;
+    } catch (err) {
+      // Fall back to direct JSON parsing for 3.1.x
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg.includes("Unsupported OpenAPI version")) {
+        api = JSON.parse(readFileSync(path, "utf-8")) as OpenAPIV3.Document;
+      } else {
+        throw err;
+      }
+    }
 
     if (!api.components?.schemas) {
       return this.schemas;
