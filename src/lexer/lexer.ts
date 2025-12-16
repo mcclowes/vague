@@ -141,6 +141,7 @@ export class Lexer {
       "..": TokenType.DOTDOT,
       "=>": TokenType.ARROW,
       "==": TokenType.DOUBLE_EQUALS,
+      "+=": TokenType.PLUS_EQUALS,
       "<=": TokenType.LTE,
       ">=": TokenType.GTE,
     };

@@ -102,6 +102,22 @@ schema Invoice {
 }
 ```
 
+### Ternary Expressions
+```vague
+schema Invoice {
+  total: int in 100..500,
+  amount_paid: int in 0..0,
+  // Conditional value based on expression
+  status: = amount_paid >= total ? "paid" : "partially-paid"
+}
+
+schema Item {
+  score: int in 0..100,
+  // Nested ternary for multiple conditions
+  grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+}
+```
+
 ### Datasets
 ```vague
 dataset TestData {
@@ -124,6 +140,27 @@ dataset TestData {
   }
 }
 ```
+
+### Side Effects (`then` blocks)
+
+Mutate referenced objects after a record is generated:
+
+```vague
+schema Payment {
+  invoice: any of invoices,
+  amount: int in 50..500
+}
+then {
+  invoice.amount_paid += amount,
+  // Use ternary for conditional status update
+  invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partially-paid"
+}
+```
+
+- `then` blocks run once per generated record (no cascades)
+- Can only mutate upstream references (objects the record references)
+- Supports `=` (assignment) and `+=` (compound assignment)
+- Can use ternary expressions for conditional values
 
 ### OpenAPI Schema Import
 ```vague
@@ -153,7 +190,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 98 tests covering lexer, parser, generator, and validator.
+Currently 102 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -185,6 +222,8 @@ Currently 98 tests covering lexer, parser, generator, and validator.
 - [x] Faker plugin for semantic types
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
+- [x] Side effects (`then { }` blocks for mutating referenced objects)
+- [x] Ternary expressions (`condition ? value : other`)
 
 See TODO.md for planned features.
 

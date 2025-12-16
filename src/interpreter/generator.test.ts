@@ -799,4 +799,245 @@ describe("Generator", () => {
       expect(result.bs.length).toBeLessThanOrEqual(result.as.length);
     });
   });
+
+  describe("then blocks", () => {
+    it("mutates referenced object with simple assignment", async () => {
+      const source = `
+        schema Invoice {
+          id: int in 1..100,
+          status: "draft" | "sent"
+        }
+
+        schema Payment {
+          invoice: any of invoices,
+          amount: int in 10..50
+        }
+        then {
+          invoice.status = "paid"
+        }
+
+        dataset TestData {
+          invoices: 5 * Invoice,
+          payments: 3 * Payment
+        }
+      `;
+
+      const result = await compile(source);
+
+      // All referenced invoices should be "paid"
+      const payments = result.payments as { invoice: { status: string } }[];
+      for (const payment of payments) {
+        expect(payment.invoice.status).toBe("paid");
+      }
+    });
+
+    it("mutates with compound assignment (+=)", async () => {
+      const source = `
+        schema Account {
+          balance: int in 100..1000
+        }
+
+        schema Deposit {
+          account: any of accounts,
+          amount: int in 10..50
+        }
+        then {
+          account.balance += amount
+        }
+
+        dataset TestData {
+          accounts: 3 * Account,
+          deposits: 5 * Deposit
+        }
+      `;
+
+      const result = await compile(source);
+
+      // Each deposit should have increased account balance
+      // We can't easily verify exact values, but deposits should have valid structure
+      const deposits = result.deposits as { account: { balance: number }, amount: number }[];
+      for (const deposit of deposits) {
+        expect(deposit.account.balance).toBeGreaterThan(0);
+        expect(deposit.amount).toBeGreaterThanOrEqual(10);
+      }
+    });
+
+    it("applies multiple mutations in then block", async () => {
+      const source = `
+        schema Invoice {
+          id: int in 1..100,
+          status: "unpaid" | "partial",
+          paid_amount: int in 0..0
+        }
+
+        schema Payment {
+          invoice: any of invoices,
+          amount: int in 10..50
+        }
+        then {
+          invoice.status = "paid",
+          invoice.paid_amount += amount
+        }
+
+        dataset TestData {
+          invoices: 3 * Invoice,
+          payments: 2 * Payment
+        }
+      `;
+
+      const result = await compile(source);
+
+      const payments = result.payments as { invoice: { status: string, paid_amount: number }, amount: number }[];
+      for (const payment of payments) {
+        expect(payment.invoice.status).toBe("paid");
+        expect(payment.invoice.paid_amount).toBeGreaterThan(0);
+      }
+    });
+
+    it("mutates the actual collection object (not a copy)", async () => {
+      const source = `
+        schema Invoice {
+          id: int in 1..100,
+          status: "draft" | "sent"
+        }
+
+        schema Payment {
+          invoice: any of invoices,
+          amount: int in 10..50
+        }
+        then {
+          invoice.status = "paid"
+        }
+
+        dataset TestData {
+          invoices: 10 * Invoice,
+          payments: 10 * Payment
+        }
+      `;
+
+      const result = await compile(source);
+
+      // Count paid invoices in the invoices array
+      const invoices = result.invoices as { status: string }[];
+      const paidCount = invoices.filter(i => i.status === "paid").length;
+
+      // At least some invoices should be paid (from mutations)
+      // Note: Could be less than 10 if some payments reference the same invoice
+      expect(paidCount).toBeGreaterThan(0);
+    });
+
+    it("uses ternary in then block for conditional status", async () => {
+      const source = `
+        schema Invoice {
+          id: int in 1..100,
+          total: int in 100..200,
+          status: "unpaid",
+          amount_paid: int in 0..0
+        }
+
+        schema Payment {
+          invoice: any of invoices,
+          amount: int in 50..150
+        }
+        then {
+          invoice.amount_paid += amount,
+          invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partially-paid"
+        }
+
+        dataset TestData {
+          invoices: 5 * Invoice,
+          payments: 10 * Payment
+        }
+      `;
+
+      const result = await compile(source);
+
+      // Check that statuses are set correctly based on amount_paid vs total
+      const invoices = result.invoices as { total: number, status: string, amount_paid: number }[];
+      for (const invoice of invoices) {
+        if (invoice.amount_paid >= invoice.total) {
+          expect(invoice.status).toBe("paid");
+        } else if (invoice.amount_paid > 0) {
+          expect(invoice.status).toBe("partially-paid");
+        }
+        // Invoices with no payments stay "unpaid"
+      }
+    });
+  });
+
+  describe("ternary expressions", () => {
+    it("evaluates simple ternary in field", async () => {
+      const source = `
+        schema Item {
+          value: int in 1..100,
+          category: = value > 50 ? "high" : "low"
+        }
+
+        dataset TestData {
+          items: 20 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { value: number, category: string }[];
+      for (const item of items) {
+        if (item.value > 50) {
+          expect(item.category).toBe("high");
+        } else {
+          expect(item.category).toBe("low");
+        }
+      }
+    });
+
+    it("supports nested ternary expressions", async () => {
+      const source = `
+        schema Item {
+          score: int in 0..100,
+          grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+        }
+
+        dataset TestData {
+          items: 30 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { score: number, grade: string }[];
+      for (const item of items) {
+        if (item.score >= 90) {
+          expect(item.grade).toBe("A");
+        } else if (item.score >= 70) {
+          expect(item.grade).toBe("B");
+        } else {
+          expect(item.grade).toBe("C");
+        }
+      }
+    });
+
+    it("evaluates ternary with comparison operators", async () => {
+      const source = `
+        schema Order {
+          quantity: int in 1..20,
+          discount: = quantity >= 10 ? 0.1 : 0
+        }
+
+        dataset TestData {
+          orders: 20 * Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { quantity: number, discount: number }[];
+      for (const order of orders) {
+        if (order.quantity >= 10) {
+          expect(order.discount).toBe(0.1);
+        } else {
+          expect(order.discount).toBe(0);
+        }
+      }
+    });
+  });
 });

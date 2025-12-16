@@ -36,6 +36,9 @@ import {
   LogicalExpression,
   NotExpression,
   GeneratorType,
+  ThenBlock,
+  Mutation,
+  TernaryExpression,
 } from "../ast/index.js";
 
 export class Parser {
@@ -101,7 +104,44 @@ export class Parser {
     const { fields, constraints, assumes } = this.parseSchemaBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    return { type: "SchemaDefinition", name, base, contexts, fields, constraints, assumes };
+    // Optional then block after schema: schema X { ... } then { ... }
+    let thenBlock: ThenBlock | undefined;
+    if (this.match(TokenType.THEN)) {
+      thenBlock = this.parseThenBlock();
+    }
+
+    return { type: "SchemaDefinition", name, base, contexts, fields, constraints, assumes, thenBlock };
+  }
+
+  private parseThenBlock(): ThenBlock {
+    this.consume(TokenType.LBRACE, "Expected '{'");
+    const mutations: Mutation[] = [];
+
+    while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+      mutations.push(this.parseMutation());
+      this.match(TokenType.COMMA);
+    }
+
+    this.consume(TokenType.RBRACE, "Expected '}'");
+    return { type: "ThenBlock", mutations };
+  }
+
+  private parseMutation(): Mutation {
+    // Parse target: invoice.status or invoice.amount_paid
+    const target = this.parseExpression();
+
+    // Parse operator: = or +=
+    let operator: "=" | "+=" = "=";
+    if (this.match(TokenType.PLUS_EQUALS)) {
+      operator = "+=";
+    } else {
+      this.consume(TokenType.EQUALS, "Expected '=' or '+='");
+    }
+
+    // Parse value expression
+    const value = this.parseExpression();
+
+    return { type: "Mutation", target, operator, value };
   }
 
   private parseSchemaBody(): {
@@ -348,6 +388,14 @@ export class Parser {
       };
     }
 
+    // A single literal (like "unpaid") is treated as a single-value superposition
+    if (expr.type === "Literal") {
+      return {
+        type: "SuperpositionType",
+        options: [{ value: expr }],
+      };
+    }
+
     if (expr.type === "QualifiedName" || expr.type === "Identifier") {
       return {
         type: "ReferenceType",
@@ -588,7 +636,49 @@ export class Parser {
 
   // Expression parsing with precedence
   private parseExpression(): Expression {
-    return this.parseSuperposition();
+    return this.parseTernary();
+  }
+
+  // Ternary: condition ? consequent : alternate
+  private parseTernary(): Expression {
+    const condition = this.parseSuperposition();
+
+    if (this.match(TokenType.QUESTION)) {
+      // Parse consequent - can be a ternary (for nesting) but not a weighted superposition
+      const consequent = this.parseTernaryBranch();
+      this.consume(TokenType.COLON, "Expected ':' in ternary expression");
+      // Parse alternate - can also be a ternary (for chaining like a ? b : c ? d : e)
+      const alternate = this.parseTernaryBranch();
+      return {
+        type: "TernaryExpression",
+        condition,
+        consequent,
+        alternate,
+      } as TernaryExpression;
+    }
+
+    return condition;
+  }
+
+  // Parse a ternary branch (consequent or alternate)
+  // Allows nested ternaries but not weighted superpositions
+  private parseTernaryBranch(): Expression {
+    const expr = this.parseComparison();
+
+    // Allow nested ternary
+    if (this.match(TokenType.QUESTION)) {
+      const consequent = this.parseTernaryBranch();
+      this.consume(TokenType.COLON, "Expected ':' in ternary expression");
+      const alternate = this.parseTernaryBranch();
+      return {
+        type: "TernaryExpression",
+        condition: expr,
+        consequent,
+        alternate,
+      } as TernaryExpression;
+    }
+
+    return expr;
   }
 
   // Logical expressions for constraints: and, or (lowest precedence in constraints)
@@ -628,37 +718,34 @@ export class Parser {
   }
 
   private parseSuperposition(): Expression {
-    let left = this.parseComparison();
+    const first = this.parseSuperpositionOption();
 
     if (this.check(TokenType.PIPE)) {
-      const options: WeightedOption[] = [];
-
-      // Check if left is a weighted option (number followed by colon)
-      if (left.type === "BinaryExpression" && left.operator === ":") {
-        options.push({
-          weight: (left.left as Literal).value as number,
-          value: left.right,
-        });
-      } else {
-        options.push({ value: left });
-      }
+      const options: WeightedOption[] = [first];
 
       while (this.match(TokenType.PIPE)) {
-        const right = this.parseComparison();
-        if (right.type === "BinaryExpression" && right.operator === ":") {
-          options.push({
-            weight: (right.left as Literal).value as number,
-            value: right.right,
-          });
-        } else {
-          options.push({ value: right });
-        }
+        options.push(this.parseSuperpositionOption());
       }
 
       return { type: "SuperpositionExpression", options };
     }
 
-    return left;
+    // Not a superposition, return the value (ignore any weight)
+    return first.value;
+  }
+
+  // Parse a single superposition option: either "value" or "0.7: value"
+  private parseSuperpositionOption(): WeightedOption {
+    const expr = this.parseComparison();
+
+    // Check if this is a weighted option: number followed by colon
+    if (expr.type === "Literal" && expr.dataType === "number" && this.check(TokenType.COLON)) {
+      this.advance(); // consume the colon
+      const value = this.parseComparison();
+      return { weight: expr.value as number, value };
+    }
+
+    return { value: expr };
   }
 
   private parseComparison(): Expression {
@@ -669,8 +756,7 @@ export class Parser {
       this.check(TokenType.GT) ||
       this.check(TokenType.LTE) ||
       this.check(TokenType.GTE) ||
-      this.check(TokenType.DOUBLE_EQUALS) ||
-      this.check(TokenType.COLON)
+      this.check(TokenType.DOUBLE_EQUALS)
     ) {
       const operator = this.advance().value;
       const right = this.parseRange();

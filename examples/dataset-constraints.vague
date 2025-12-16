@@ -3,27 +3,37 @@
 
 schema Invoice {
   id: int in 1..10000,
-  total: int in 100..2000
+  customer: string,
+  total: int in 100..500,
+  amount_paid: int in 0..0,
+  status: "unpaid" | "draft",
 }
 
 schema Payment {
   id: int in 1..10000,
-  amount: int in 50..500
+  invoice: any of invoices,
+  amount: int in 50..200,
+
+  assume amount <= invoice.total
+} then {
+  invoice.amount_paid += amount,
+  // Use ternary to set status based on whether fully paid
+  invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partially-paid"
 }
 
 dataset FinancialData {
   invoices: 20 * Invoice,
-  payments: 10 * Payment,
+  payments: 30 * Payment,
 
   validate {
     // Total invoices should be in a reasonable range
-    sum(invoices.total) >= 5000,
-    sum(invoices.total) <= 30000,
+    sum(invoices.total) >= 3000,
+    sum(invoices.total) <= 8000,
 
     // Payments can't exceed invoices
     sum(payments.amount) <= sum(invoices.total),
 
     // Can't have more payments than invoices
-    count(payments) <= count(invoices)
+    count(payments) <= count(invoices) * 3
   }
 }

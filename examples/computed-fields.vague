@@ -19,5 +19,5 @@ schema Invoice {
 }
 
 dataset TestData {
-  invoices: 5 * Invoice
+  invoices: 2..10 * Invoice
 }

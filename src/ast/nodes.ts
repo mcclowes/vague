@@ -45,6 +45,21 @@ export interface SchemaDefinition {
   fields: FieldDefinition[];
   constraints?: ConstraintBlock;
   assumes?: AssumeClause[];
+  thenBlock?: ThenBlock; // then { invoice.status = "paid" }
+}
+
+// then { invoice.status = "paid", invoice.amount_paid += amount }
+export interface ThenBlock {
+  type: "ThenBlock";
+  mutations: Mutation[];
+}
+
+// invoice.status = "paid" or invoice.amount_paid += amount
+export interface Mutation {
+  type: "Mutation";
+  target: Expression; // invoice.status
+  operator: "=" | "+="; // assignment or compound
+  value: Expression; // "paid" or amount
 }
 
 // assume due_date >= issued_date
@@ -167,7 +182,8 @@ export type Expression =
   | RangeExpression
   | ParentReference
   | AnyOfExpression
-  | MatchExpression;
+  | MatchExpression
+  | TernaryExpression;
 
 // and, or
 export interface LogicalExpression {
@@ -256,6 +272,14 @@ export interface MatchExpression {
 export interface MatchArm {
   pattern: Expression;
   result: Expression;
+}
+
+// condition ? consequent : alternate
+export interface TernaryExpression {
+  type: "TernaryExpression";
+  condition: Expression;
+  consequent: Expression;
+  alternate: Expression;
 }
 
 // Context application: Geography("en_GB")

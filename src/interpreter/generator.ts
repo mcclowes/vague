@@ -19,6 +19,10 @@ import {
   Cardinality,
   GeneratorType,
   ValidationBlock,
+  ThenBlock,
+  Mutation,
+  QualifiedName,
+  TernaryExpression,
 } from "../ast/index.js";
 import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
 import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
@@ -180,20 +184,117 @@ export class Generator {
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const instance = this.generateInstanceAttempt(schema, overrides);
 
-      // If no constraints, return immediately
+      // If no constraints, execute then block and return
       if (!schema.assumes || schema.assumes.length === 0) {
+        this.executeThenBlock(schema.thenBlock, instance);
         return instance;
       }
 
       // Check all constraints
       if (this.validateConstraints(schema.assumes, instance)) {
+        this.executeThenBlock(schema.thenBlock, instance);
         return instance;
       }
     }
 
     // If we couldn't satisfy constraints, return last attempt with warning
     console.warn(`Warning: Could not satisfy constraints for ${schema.name} after ${maxAttempts} attempts`);
-    return this.generateInstanceAttempt(schema, overrides);
+    const instance = this.generateInstanceAttempt(schema, overrides);
+    this.executeThenBlock(schema.thenBlock, instance);
+    return instance;
+  }
+
+  private executeThenBlock(
+    thenBlock: ThenBlock | undefined,
+    instance: Record<string, unknown>
+  ): void {
+    if (!thenBlock) return;
+
+    const oldCurrent = this.ctx.current;
+    this.ctx.current = instance;
+
+    try {
+      for (const mutation of thenBlock.mutations) {
+        this.executeMutation(mutation, instance);
+      }
+    } finally {
+      this.ctx.current = oldCurrent;
+    }
+  }
+
+  private executeMutation(
+    mutation: Mutation,
+    instance: Record<string, unknown>
+  ): void {
+    // Resolve the target path to get the object and final field name
+    const { target: targetObj, field: fieldName } = this.resolveMutationTarget(mutation.target, instance);
+
+    if (!targetObj || !fieldName) {
+      console.warn("Could not resolve mutation target");
+      return;
+    }
+
+    // Evaluate the value expression
+    const value = this.evaluateExpression(mutation.value);
+
+    // Apply the mutation
+    if (mutation.operator === "+=") {
+      const current = (targetObj as Record<string, unknown>)[fieldName];
+      (targetObj as Record<string, unknown>)[fieldName] = (current as number) + (value as number);
+    } else {
+      (targetObj as Record<string, unknown>)[fieldName] = value;
+    }
+  }
+
+  private resolveMutationTarget(
+    expr: Expression,
+    instance: Record<string, unknown>
+  ): { target: unknown; field: string | null } {
+    // Handle qualified names like invoice.status
+    if (expr.type === "QualifiedName") {
+      const parts = (expr as QualifiedName).parts;
+      if (parts.length < 2) {
+        return { target: null, field: null };
+      }
+
+      // First part is a field on the instance (e.g., "invoice")
+      let target: unknown = instance[parts[0]];
+
+      // Navigate through intermediate parts
+      for (let i = 1; i < parts.length - 1; i++) {
+        if (target && typeof target === "object") {
+          target = (target as Record<string, unknown>)[parts[i]];
+        } else {
+          return { target: null, field: null };
+        }
+      }
+
+      return { target, field: parts[parts.length - 1] };
+    }
+
+    // Handle binary expression with dot operator: invoice.status
+    if (expr.type === "BinaryExpression" && (expr as BinaryExpression).operator === ".") {
+      const binExpr = expr as BinaryExpression;
+
+      // Get the base object
+      let target: unknown;
+      if (binExpr.left.type === "Identifier") {
+        target = instance[(binExpr.left as { name: string }).name];
+      } else if (binExpr.left.type === "BinaryExpression") {
+        // Nested: invoice.customer.name - resolve left side first
+        const nested = this.resolveMutationTarget(binExpr.left, instance);
+        if (nested.target && nested.field) {
+          target = (nested.target as Record<string, unknown>)[nested.field];
+        }
+      }
+
+      // Get the field name
+      if (binExpr.right.type === "Identifier") {
+        return { target, field: (binExpr.right as { name: string }).name };
+      }
+    }
+
+    return { target: null, field: null };
   }
 
   private generateInstanceAttempt(
@@ -668,6 +769,14 @@ export class Generator {
       case "NotExpression": {
         const not = expr as NotExpression;
         return !Boolean(this.evaluateExpression(not.operand));
+      }
+
+      case "TernaryExpression": {
+        const ternary = expr as TernaryExpression;
+        const condition = Boolean(this.evaluateExpression(ternary.condition));
+        return condition
+          ? this.evaluateExpression(ternary.consequent)
+          : this.evaluateExpression(ternary.alternate);
       }
 
       default:

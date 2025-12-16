@@ -4,10 +4,10 @@
 
 - [ ] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
-- [ ] **Smart generation order** - Topological sort of field dependencies, generate constraining fields first
 
 ## Core Language
 
+- [ ] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
 - [ ] **Dynamic cardinality** - Cardinality based on other fields: `items: if tier == "premium" then 5..10 else 1..2 * Item`
@@ -16,6 +16,7 @@
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
+- [ ] **Built-in distributions** - e.g. gaussian, uniform (default), exponential, log-normal - with a syntax for applying the distribution rather than hard coding stochastic values
 
 ## Data Quality
 
@@ -36,6 +37,7 @@
 
 ## Advanced Features
 
+- [ ] **Cascading `then` blocks** - (Potential) Allow `then` mutations to trigger other `then` blocks with depth limits
 - [ ] **Sequential/stateful generation** - `invoiceNumber: sequence("INV-", 1001)` for auto-incrementing values across dataset
 - [ ] **Previous references** - `date > previous.date` for sequential coherence
 - [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
@@ -52,6 +54,12 @@
 - [ ] **Context definitions** - Parse and store context affects clauses
 - [ ] **Context application** - `with Geography("en_GB")` actually influences generation
 - [ ] **Context inheritance** - Child records inherit parent context
+
+## Validation Mode (Dual-Use)
+
+- [ ] **Data ingestion validation** - `vague validate data.json --schema schema.vague` to validate real data against Vague schemas
+- [ ] **Reuse constraint engine** - Run `assume` constraints and `validate { }` blocks as assertions on external data
+- [ ] **Error reporting** - Report which records fail which constraints with clear messages
 
 ## Output & Tooling
 
@@ -72,6 +80,10 @@
 - [ ] **Richer builtins** - Expand beyond 5 aggregate functions (Lea has 60+)
 - [ ] **REPL** - Interactive mode for experimenting with schemas
 - [ ] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
+
+## Ideas to explore
+
+- [ ] Addfitional keywords like then - so, especially, etc.
 
 ---
 
@@ -94,3 +106,4 @@
 - [x] **OpenAPI schema import** - `schema Pet from petstore.Pet { }` inherits fields from OpenAPI spec
 - [x] **Dataset-wide constraints** - `validate { sum(invoices.total) >= 100000 }` with rejection sampling
 - [x] **Aggregate constraints** - Cross-collection constraints like `sum(payments.amount) <= sum(invoices.total)`
+- [x] **`then` blocks** - Side effects to mutate referenced records: `schema Payment { ... } then { invoice.status = "paid" }`

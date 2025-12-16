@@ -24,6 +24,7 @@ export enum TokenType {
   CONSTRAINTS = "CONSTRAINTS",
   VALIDATE = "VALIDATE",
   ASSUME = "ASSUME",
+  THEN = "THEN",
   IF = "IF",
   AND = "AND",
   OR = "OR",
@@ -38,6 +39,7 @@ export enum TokenType {
   COLON = "COLON",         // :
   EQUALS = "EQUALS",       // =
   DOUBLE_EQUALS = "DOUBLE_EQUALS", // ==
+  PLUS_EQUALS = "PLUS_EQUALS", // +=
   ARROW = "ARROW",         // =>
   PLUS = "PLUS",           // +
   MINUS = "MINUS",         // -
@@ -94,6 +96,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   constraints: TokenType.CONSTRAINTS,
   validate: TokenType.VALIDATE,
   assume: TokenType.ASSUME,
+  then: TokenType.THEN,
   if: TokenType.IF,
   and: TokenType.AND,
   or: TokenType.OR,
