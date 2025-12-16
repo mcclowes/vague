@@ -1,0 +1,26 @@
+// Example: Cross-record references
+
+schema Company {
+  name: string,
+  industry: "tech" | "retail" | "finance",
+  base_currency: "USD" | "GBP" | "EUR"
+}
+
+schema LineItem {
+  description: string,
+  quantity: int in 1..10,
+  unit_price: decimal in 10..500,
+  currency: = ^base_currency
+}
+
+schema Invoice {
+  status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft",
+  customer: any of companies,
+  base_currency: "USD" | "GBP" | "EUR",
+  line_items: 1..5 * LineItem
+}
+
+dataset TestData {
+  companies: 10 * Company,
+  invoices: 30 * Invoice
+}

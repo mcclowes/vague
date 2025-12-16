@@ -1,0 +1,24 @@
+// Basic Vague example - Company with Invoices
+
+schema Company {
+  name: string,
+  created: date in 2020..2024,
+  currency: "USD" | "GBP" | "EUR"
+}
+
+schema LineItem {
+  description: string,
+  quantity: int in 1..10,
+  unit_price: decimal in 10..500
+}
+
+schema Invoice {
+  status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft",
+  issue_date: date in 2023..2024,
+  line_items: 1..5 * LineItem
+}
+
+dataset TestData {
+  companies: 10 * Company,
+  invoices: 50 * Invoice
+}

@@ -1,0 +1,44 @@
+// Example: Hard constraints and conditional constraints
+
+schema Invoice {
+  issued_date: int in 1..20,
+  due_date: int in 1..30,
+  status: "draft" | "sent" | "paid" | "overdue",
+  amount: int in 100..10000,
+
+  // Hard constraint: due date must be after issued date
+  assume due_date >= issued_date,
+
+  // Conditional constraint: if paid, amount must be positive
+  assume if status == "paid" {
+    amount > 0
+  }
+}
+
+schema Company {
+  industry: "saas" | "manufacturing" | "retail",
+  founded: int in 1980..2023,
+  employee_count: int in 1..10000,
+
+  // Conditional constraint: SaaS companies founded after 2000 with fewer employees
+  assume if industry == "saas" {
+    founded > 2000,
+    employee_count < 1000
+  }
+}
+
+schema Product {
+  category: "premium" | "standard" | "budget",
+  price: int in 10..500,
+  discount: int in 0..50,
+
+  // Constraint with logical operators
+  assume price > 50 or category == "budget",
+  assume not discount > 40
+}
+
+dataset TestData {
+  invoices: 10 * Invoice,
+  companies: 10 * Company,
+  products: 10 * Product
+}

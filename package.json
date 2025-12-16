@@ -1,0 +1,27 @@
+{
+  "name": "vague",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "vague": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["test-data", "generator", "dsl"],
+  "author": "",
+  "license": "ISC",
+  "description": "A declarative language for generating realistic test data",
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "dependencies": {
+    "swagger-parser": "^10.0.3"
+  }
+}

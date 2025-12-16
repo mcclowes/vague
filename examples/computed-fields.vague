@@ -1,0 +1,23 @@
+// Example: Computed fields with aggregate functions
+
+schema LineItem {
+  description: string,
+  quantity: int in 1..10,
+  unit_price: int in 10..200
+}
+
+schema Invoice {
+  customer_name: string,
+  line_items: 2..5 * LineItem,
+
+  // Computed fields - evaluated after line_items are generated
+  item_count: = count(line_items),
+  subtotal: = sum(line_items.unit_price),
+  min_price: = min(line_items.unit_price),
+  max_price: = max(line_items.unit_price),
+  avg_price: = avg(line_items.unit_price)
+}
+
+dataset TestData {
+  invoices: 5 * Invoice
+}
