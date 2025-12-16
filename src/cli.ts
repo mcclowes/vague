@@ -6,6 +6,7 @@ import { compile, registerPlugin, setSeed } from './index.js';
 import { SchemaValidator } from './validator/index.js';
 import { fakerPlugin, fakerShorthandPlugin } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
+import { inferSchema } from './infer/index.js';
 
 // Register faker plugins automatically
 registerPlugin(fakerPlugin);
@@ -24,6 +25,7 @@ vague - Declarative test data generator
 
 Usage:
   vague <input.vague> [options]
+  vague --infer <data.json> [options]
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
@@ -33,6 +35,13 @@ Options:
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
   -h, --help               Show this help message
+
+Schema Inference:
+  --infer <data.json>      Infer Vague schema from JSON data
+  --dataset-name <name>    Name for generated dataset (default: "Generated")
+  --no-formats             Disable format detection (uuid, email, etc.)
+  --no-weights             Disable weighted superpositions
+  --max-enum <n>           Maximum unique values for enum detection (default: 10)
 
 OpenAPI Example Population:
   --oas-output <file>      Write OpenAPI spec with examples to file
@@ -46,6 +55,10 @@ Examples:
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}'
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}' --validate-only
 
+  # Infer schema from JSON data
+  vague --infer data.json -o schema.vague
+  vague --infer data.json --dataset-name TestFixtures
+
   # Populate OpenAPI spec with examples
   vague schema.vague --oas-output api-with-examples.json --oas-source api.json
   vague schema.vague --oas-output api.json --oas-source api.json --oas-example-count 3
@@ -54,7 +67,7 @@ Examples:
     process.exit(0);
   }
 
-  const inputFile = args[0];
+  let inputFile: string | null = null;
   let outputFile: string | null = null;
   let pretty = false;
   let seed: number | null = null;
@@ -66,7 +79,25 @@ Examples:
   let oasExternal = false;
   let oasExampleCount = 1;
 
-  for (let i = 1; i < args.length; i++) {
+  // Inference options
+  let inferFile: string | null = null;
+  let datasetName = 'Generated';
+  let detectFormats = true;
+  let weightedSuperpositions = true;
+  let maxEnumValues = 10;
+
+  for (let i = 0; i < args.length; i++) {
+    // Handle --infer flag first
+    if (args[i] === '--infer') {
+      inferFile = args[++i];
+      continue;
+    }
+
+    // First positional argument is input file (if not using --infer)
+    if (!args[i].startsWith('-') && inputFile === null && inferFile === null) {
+      inputFile = args[i];
+      continue;
+    }
     if (args[i] === '-o' || args[i] === '--output') {
       outputFile = args[++i];
     } else if (args[i] === '-p' || args[i] === '--pretty') {
@@ -100,10 +131,58 @@ Examples:
         console.error('Error: --oas-example-count must be a positive integer');
         process.exit(1);
       }
+    } else if (args[i] === '--dataset-name') {
+      datasetName = args[++i];
+    } else if (args[i] === '--no-formats') {
+      detectFormats = false;
+    } else if (args[i] === '--no-weights') {
+      weightedSuperpositions = false;
+    } else if (args[i] === '--max-enum') {
+      maxEnumValues = parseInt(args[++i], 10);
+      if (isNaN(maxEnumValues) || maxEnumValues < 1) {
+        console.error('Error: --max-enum must be a positive integer');
+        process.exit(1);
+      }
     }
   }
 
   try {
+    // Handle schema inference mode
+    if (inferFile) {
+      const jsonContent = readFileSync(resolve(inferFile), 'utf-8');
+      let data: Record<string, unknown[]>;
+
+      try {
+        data = JSON.parse(jsonContent) as Record<string, unknown[]>;
+      } catch {
+        console.error('Error: Invalid JSON in input file');
+        process.exit(1);
+        return; // TypeScript flow analysis hint
+      }
+
+      const vagueCode = inferSchema(data, {
+        datasetName,
+        detectFormats,
+        weightedSuperpositions,
+        maxEnumValues,
+      });
+
+      if (outputFile) {
+        writeFileSync(resolve(outputFile), vagueCode);
+        console.error(`Vague schema written to ${outputFile}`);
+      } else {
+        console.log(vagueCode);
+      }
+
+      process.exit(0);
+    }
+
+    // Normal compilation mode
+    if (!inputFile) {
+      console.error('Error: No input file specified');
+      process.exit(1);
+    }
+
     // Set seed if provided for reproducible generation
     if (seed !== null) {
       setSeed(seed);
