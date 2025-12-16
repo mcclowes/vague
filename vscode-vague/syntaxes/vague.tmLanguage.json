@@ -102,9 +102,9 @@
     "builtins": {
       "patterns": [
         {
-          "comment": "Aggregate functions",
+          "comment": "Aggregate and distribution functions",
           "name": "support.function.builtin.vague",
-          "match": "\\b(sum|count|min|max|avg|round|floor|ceil)\\b"
+          "match": "\\b(sum|count|min|max|avg|round|floor|ceil|gaussian|normal|exponential|lognormal|poisson|beta|uniform)\\b"
         },
         {
           "comment": "Faker namespace prefix",

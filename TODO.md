@@ -11,7 +11,6 @@
 - [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
-- [ ] **Built-in distributions** - e.g. gaussian, uniform (default), exponential, log-normal - with a syntax for applying the distribution rather than hard coding stochastic values
 
 ## Data Quality
 
@@ -110,3 +109,4 @@
 - [x] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
 - [x] **Decimal precision** - `round()`, `floor()`, `ceil()` functions with decimal places
 - [x] **Unique values** - `id: int in 1..1000 unique` ensures no duplicates
+- [x] **Built-in distributions** - `gaussian()`, `exponential()`, `lognormal()`, `poisson()`, `beta()`, `uniform()`

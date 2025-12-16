@@ -1675,4 +1675,151 @@ describe("Generator", () => {
       expect(uniqueCodes.size).toBe(codes.length);
     });
   });
+
+  describe("distribution functions", () => {
+    it("gaussian() generates normally distributed values", async () => {
+      const source = `
+        schema Person {
+          age: = gaussian(35, 10, 18, 65)
+        }
+
+        dataset TestData {
+          people: 100 * Person
+        }
+      `;
+
+      const result = await compile(source);
+
+      const people = result.people as { age: number }[];
+      for (const person of people) {
+        // Values should be clamped to bounds
+        expect(person.age).toBeGreaterThanOrEqual(18);
+        expect(person.age).toBeLessThanOrEqual(65);
+      }
+
+      // Mean should be roughly around 35 (with some tolerance)
+      const mean = people.reduce((s, p) => s + p.age, 0) / people.length;
+      expect(mean).toBeGreaterThan(25);
+      expect(mean).toBeLessThan(45);
+    });
+
+    it("exponential() generates exponentially distributed values", async () => {
+      const source = `
+        schema Event {
+          wait_time: = exponential(0.5, 0, 20)
+        }
+
+        dataset TestData {
+          events: 100 * Event
+        }
+      `;
+
+      const result = await compile(source);
+
+      const events = result.events as { wait_time: number }[];
+      for (const event of events) {
+        expect(event.wait_time).toBeGreaterThanOrEqual(0);
+        expect(event.wait_time).toBeLessThanOrEqual(20);
+      }
+
+      // Most values should be small (exponential is right-skewed)
+      const smallCount = events.filter(e => e.wait_time < 5).length;
+      expect(smallCount).toBeGreaterThan(30);
+    });
+
+    it("poisson() generates count data", async () => {
+      const source = `
+        schema Day {
+          events: = poisson(5)
+        }
+
+        dataset TestData {
+          days: 100 * Day
+        }
+      `;
+
+      const result = await compile(source);
+
+      const days = result.days as { events: number }[];
+      for (const day of days) {
+        expect(day.events).toBeGreaterThanOrEqual(0);
+        expect(Number.isInteger(day.events)).toBe(true);
+      }
+
+      // Mean should be around lambda (5)
+      const mean = days.reduce((s, d) => s + d.events, 0) / days.length;
+      expect(mean).toBeGreaterThan(3);
+      expect(mean).toBeLessThan(7);
+    });
+
+    it("beta() generates values between 0 and 1", async () => {
+      const source = `
+        schema Item {
+          probability: = beta(2, 5)
+        }
+
+        dataset TestData {
+          items: 100 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { probability: number }[];
+      for (const item of items) {
+        expect(item.probability).toBeGreaterThanOrEqual(0);
+        expect(item.probability).toBeLessThanOrEqual(1);
+      }
+
+      // With alpha=2, beta=5, mean should be around 2/(2+5) = 0.286
+      const mean = items.reduce((s, i) => s + i.probability, 0) / items.length;
+      expect(mean).toBeGreaterThan(0.15);
+      expect(mean).toBeLessThan(0.45);
+    });
+
+    it("uniform() generates uniformly distributed values", async () => {
+      const source = `
+        schema Item {
+          value: = uniform(10, 20)
+        }
+
+        dataset TestData {
+          items: 100 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { value: number }[];
+      for (const item of items) {
+        expect(item.value).toBeGreaterThanOrEqual(10);
+        expect(item.value).toBeLessThanOrEqual(20);
+      }
+
+      // Mean should be around 15
+      const mean = items.reduce((s, i) => s + i.value, 0) / items.length;
+      expect(mean).toBeGreaterThan(13);
+      expect(mean).toBeLessThan(17);
+    });
+
+    it("lognormal() generates right-skewed values", async () => {
+      const source = `
+        schema Salary {
+          amount: = lognormal(10, 0.5, 10000, 500000)
+        }
+
+        dataset TestData {
+          salaries: 100 * Salary
+        }
+      `;
+
+      const result = await compile(source);
+
+      const salaries = result.salaries as { amount: number }[];
+      for (const salary of salaries) {
+        expect(salary.amount).toBeGreaterThanOrEqual(10000);
+        expect(salary.amount).toBeLessThanOrEqual(500000);
+      }
+    });
+  });
 });

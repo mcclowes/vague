@@ -27,7 +27,19 @@ import {
 } from "../ast/index.js";
 import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
 import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
-import { random, randomInt, randomFloat, randomChoice, randomBool, setSeed } from "./random.js";
+import {
+  random,
+  randomInt,
+  randomFloat,
+  randomChoice,
+  randomBool,
+  setSeed,
+  gaussian,
+  exponential,
+  lognormal,
+  poisson,
+  beta,
+} from "./random.js";
 
 // Re-export seed functions for external use
 export { setSeed, getSeed } from "./random.js";
@@ -1000,6 +1012,52 @@ export class Generator {
         console.warn(`Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`);
         return this.evaluateExpression(generatorExpr);
       }
+
+      // ============================================
+      // Distribution functions
+      // ============================================
+      case "gaussian":
+      case "normal": {
+        // gaussian(mean, stddev, min?, max?) - normal distribution
+        const mean = (args[0] as number) ?? 0;
+        const stddev = (args[1] as number) ?? 1;
+        const min = args[2] as number | undefined;
+        const max = args[3] as number | undefined;
+        return gaussian(mean, stddev, min, max);
+      }
+      case "exponential": {
+        // exponential(rate, min?, max?) - exponential distribution
+        const rate = (args[0] as number) ?? 1;
+        const min = (args[1] as number) ?? 0;
+        const max = args[2] as number | undefined;
+        return exponential(rate, min, max);
+      }
+      case "lognormal": {
+        // lognormal(mu, sigma, min?, max?) - log-normal distribution
+        const mu = (args[0] as number) ?? 0;
+        const sigma = (args[1] as number) ?? 1;
+        const min = args[2] as number | undefined;
+        const max = args[3] as number | undefined;
+        return lognormal(mu, sigma, min, max);
+      }
+      case "poisson": {
+        // poisson(lambda) - Poisson distribution for count data
+        const lambda = (args[0] as number) ?? 1;
+        return poisson(lambda);
+      }
+      case "beta": {
+        // beta(alpha, beta) - beta distribution (0-1 range)
+        const alpha = (args[0] as number) ?? 1;
+        const betaParam = (args[1] as number) ?? 1;
+        return beta(alpha, betaParam);
+      }
+      case "uniform": {
+        // uniform(min, max) - uniform distribution (explicit)
+        const min = (args[0] as number) ?? 0;
+        const max = (args[1] as number) ?? 1;
+        return randomFloat(min, max);
+      }
+
       default:
         return null;
     }

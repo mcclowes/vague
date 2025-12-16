@@ -134,6 +134,29 @@ schema Invoice {
 }
 ```
 
+### Statistical Distributions
+```vague
+schema Person {
+  // Normal/Gaussian distribution - for natural measurements
+  age: = gaussian(35, 10, 18, 65),      // mean, stddev, min, max
+
+  // Log-normal - for right-skewed data like income, prices
+  income: = lognormal(10.5, 0.5, 20000, 500000),
+
+  // Exponential - for wait times, decay
+  wait_time: = exponential(0.5, 0, 60),  // rate, min, max
+
+  // Poisson - for count data (events per time period)
+  daily_orders: = poisson(5),            // lambda (expected count)
+
+  // Beta - for probabilities and proportions (0-1 range)
+  conversion_rate: = beta(2, 5),         // alpha, beta shape params
+
+  // Uniform - explicit uniform distribution
+  random_value: = uniform(0, 100)        // min, max
+}
+```
+
 ### Ternary Expressions
 ```vague
 schema Invoice {
@@ -271,7 +294,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 130 tests covering lexer, parser, generator, and validator.
+Currently 136 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -316,6 +339,7 @@ Currently 130 tests covering lexer, parser, generator, and validator.
 - [x] Arithmetic in computed fields (`= sum(items.price) * 1.2`)
 - [x] Decimal precision functions (`round()`, `floor()`, `ceil()`)
 - [x] Unique values (`id: int in 1..1000 unique`)
+- [x] Statistical distributions (`gaussian`, `exponential`, `lognormal`, `poisson`, `beta`, `uniform`)
 
 See TODO.md for planned features.
 
