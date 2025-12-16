@@ -1,11 +1,11 @@
 {
-  "name": "vague",
+  "name": "vague-lang",
   "version": "2.0.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "vague": "./dist/cli.js"
+    "vague": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
