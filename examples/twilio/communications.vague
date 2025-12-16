@@ -1,0 +1,281 @@
+// Twilio Communications API - Test Data Generation
+// Based on https://www.twilio.com/docs/api
+//
+// Models Twilio's core communication objects:
+// - Phone numbers and messaging services
+// - SMS/MMS messages
+// - Voice calls and recordings
+// - Verification services
+// - Usage records and billing
+//
+// Demonstrates:
+// - Communication status workflows
+// - Usage tracking with side effects
+// - Realistic messaging patterns
+
+schema PhoneNumber {
+  sid: uuid(),
+  account_sid: uuid(),
+  friendly_name: phone(),
+  phone_number: phone(),
+  origin: 0.7: "twilio" | 0.2: "hosted" | 0.1: "ported",
+  capabilities_voice: 0.9: true | 0.1: false,
+  capabilities_sms: 0.95: true | 0.05: false,
+  capabilities_mms: 0.7: true | 0.3: false,
+  capabilities_fax: 0.3: true | 0.7: false,
+  status: 0.95: "in-use" | 0.05: "released",
+  address_requirements: 0.6: "none" | 0.3: "local" | 0.1: "foreign",
+  beta: 0.05: true | 0.95: false,
+  emergency_status: 0.3: "Active" | 0.7: "Inactive",
+  emergency_address_status: 0.3: "registered" | 0.7: "not-registered",
+  date_created: faker.date.past(),
+  date_updated: faker.date.recent()
+}
+
+schema MessagingService {
+  sid: uuid(),
+  account_sid: uuid(),
+  friendly_name: companyName(),
+  inbound_request_url: faker.internet.url()?,
+  inbound_method: 0.9: "POST" | 0.1: "GET",
+  fallback_url: faker.internet.url()?,
+  fallback_method: 0.9: "POST" | 0.1: "GET",
+  status_callback: faker.internet.url()?,
+  sticky_sender: 0.8: true | 0.2: false,
+  mms_converter: 0.6: true | 0.4: false,
+  smart_encoding: 0.9: true | 0.1: false,
+  scan_message_content: 0.7: "inherit" | 0.2: "enable" | 0.1: "disable",
+  fallback_to_long_code: 0.8: true | 0.2: false,
+  area_code_geomatch: 0.9: true | 0.1: false,
+  validity_period: int in 1..14400,
+  synchronous_validation: 0.3: true | 0.7: false,
+  date_created: faker.date.past(),
+  date_updated: faker.date.recent()
+}
+
+schema Message {
+  sid: uuid(),
+  account_sid: uuid(),
+  messaging_service_sid: uuid()?,
+  from: any of phone_numbers,
+  to: phone(),
+  body: faker.lorem.sentence(),
+  num_segments: int in 1..4,
+  num_media: int in 0..5,
+  direction: 0.6: "outbound-api" | 0.25: "inbound" | 0.1: "outbound-call" | 0.05: "outbound-reply",
+  status: 0.7: "delivered" | 0.1: "sent" | 0.08: "failed" | 0.05: "undelivered" | 0.04: "queued" | 0.03: "sending",
+  error_code: int | null,
+  error_message: string?,
+  price: decimal in -0.01..-0.10,
+  price_unit: "USD",
+  api_version: "2010-04-01",
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent(),
+  date_sent: faker.date.recent()?,
+
+  assume if status == "failed" or status == "undelivered" {
+    error_code != null
+  }
+}
+
+schema Call {
+  sid: uuid(),
+  account_sid: uuid(),
+  from: any of phone_numbers,
+  to: phone(),
+  phone_number_sid: uuid(),
+  status: 0.5: "completed" | 0.15: "busy" | 0.1: "no-answer" | 0.1: "failed" | 0.05: "canceled" | 0.05: "ringing" | 0.05: "in-progress",
+  start_time: faker.date.recent(),
+  end_time: faker.date.recent()?,
+  duration: int in 0..3600,
+  price: decimal in -0.01..-5.00,
+  price_unit: "USD",
+  direction: 0.6: "outbound-api" | 0.35: "inbound" | 0.05: "outbound-dial",
+  answered_by: "human" | "machine_start" | "machine_end_beep" | "machine_end_silence" | "fax" | null,
+  api_version: "2010-04-01",
+  forwarded_from: phone()?,
+  caller_name: fullName()?,
+  group_sid: uuid()?,
+  queue_time: int in 0..30000,
+  trunk_sid: uuid()?,
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent(),
+
+  assume if status == "completed" {
+    duration > 0
+  }
+}
+
+schema Recording {
+  sid: uuid(),
+  account_sid: uuid(),
+  call_sid: any of calls where .status == "completed",
+  duration: int in 1..3600,
+  channels: 0.9: 1 | 0.1: 2,
+  status: 0.8: "completed" | 0.1: "processing" | 0.05: "absent" | 0.05: "deleted",
+  source: 0.7: "DialVerb" | 0.2: "Conference" | 0.1: "RecordVerb",
+  error_code: int?,
+  price: decimal in -0.001..-0.05,
+  price_unit: "USD",
+  encryption_details: string?,
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent()
+}
+
+schema Transcription {
+  sid: uuid(),
+  account_sid: uuid(),
+  recording_sid: any of recordings where .status == "completed",
+  status: 0.75: "completed" | 0.15: "in-progress" | 0.05: "failed" | 0.05: "queued",
+  transcription_text: faker.lorem.paragraphs(2)?,
+  duration: int in 1..600,
+  price: decimal in -0.01..-0.50,
+  price_unit: "USD",
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent()
+}
+
+schema VerificationService {
+  sid: uuid(),
+  account_sid: uuid(),
+  friendly_name: companyName(),
+  code_length: 0.7: 6 | 0.2: 4 | 0.1: 8,
+  lookup_enabled: 0.6: true | 0.4: false,
+  psd2_enabled: 0.1: true | 0.9: false,
+  skip_sms_to_landlines: 0.8: true | 0.2: false,
+  dtmf_input_required: 0.7: true | 0.3: false,
+  tts_name: "Polly.Joanna" | "Polly.Matthew" | "Polly.Amy" | null,
+  do_not_share_warning_enabled: 0.9: true | 0.1: false,
+  custom_code_enabled: 0.1: true | 0.9: false,
+  date_created: faker.date.past(),
+  date_updated: faker.date.recent()
+}
+
+schema Verification {
+  sid: uuid(),
+  service_sid: any of verification_services,
+  account_sid: uuid(),
+  to: phone(),
+  channel: 0.7: "sms" | 0.2: "call" | 0.08: "email" | 0.02: "whatsapp",
+  status: 0.6: "approved" | 0.25: "pending" | 0.1: "canceled" | 0.05: "expired",
+  valid: 0.9: true | 0.1: false,
+  amount: decimal in 1..1000?,
+  payee: companyName()?,
+  send_code_attempts: 1..3 * int,
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent()
+}
+
+schema UsageRecord {
+  account_sid: uuid(),
+  category: 0.3: "sms-outbound" | 0.2: "sms-inbound" | 0.2: "calls-outbound" | 0.15: "calls-inbound" | 0.1: "recordings" | 0.05: "transcriptions",
+  description: sentence(),
+  count: int in 1..10000,
+  count_unit: "messages" | "calls" | "minutes" | "recordings",
+  usage: int in 1..50000,
+  usage_unit: "messages" | "minutes" | "recordings",
+  price: decimal in 0.01..500,
+  price_unit: "USD",
+  start_date: faker.date.recent(),
+  end_date: faker.date.recent(),
+  as_of: faker.date.recent()
+}
+
+schema Account {
+  sid: uuid(),
+  friendly_name: companyName(),
+  type: 0.9: "Full" | 0.1: "Trial",
+  status: 0.95: "active" | 0.03: "suspended" | 0.02: "closed",
+  owner_account_sid: uuid(),
+  auth_token: faker.string.alphanumeric(32),
+  date_created: faker.date.past(),
+  date_updated: faker.date.recent()
+}
+
+schema Alert {
+  sid: uuid(),
+  account_sid: uuid(),
+  service_sid: uuid()?,
+  resource_sid: uuid(),
+  error_code: int in 10001..90000,
+  log_level: 0.5: "warning" | 0.3: "error" | 0.2: "notice",
+  more_info: faker.internet.url(),
+  request_method: 0.8: "POST" | 0.2: "GET",
+  request_url: faker.internet.url(),
+  request_variables: string?,
+  response_body: faker.lorem.paragraph()?,
+  response_headers: string?,
+  alert_text: sentence(),
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent()
+}
+
+schema ConversationParticipant {
+  sid: uuid(),
+  identity: faker.internet.userName()?,
+  messaging_binding_address: phone()?,
+  messaging_binding_proxy_address: phone()?,
+  role_sid: uuid()?,
+  date_created: faker.date.recent(),
+  date_updated: faker.date.recent()
+}
+
+schema Conversation {
+  sid: uuid(),
+  account_sid: uuid(),
+  chat_service_sid: uuid(),
+  messaging_service_sid: uuid()?,
+  friendly_name: faker.lorem.words(3),
+  unique_name: faker.lorem.slug(),
+  state: 0.8: "active" | 0.15: "inactive" | 0.05: "closed",
+  timers_inactive: int?,
+  timers_closed: int?,
+  participants: 2..10 * ConversationParticipant,
+  date_created: faker.date.past(),
+  date_updated: faker.date.recent()
+}
+
+dataset TwilioTestData {
+  // Phone numbers
+  phone_numbers: 50 * PhoneNumber,
+
+  // Messaging
+  messaging_services: 10 * MessagingService,
+  messages: 1000 * Message,
+
+  // Voice
+  calls: 500 * Call,
+  recordings: 100 * Recording,
+  transcriptions: 30 * Transcription,
+
+  // Verification
+  verification_services: 5 * VerificationService,
+  verifications: 200 * Verification,
+
+  // Conversations
+  conversations: 50 * Conversation,
+
+  // Usage and billing
+  usage_records: 100 * UsageRecord,
+
+  // Account management
+  accounts: 10 * Account,
+  alerts: 50 * Alert,
+
+  validate {
+    // Most messages should be delivered
+    some(messages, .status == "delivered"),
+
+    // Most calls should complete
+    some(calls, .status == "completed"),
+
+    // Completed calls have duration
+    all(calls, .status != "completed" or .duration > 0),
+
+    // Most verifications should be approved
+    some(verifications, .status == "approved"),
+
+    // Active accounts exist
+    some(accounts, .status == "active")
+  }
+}
