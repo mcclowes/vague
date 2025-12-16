@@ -10,13 +10,21 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest",
+    "test:run": "vitest run",
     "dev": "tsc --watch",
     "examples": "for f in examples/*.vague; do echo \"\\n=== $f ===\" && node dist/cli.js \"$f\"; done",
     "example": "f() { node dist/cli.js \"examples/$1\"; }; f",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
   "keywords": [
     "test-data",
@@ -30,6 +38,8 @@
     "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.2",
     "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",

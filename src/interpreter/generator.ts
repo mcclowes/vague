@@ -181,8 +181,10 @@ export class Generator {
         if (!result) {
           return false;
         }
-      } catch {
-        // Expression evaluation failed, constraint not satisfied
+      } catch (error) {
+        // Log constraint evaluation failures for debugging
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`Constraint evaluation failed: ${message}`);
         return false;
       }
     }

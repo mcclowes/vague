@@ -66,8 +66,8 @@ items: (size == "large" ? 5..10 : 1..3) * LineItem
 ## Unique Values
 
 ```vague
-id: int in 1000..9999 unique        # No duplicate IDs
-code: "A" | "B" | "C" | "D" unique  # No duplicate codes
+id: unique int in 1000..9999        # No duplicate IDs
+code: unique "A" | "B" | "C" | "D"  # No duplicate codes
 ```
 
 ---
