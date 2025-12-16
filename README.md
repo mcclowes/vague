@@ -148,13 +148,30 @@ node dist/cli.js file.vague -o output.json
 
 # Pretty print
 node dist/cli.js file.vague -p
+
+# Validate against OpenAPI spec
+node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}'
+
+# Validate only (exit code 1 on failure, useful for CI)
+node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}' --validate-only
 ```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <file>` | Write output to file |
+| `-p, --pretty` | Pretty-print JSON |
+| `-v, --validate <spec>` | Validate against OpenAPI spec |
+| `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
+| `--validate-only` | Only validate, don't output data |
+| `-h, --help` | Show help |
 
 ## Development
 
 ```bash
 npm run build    # Compile TypeScript
-npm test         # Run tests (64 tests)
+npm test         # Run tests (75 tests)
 npm run dev      # Watch mode
 ```
 
@@ -166,6 +183,7 @@ src/
 ├── parser/      # Recursive descent parser
 ├── ast/         # AST node definitions
 ├── interpreter/ # JSON generator
+├── validator/   # Schema validation (Ajv)
 ├── openapi/     # OpenAPI import support
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point

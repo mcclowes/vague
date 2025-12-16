@@ -10,6 +10,7 @@ src/
 ├── parser/      # Parser - converts tokens to AST
 ├── ast/         # AST node type definitions
 ├── interpreter/ # Generator - produces JSON from AST
+├── validator/   # Schema validation against OpenAPI/JSON Schema
 ├── openapi/     # OpenAPI schema import support
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
@@ -23,6 +24,7 @@ npm run build    # Compile TypeScript
 npm test         # Run tests (vitest)
 npm run dev      # Watch mode compilation
 node dist/cli.js <file.vague>  # Run CLI
+node dist/cli.js <file.vague> -v <openapi.json> -m '{"collection": "Schema"}'  # With validation
 ```
 
 ## Language Syntax
@@ -108,11 +110,20 @@ dataset TestData {
 }
 ```
 
+### Schema Validation (CLI)
+```bash
+# Validate against OpenAPI spec
+node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
+
+# Validate only (exit code 1 on failure)
+node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --validate-only
+```
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 64 tests covering lexer, parser, and generator.
+Currently 75 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -123,6 +134,9 @@ Currently 64 tests covering lexer, parser, and generator.
    - Rejection sampling for constraints (100 max retries)
    - Field generation order: simple → collections → computed
 5. **Markov chains** (`src/interpreter/markov.ts`) - Context-aware string generation
+6. **Validator** (`src/validator/`) - JSON Schema validation using Ajv
+   - Loads schemas from OpenAPI 3.0.x and 3.1.x specs
+   - Validates generated data against schemas
 
 ## What's Implemented
 
@@ -136,5 +150,6 @@ Currently 64 tests covering lexer, parser, and generator.
 - [x] Computed fields with aggregates
 - [x] Markov chain strings
 - [x] OpenAPI import (basic)
+- [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 
 See ROADMAP.md for planned features.

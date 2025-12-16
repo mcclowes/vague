@@ -12,6 +12,8 @@
 - [x] **Aggregate functions** - `sum()`, `count()`, `min()`, `max()`, `avg()`
 - [x] **Path expressions** - `line_items.amount` traverses into collections
 - [x] **Markov chain strings** - Context-aware realistic text generation
+- [x] **Schema validation** - Validate generated data against OpenAPI specs (3.0.x/3.1.x)
+- [x] **CLI validation flags** - `-v`, `-m`, `--validate-only` for CI integration
 
 ## Next Up
 
@@ -37,9 +39,9 @@
 - [ ] **Distribution application** - `age: int ~ AgeStructure` uses defined distribution
 - [ ] **Soft constraints** - Probabilistic constraint weighting
 
-## Validation
+## Dataset-Level Validation
 
-- [ ] **Dataset-wide validation** - `validate { sum(invoices.total) in 100_000..500_000 }`
+- [ ] **Dataset-wide constraints** - `validate { sum(invoices.total) in 100_000..500_000 }`
 - [ ] **Aggregate constraints** - Balance debits/credits across records
 
 ## Constraint Solving
