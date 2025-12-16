@@ -233,6 +233,9 @@ node dist/cli.js file.vague -o output.json
 # Pretty print
 node dist/cli.js file.vague -p
 
+# Reproducible output (seeded random)
+node dist/cli.js file.vague --seed 123
+
 # Validate against OpenAPI spec
 node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}'
 
@@ -240,16 +243,37 @@ node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}'
 node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}' --validate-only
 ```
 
+### OpenAPI Example Population
+
+Generate realistic examples and embed them directly in your OpenAPI spec:
+
+```bash
+# Populate OpenAPI spec with inline examples
+node dist/cli.js data.vague --oas-output api-with-examples.json --oas-source api.json
+
+# Multiple examples per schema
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-example-count 3
+
+# External file references instead of inline
+node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-external
+```
+
+Auto-detection maps collection names to schema names (e.g., `invoices` → `Invoice`).
+
 ### CLI Options
 
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
 | `-p, --pretty` | Pretty-print JSON |
+| `-s, --seed <number>` | Seed for reproducible generation |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |
-| `-s, --seed <number>` | Seed for reproducible generation |
+| `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
+| `--oas-output <file>` | Output path for populated OpenAPI spec |
+| `--oas-example-count <n>` | Number of examples per schema (default: 1) |
+| `--oas-external` | Use external file references instead of inline |
 | `-h, --help` | Show help |
 
 ## Development

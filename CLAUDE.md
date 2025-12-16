@@ -415,6 +415,69 @@ Currently 179 tests covering lexer, parser, generator, validator, OpenAPI popula
    - Validates generated data against schemas
 
 
+## Plugin System
+
+Vague supports custom generator plugins for extending the language with new data generators.
+
+### Plugin API
+
+```typescript
+import { VaguePlugin, GeneratorFunction, GeneratorContext } from 'vague';
+
+// A generator function receives args and context, returns a value
+type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
+
+// A plugin has a name and a map of generator functions
+interface VaguePlugin {
+  name: string;
+  generators: Record<string, GeneratorFunction>;
+}
+```
+
+### Creating a Plugin
+
+```typescript
+import { VaguePlugin, registerPlugin } from 'vague';
+
+const myPlugin: VaguePlugin = {
+  name: 'custom',
+  generators: {
+    // Simple generator (no args)
+    'greeting': () => 'Hello, World!',
+
+    // Generator with args
+    'repeat': (args) => {
+      const [text, count] = args;
+      return String(text).repeat(Number(count) || 1);
+    },
+
+    // Namespaced generator (accessed as custom.user.id)
+    'user.id': () => `user_${Math.random().toString(36).slice(2, 10)}`,
+  },
+};
+
+registerPlugin(myPlugin);
+```
+
+### Using Plugins in .vague Files
+
+```vague
+schema Example {
+  // Call registered plugin generators
+  message: custom.greeting(),
+  repeated: custom.repeat("ab", 3),
+  userId: custom.user.id()
+}
+```
+
+### Built-in Plugins
+
+**Faker Plugin** (`src/plugins/faker.ts`):
+- Full namespace: `faker.person.firstName()`, `faker.internet.email()`
+- Shorthand: `uuid()`, `email()`, `fullName()`, `companyName()`
+
+See `src/plugins/faker.ts` for a complete example of plugin implementation.
+
 ## What's Implemented
 
 - [x] Lexer, parser, AST, generator

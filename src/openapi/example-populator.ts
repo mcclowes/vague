@@ -138,27 +138,12 @@ export class OpenAPIExamplePopulator {
     const result = JSON.parse(JSON.stringify(doc)) as OpenAPIV3.Document;
 
     let externalFiles: Map<string, string> | undefined;
+    const externalConfig = options.externalRefs
+      ? { outputDir: options.outputDir ?? '.', externalFiles: (externalFiles = new Map()) }
+      : undefined;
 
-    if (options.externalRefs) {
-      externalFiles = new Map();
-      this.populateSchemaExamplesExternal(
-        result,
-        data,
-        options.exampleCount,
-        options.outputDir ?? '.',
-        externalFiles
-      );
-      this.populatePathExamplesExternal(
-        result,
-        data,
-        options.exampleCount,
-        options.outputDir ?? '.',
-        externalFiles
-      );
-    } else {
-      this.populateSchemaExamples(result, data, options.exampleCount);
-      this.populatePathExamples(result, data, options.exampleCount);
-    }
+    this.populateSchemaExamples(result, data, options.exampleCount, externalConfig);
+    this.populatePathExamples(result, data, options.exampleCount, externalConfig);
 
     return { document: result, externalFiles };
   }
@@ -166,45 +151,12 @@ export class OpenAPIExamplePopulator {
   private populateSchemaExamples(
     doc: OpenAPIV3.Document,
     data: Record<string, unknown[]>,
-    exampleCount: number
-  ): void {
-    if (!doc.components?.schemas) return;
-
-    for (const [schemaName, schema] of Object.entries(doc.components.schemas)) {
-      if (this.isReferenceObject(schema)) continue;
-
-      const collection = this.reverseMapping[schemaName];
-      if (!collection || !data[collection]?.length) continue;
-
-      const items = data[collection];
-
-      if (exampleCount === 1) {
-        // Use single 'example' field
-        (schema as SchemaObject).example = items[0];
-      } else {
-        // Use 'examples' map with named examples
-        const examples: Record<string, { value: unknown }> = {};
-        const count = Math.min(exampleCount, items.length);
-
-        for (let i = 0; i < count; i++) {
-          examples[`example${i + 1}`] = { value: items[i] };
-        }
-
-        (schema as SchemaObject & { examples?: unknown }).examples = examples;
-      }
-    }
-  }
-
-  private populateSchemaExamplesExternal(
-    doc: OpenAPIV3.Document,
-    data: Record<string, unknown[]>,
     exampleCount: number,
-    outputDir: string,
-    externalFiles: Map<string, string>
+    externalConfig?: { outputDir: string; externalFiles: Map<string, string> }
   ): void {
     if (!doc.components?.schemas) return;
 
-    const examplesDir = join(outputDir, 'examples');
+    const examplesDir = externalConfig ? join(externalConfig.outputDir, 'examples') : null;
 
     for (const [schemaName, schema] of Object.entries(doc.components.schemas)) {
       if (this.isReferenceObject(schema)) continue;
@@ -215,26 +167,35 @@ export class OpenAPIExamplePopulator {
       const items = data[collection];
       const count = Math.min(exampleCount, items.length);
 
-      if (count === 1) {
-        const filename = `${schemaName}.json`;
-        const filepath = join(examplesDir, filename);
-        externalFiles.set(filepath, JSON.stringify(items[0], null, 2));
-
-        (schema as SchemaObject & { externalValue?: string }).externalValue =
-          `./examples/${filename}`;
-      } else {
-        const examples: Record<string, { externalValue: string }> = {};
-
-        for (let i = 0; i < count; i++) {
-          const filename = `${schemaName}-${i + 1}.json`;
+      if (externalConfig && examplesDir) {
+        // External file mode
+        if (exampleCount === 1) {
+          const filename = `${schemaName}.json`;
           const filepath = join(examplesDir, filename);
-          externalFiles.set(filepath, JSON.stringify(items[i], null, 2));
-          examples[`example${i + 1}`] = {
-            externalValue: `./examples/${filename}`,
-          };
+          externalConfig.externalFiles.set(filepath, JSON.stringify(items[0], null, 2));
+          (schema as SchemaObject & { externalValue?: string }).externalValue =
+            `./examples/${filename}`;
+        } else {
+          const examples: Record<string, { externalValue: string }> = {};
+          for (let i = 0; i < count; i++) {
+            const filename = `${schemaName}-${i + 1}.json`;
+            const filepath = join(examplesDir, filename);
+            externalConfig.externalFiles.set(filepath, JSON.stringify(items[i], null, 2));
+            examples[`example${i + 1}`] = { externalValue: `./examples/${filename}` };
+          }
+          (schema as SchemaObject & { examples?: unknown }).examples = examples;
         }
-
-        (schema as SchemaObject & { examples?: unknown }).examples = examples;
+      } else {
+        // Inline mode
+        if (exampleCount === 1) {
+          (schema as SchemaObject).example = items[0];
+        } else {
+          const examples: Record<string, { value: unknown }> = {};
+          for (let i = 0; i < count; i++) {
+            examples[`example${i + 1}`] = { value: items[i] };
+          }
+          (schema as SchemaObject & { examples?: unknown }).examples = examples;
+        }
       }
     }
   }
@@ -242,55 +203,8 @@ export class OpenAPIExamplePopulator {
   private populatePathExamples(
     doc: OpenAPIV3.Document,
     data: Record<string, unknown[]>,
-    exampleCount: number
-  ): void {
-    if (!doc.paths) return;
-
-    for (const pathItem of Object.values(doc.paths)) {
-      if (!pathItem) continue;
-
-      const operations: (OperationObject | undefined)[] = [
-        pathItem.get,
-        pathItem.post,
-        pathItem.put,
-        pathItem.patch,
-        pathItem.delete,
-      ];
-
-      for (const operation of operations) {
-        if (!operation) continue;
-
-        // Handle responses
-        if (operation.responses) {
-          for (const response of Object.values(operation.responses)) {
-            if (!response || this.isReferenceObject(response)) continue;
-
-            this.populateMediaTypeExamples(
-              (response as ResponseObject).content,
-              data,
-              exampleCount
-            );
-          }
-        }
-
-        // Handle request body
-        if (operation.requestBody && !this.isReferenceObject(operation.requestBody)) {
-          this.populateMediaTypeExamples(
-            (operation.requestBody as RequestBodyObject).content,
-            data,
-            exampleCount
-          );
-        }
-      }
-    }
-  }
-
-  private populatePathExamplesExternal(
-    doc: OpenAPIV3.Document,
-    data: Record<string, unknown[]>,
     exampleCount: number,
-    outputDir: string,
-    externalFiles: Map<string, string>
+    externalConfig?: { outputDir: string; externalFiles: Map<string, string> }
   ): void {
     if (!doc.paths) return;
 
@@ -317,26 +231,24 @@ export class OpenAPIExamplePopulator {
           for (const [statusCode, response] of Object.entries(operation.responses)) {
             if (!response || this.isReferenceObject(response)) continue;
 
-            this.populateMediaTypeExamplesExternal(
+            this.populateMediaTypeExamples(
               (response as ResponseObject).content,
               data,
               exampleCount,
-              outputDir,
-              `${opId}-response-${statusCode}`,
-              externalFiles
+              externalConfig
+                ? { ...externalConfig, prefix: `${opId}-response-${statusCode}` }
+                : undefined
             );
           }
         }
 
         // Handle request body
         if (operation.requestBody && !this.isReferenceObject(operation.requestBody)) {
-          this.populateMediaTypeExamplesExternal(
+          this.populateMediaTypeExamples(
             (operation.requestBody as RequestBodyObject).content,
             data,
             exampleCount,
-            outputDir,
-            `${opId}-request`,
-            externalFiles
+            externalConfig ? { ...externalConfig, prefix: `${opId}-request` } : undefined
           );
         }
       }
@@ -346,48 +258,12 @@ export class OpenAPIExamplePopulator {
   private populateMediaTypeExamples(
     content: Record<string, MediaTypeObject> | undefined,
     data: Record<string, unknown[]>,
-    exampleCount: number
-  ): void {
-    if (!content) return;
-
-    for (const mediaType of Object.values(content)) {
-      const schemaName = this.extractSchemaName(mediaType.schema);
-      if (!schemaName) continue;
-
-      const collection = this.reverseMapping[schemaName];
-      if (!collection || !data[collection]?.length) continue;
-
-      const items = data[collection];
-      const isArray = this.isArraySchema(mediaType.schema);
-
-      if (exampleCount === 1) {
-        mediaType.example = isArray ? items.slice(0, 5) : items[0];
-      } else {
-        const examples: Record<string, { value: unknown }> = {};
-        const count = Math.min(exampleCount, items.length);
-
-        for (let i = 0; i < count; i++) {
-          examples[`example${i + 1}`] = {
-            value: isArray ? items.slice(i, i + 5) : items[i],
-          };
-        }
-
-        mediaType.examples = examples;
-      }
-    }
-  }
-
-  private populateMediaTypeExamplesExternal(
-    content: Record<string, MediaTypeObject> | undefined,
-    data: Record<string, unknown[]>,
     exampleCount: number,
-    outputDir: string,
-    prefix: string,
-    externalFiles: Map<string, string>
+    externalConfig?: { outputDir: string; externalFiles: Map<string, string>; prefix: string }
   ): void {
     if (!content) return;
 
-    const examplesDir = join(outputDir, 'examples');
+    const examplesDir = externalConfig ? join(externalConfig.outputDir, 'examples') : null;
 
     for (const [mimeType, mediaType] of Object.entries(content)) {
       const schemaName = this.extractSchemaName(mediaType.schema);
@@ -400,32 +276,38 @@ export class OpenAPIExamplePopulator {
       const isArray = this.isArraySchema(mediaType.schema);
       const count = Math.min(exampleCount, items.length);
 
-      // Sanitize mime type for filename
-      const mimeSlug = mimeType.replace(/[^a-z0-9]/gi, '-');
+      if (externalConfig && examplesDir) {
+        // External file mode
+        const mimeSlug = mimeType.replace(/[^a-z0-9]/gi, '-');
 
-      if (count === 1) {
-        const filename = `${prefix}-${mimeSlug}.json`;
-        const filepath = join(examplesDir, filename);
-        const value = isArray ? items.slice(0, 5) : items[0];
-        externalFiles.set(filepath, JSON.stringify(value, null, 2));
-
-        mediaType.examples = {
-          example1: { externalValue: `./examples/${filename}` },
-        };
-      } else {
-        const examples: Record<string, { externalValue: string }> = {};
-
-        for (let i = 0; i < count; i++) {
-          const filename = `${prefix}-${mimeSlug}-${i + 1}.json`;
+        if (exampleCount === 1) {
+          const filename = `${externalConfig.prefix}-${mimeSlug}.json`;
           const filepath = join(examplesDir, filename);
-          const value = isArray ? items.slice(i, i + 5) : items[i];
-          externalFiles.set(filepath, JSON.stringify(value, null, 2));
-          examples[`example${i + 1}`] = {
-            externalValue: `./examples/${filename}`,
-          };
+          const value = isArray ? items.slice(0, 5) : items[0];
+          externalConfig.externalFiles.set(filepath, JSON.stringify(value, null, 2));
+          mediaType.examples = { example1: { externalValue: `./examples/${filename}` } };
+        } else {
+          const examples: Record<string, { externalValue: string }> = {};
+          for (let i = 0; i < count; i++) {
+            const filename = `${externalConfig.prefix}-${mimeSlug}-${i + 1}.json`;
+            const filepath = join(examplesDir, filename);
+            const value = isArray ? items.slice(i, i + 5) : items[i];
+            externalConfig.externalFiles.set(filepath, JSON.stringify(value, null, 2));
+            examples[`example${i + 1}`] = { externalValue: `./examples/${filename}` };
+          }
+          mediaType.examples = examples;
         }
-
-        mediaType.examples = examples;
+      } else {
+        // Inline mode
+        if (exampleCount === 1) {
+          mediaType.example = isArray ? items.slice(0, 5) : items[0];
+        } else {
+          const examples: Record<string, { value: unknown }> = {};
+          for (let i = 0; i < count; i++) {
+            examples[`example${i + 1}`] = { value: isArray ? items.slice(i, i + 5) : items[i] };
+          }
+          mediaType.examples = examples;
+        }
       }
     }
   }
