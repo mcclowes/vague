@@ -2,7 +2,6 @@
 
 ## Next Up
 
-- [ ] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
 
 ## Core Language
@@ -63,7 +62,6 @@
 ## Output & Tooling
 
 - [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
-- [ ] **Seed support** - `--seed 123` for reproducible generation
 - [ ] **Watch mode** - Regenerate on file change
 - [ ] **Better error messages** - Parse error locations and suggestions
 - [ ] **LSP server** - Language server for editor support
@@ -111,3 +109,5 @@
 - [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) * Item` for conditional collection sizes
 - [x] **Nullable fields** - `string?` and `int | null` syntax for fields that can be null
 - [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights: `0.7: int in 10..100 | 0.3: field`
+- [x] **Seed support** - `--seed 123` for reproducible generation
+- [x] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data

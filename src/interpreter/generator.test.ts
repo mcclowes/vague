@@ -1517,4 +1517,74 @@ describe("Generator", () => {
       }
     });
   });
+
+  describe("negative testing (violating)", () => {
+    it("generates data that violates schema constraints", async () => {
+      const source = `
+        schema Invoice {
+          issued_date: int in 1..20,
+          due_date: int in 1..30,
+
+          assume due_date >= issued_date
+        }
+
+        dataset Invalid violating {
+          invoices: 20 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      // In violating mode, at least some invoices should have due_date < issued_date
+      const invoices = result.invoices as { issued_date: number, due_date: number }[];
+      const violating = invoices.filter(i => i.due_date < i.issued_date);
+      expect(violating.length).toBeGreaterThan(0);
+    });
+
+    it("generates data that violates dataset-level constraints", async () => {
+      const source = `
+        schema Item {
+          price: int in 1..100
+        }
+
+        dataset Invalid violating {
+          items: 10 * Item,
+
+          validate {
+            sum(items.price) >= 500
+          }
+        }
+      `;
+
+      const result = await compile(source);
+
+      // In violating mode, the sum should be < 500
+      const items = result.items as { price: number }[];
+      const total = items.reduce((sum, i) => sum + i.price, 0);
+      expect(total).toBeLessThan(500);
+    });
+
+    it("normal dataset still satisfies constraints", async () => {
+      const source = `
+        schema Invoice {
+          issued_date: int in 1..20,
+          due_date: int in 1..30,
+
+          assume due_date >= issued_date
+        }
+
+        dataset Valid {
+          invoices: 20 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      // Normal mode: all invoices should satisfy the constraint
+      const invoices = result.invoices as { issued_date: number, due_date: number }[];
+      for (const invoice of invoices) {
+        expect(invoice.due_date).toBeGreaterThanOrEqual(invoice.issued_date);
+      }
+    });
+  });
 });

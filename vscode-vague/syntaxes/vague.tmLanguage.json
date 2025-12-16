@@ -56,7 +56,7 @@
         {
           "comment": "Schema and data definition keywords",
           "name": "keyword.other.definition.vague",
-          "match": "\\b(schema|dataset|distribution|context)\\b"
+          "match": "\\b(schema|dataset|distribution|context|violating)\\b"
         },
         {
           "comment": "Import keywords",

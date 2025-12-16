@@ -381,13 +381,16 @@ export class StatementParser extends TypeParser {
     this.consume(TokenType.DATASET, "Expected 'dataset'");
     const name = this.consume(TokenType.IDENTIFIER, "Expected dataset name").value;
 
+    // Check for 'violating' keyword for negative testing
+    const violating = this.match(TokenType.VIOLATING);
+
     const contexts = this.parseContextApplications();
 
     this.consume(TokenType.LBRACE, "Expected '{'");
     const { collections, validation } = this.parseDatasetBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    return { type: "DatasetDefinition", name, contexts, collections, validation };
+    return { type: "DatasetDefinition", name, violating: violating || undefined, contexts, collections, validation };
   }
 
   private parseDatasetBody(): {

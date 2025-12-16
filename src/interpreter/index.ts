@@ -3,6 +3,8 @@ export {
   GeneratorContext,
   registerPlugin,
   getRegisteredPlugins,
+  setSeed,
+  getSeed,
   type VaguePlugin,
   type GeneratorFunction,
 } from "./generator.js";

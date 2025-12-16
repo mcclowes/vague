@@ -86,9 +86,11 @@ export interface DistributionDefinition {
 }
 
 // dataset TestData with Geography("en_GB") { ... }
+// dataset Invalid violating { ... }  -- generates constraint-violating data
 export interface DatasetDefinition {
   type: "DatasetDefinition";
   name: string;
+  violating?: boolean; // If true, generate data that violates schema constraints
   contexts?: ContextApplication[];
   collections: CollectionDefinition[];
   validation?: ValidationBlock;

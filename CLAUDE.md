@@ -161,6 +161,26 @@ dataset TestData {
 }
 ```
 
+### Negative Testing (Violating Datasets)
+Generate data that intentionally violates constraints - useful for testing error handling:
+```vague
+schema Invoice {
+  issued_date: int in 1..20,
+  due_date: int in 1..30,
+  assume due_date >= issued_date
+}
+
+// Normal dataset - all invoices satisfy constraints
+dataset Valid {
+  invoices: 100 * Invoice
+}
+
+// Violating dataset - generates invoices where due_date < issued_date
+dataset Invalid violating {
+  bad_invoices: 100 * Invoice
+}
+```
+
 ### Dataset-Level Constraints
 ```vague
 dataset TestData {
@@ -230,7 +250,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 123 tests covering lexer, parser, generator, and validator.
+Currently 126 tests covering lexer, parser, generator, and validator.
 
 ## Architecture Notes
 
@@ -269,6 +289,8 @@ Currently 123 tests covering lexer, parser, generator, and validator.
 - [x] Dynamic cardinality (`(condition ? 5..10 : 1..3) * Item`)
 - [x] Nullable fields (`string?`, `int | null`)
 - [x] Mixed superposition (`int in 10..500 | field.ref`, weighted: `0.7: int in 10..100 | 0.3: field`)
+- [x] Seeded generation (`--seed 123` for reproducible output)
+- [x] Negative testing (`dataset X violating { }` for constraint-violating data)
 
 See TODO.md for planned features.
 

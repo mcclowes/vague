@@ -5,6 +5,8 @@ export {
   Generator,
   registerPlugin,
   getRegisteredPlugins,
+  setSeed,
+  getSeed,
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,

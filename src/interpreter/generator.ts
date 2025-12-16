@@ -27,6 +27,10 @@ import {
 } from "../ast/index.js";
 import { OpenAPILoader, ImportedSchema } from "../openapi/index.js";
 import { generateCompanyName, generatePersonName, generateProductName, generateText } from "./markov.js";
+import { random, randomInt, randomFloat, randomChoice, randomBool, setSeed } from "./random.js";
+
+// Re-export seed functions for external use
+export { setSeed, getSeed } from "./random.js";
 
 // Plugin system types
 export type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
@@ -60,6 +64,7 @@ export interface GeneratorContext {
   parent?: Record<string, unknown>;
   current?: Record<string, unknown>;
   currentSchemaName?: string;
+  violating?: boolean; // If true, generate data that violates constraints
 }
 
 export class Generator {
@@ -102,6 +107,9 @@ export class Generator {
   private generateDataset(dataset: DatasetDefinition): Record<string, unknown[]> {
     const maxAttempts = 20;
 
+    // Set violating mode in context
+    this.ctx.violating = dataset.violating;
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const result: Record<string, unknown[]> = {};
 
@@ -113,7 +121,9 @@ export class Generator {
       }
 
       // Check dataset-level constraints
-      if (!dataset.validation || this.validateDatasetConstraints(dataset.validation, result)) {
+      // In violating mode, we want constraints to FAIL (inverted logic)
+      const constraintsPass = !dataset.validation || this.validateDatasetConstraints(dataset.validation, result);
+      if (dataset.violating ? !constraintsPass : constraintsPass) {
         return result;
       }
 
@@ -124,7 +134,8 @@ export class Generator {
     }
 
     // Fallback: return last attempt with warning
-    console.warn(`Warning: Dataset constraints not satisfied after ${maxAttempts} attempts`);
+    const mode = dataset.violating ? "violating" : "satisfying";
+    console.warn(`Warning: Could not generate ${mode} data after ${maxAttempts} attempts`);
     const result: Record<string, unknown[]> = {};
     for (const collection of dataset.collections) {
       const items = this.generateCollection(collection);
@@ -192,14 +203,17 @@ export class Generator {
       }
 
       // Check all constraints
-      if (this.validateConstraints(schema.assumes, instance)) {
+      // In violating mode, we want constraints to FAIL (inverted logic)
+      const constraintsPass = this.validateConstraints(schema.assumes, instance);
+      if (this.ctx.violating ? !constraintsPass : constraintsPass) {
         this.executeThenBlock(schema.thenBlock, instance);
         return instance;
       }
     }
 
-    // If we couldn't satisfy constraints, return last attempt with warning
-    console.warn(`Warning: Could not satisfy constraints for ${schema.name} after ${maxAttempts} attempts`);
+    // If we couldn't generate desired data, return last attempt with warning
+    const mode = this.ctx.violating ? "violating" : "satisfying";
+    console.warn(`Warning: Could not generate ${mode} data for ${schema.name} after ${maxAttempts} attempts`);
     const instance = this.generateInstanceAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
     return instance;
@@ -334,7 +348,7 @@ export class Generator {
       }
 
       // Skip optional fields sometimes
-      if (field.optional && Math.random() > 0.7) {
+      if (field.optional && random() > 0.7) {
         continue;
       }
 
@@ -428,7 +442,7 @@ export class Generator {
     // Basic type generation for imported fields
     const f = field as { type: { kind: string; type?: string }; enum?: unknown[]; name?: string };
     if (f.enum && f.enum.length > 0) {
-      return f.enum[Math.floor(Math.random() * f.enum.length)];
+      return f.enum[Math.floor(random() * f.enum.length)];
     }
 
     switch (f.type.kind) {
@@ -437,11 +451,11 @@ export class Generator {
           case "string":
             return this.randomString(fieldName ?? f.name);
           case "integer":
-            return Math.floor(Math.random() * 1000);
+            return Math.floor(random() * 1000);
           case "number":
-            return Math.random() * 1000;
+            return random() * 1000;
           case "boolean":
-            return Math.random() > 0.5;
+            return random() > 0.5;
           default:
             return null;
         }
@@ -538,15 +552,15 @@ export class Generator {
   ): unknown {
     switch (type) {
       case "int":
-        return Math.floor(Math.random() * 1000);
+        return Math.floor(random() * 1000);
       case "decimal":
-        return Math.round(Math.random() * 10000) / 100;
+        return Math.round(random() * 10000) / 100;
       case "string":
         return this.randomString(fieldName);
       case "date":
         return this.randomDate();
       case "boolean":
-        return Math.random() > 0.5;
+        return random() > 0.5;
     }
   }
 
@@ -559,19 +573,19 @@ export class Generator {
     const maxVal = max ? (this.evaluateExpression(max) as number) : 1000;
 
     if (type === "int") {
-      return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+      return Math.floor(random() * (maxVal - minVal + 1)) + minVal;
     }
 
     if (type === "date") {
       const minDate = new Date(minVal, 0, 1);
       const maxDate = new Date(maxVal, 11, 31);
       const diff = maxDate.getTime() - minDate.getTime();
-      return new Date(minDate.getTime() + Math.random() * diff)
+      return new Date(minDate.getTime() + random() * diff)
         .toISOString()
         .split("T")[0];
     }
 
-    return Math.random() * (maxVal - minVal) + minVal;
+    return random() * (maxVal - minVal) + minVal;
   }
 
   private pickWeighted(
@@ -582,16 +596,16 @@ export class Generator {
 
     let result: unknown;
     if (!hasWeights) {
-      const idx = Math.floor(Math.random() * options.length);
+      const idx = Math.floor(random() * options.length);
       result = this.evaluateExpression(options[idx].value);
     } else {
       // Weighted selection
       const totalWeight = options.reduce((sum, o) => sum + (o.weight ?? 0), 0);
-      let random = Math.random() * totalWeight;
+      let r = random() * totalWeight;
 
       for (const option of options) {
-        random -= option.weight ?? 0;
-        if (random <= 0) {
+        r -= option.weight ?? 0;
+        if (r <= 0) {
           result = this.evaluateExpression(option.value);
           break;
         }
@@ -606,7 +620,7 @@ export class Generator {
     if (result && typeof result === "object" && "min" in result && "max" in result) {
       const min = result.min as number;
       const max = result.max as number;
-      return Math.floor(Math.random() * (max - min + 1)) + min;
+      return randomInt(min, max);
     }
 
     return result;
@@ -764,7 +778,7 @@ export class Generator {
               });
             }
             if (items.length > 0) {
-              return items[Math.floor(Math.random() * items.length)];
+              return items[Math.floor(random() * items.length)];
             }
           }
         }
@@ -981,7 +995,7 @@ export class Generator {
       if (result && typeof result === "object" && "min" in result && "max" in result) {
         const min = result.min as number;
         const max = result.max as number;
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+        return Math.floor(random() * (max - min + 1)) + min;
       }
 
       throw new Error(`Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`);
@@ -992,7 +1006,7 @@ export class Generator {
       return cardinality.min;
     }
     return (
-      Math.floor(Math.random() * (cardinality.max - cardinality.min + 1)) +
+      Math.floor(random() * (cardinality.max - cardinality.min + 1)) +
       cardinality.min
     );
   }
@@ -1027,7 +1041,7 @@ export class Generator {
     const start = new Date(2020, 0, 1);
     const end = new Date();
     const date = new Date(
-      start.getTime() + Math.random() * (end.getTime() - start.getTime())
+      start.getTime() + random() * (end.getTime() - start.getTime())
     );
     return date.toISOString().split("T")[0];
   }

@@ -2,7 +2,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { compile, registerPlugin } from "./index.js";
+import { compile, registerPlugin, setSeed } from "./index.js";
 import { SchemaValidator } from "./validator/index.js";
 import { fakerPlugin, fakerShorthandPlugin } from "./plugins/index.js";
 
@@ -27,6 +27,7 @@ Usage:
 Options:
   -o, --output <file>      Write output to file (default: stdout)
   -p, --pretty             Pretty-print JSON output
+  -s, --seed <number>      Seed for reproducible random generation
   -v, --validate <spec>    Validate output against OpenAPI spec
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
@@ -34,6 +35,7 @@ Options:
 
 Examples:
   vague schema.vague -o output.json -p
+  vague schema.vague -s 12345                 # Reproducible output
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}'
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}' --validate-only
 `);
@@ -43,6 +45,7 @@ Examples:
   const inputFile = args[0];
   let outputFile: string | null = null;
   let pretty = false;
+  let seed: number | null = null;
   let validateSpec: string | null = null;
   let schemaMapping: ValidationMapping | null = null;
   let validateOnly = false;
@@ -52,6 +55,12 @@ Examples:
       outputFile = args[++i];
     } else if (args[i] === "-p" || args[i] === "--pretty") {
       pretty = true;
+    } else if (args[i] === "-s" || args[i] === "--seed") {
+      seed = parseInt(args[++i], 10);
+      if (isNaN(seed)) {
+        console.error("Error: Seed must be a valid integer");
+        process.exit(1);
+      }
     } else if (args[i] === "-v" || args[i] === "--validate") {
       validateSpec = args[++i];
     } else if (args[i] === "-m" || args[i] === "--mapping") {
@@ -67,6 +76,11 @@ Examples:
   }
 
   try {
+    // Set seed if provided for reproducible generation
+    if (seed !== null) {
+      setSeed(seed);
+    }
+
     const source = readFileSync(resolve(inputFile), "utf-8");
     const result = await compile(source);
 

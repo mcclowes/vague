@@ -1,4 +1,5 @@
 // Markov chain text generator for realistic strings
+import { random, randomInt, randomChoice } from "./random.js";
 
 // Training corpus - common English words for general text
 const WORD_CORPUS = `
@@ -72,11 +73,11 @@ export class MarkovChain {
   generate(minWords = 2, maxWords = 5): string {
     if (this.starters.length === 0) return "";
 
-    const targetLength = Math.floor(Math.random() * (maxWords - minWords + 1)) + minWords;
+    const targetLength = randomInt(minWords, maxWords);
     const result: string[] = [];
 
     // Pick random starter
-    let state = this.starters[Math.floor(Math.random() * this.starters.length)];
+    let state = randomChoice(this.starters);
     result.push(...state.split(" "));
 
     while (result.length < targetLength) {
@@ -85,7 +86,7 @@ export class MarkovChain {
 
       // Weighted random selection
       const total = Array.from(trans.values()).reduce((a, b) => a + b, 0);
-      let r = Math.random() * total;
+      let r = random() * total;
 
       let next = "";
       for (const [word, count] of trans) {
@@ -144,9 +145,9 @@ export class CharMarkov {
   generate(minLen = 4, maxLen = 12): string {
     if (this.starters.length === 0) return "";
 
-    const targetLen = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
+    const targetLen = randomInt(minLen, maxLen);
 
-    let state = this.starters[Math.floor(Math.random() * this.starters.length)];
+    let state = randomChoice(this.starters);
     let result = state;
 
     while (result.length < targetLen) {
@@ -154,7 +155,7 @@ export class CharMarkov {
       if (!trans || trans.size === 0) break;
 
       const total = Array.from(trans.values()).reduce((a, b) => a + b, 0);
-      let r = Math.random() * total;
+      let r = random() * total;
 
       let next = "";
       for (const [char, count] of trans) {
@@ -231,7 +232,7 @@ export function generateText(type: "word" | "company" | "product" | "name" = "wo
 export function generateCompanyName(): string {
   const name = companyNameGenerator.generate(4, 10);
   const suffixes = ["Inc", "LLC", "Corp", "Ltd", "Co", "Group", "Systems", "Solutions", "Tech"];
-  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+  const suffix = randomChoice(suffixes);
   return `${capitalize(name)} ${suffix}`;
 }
 
