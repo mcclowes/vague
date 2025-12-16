@@ -164,6 +164,50 @@ schema Payment {
 }
 ```
 
+### Unique Values
+
+```vague
+id: int in 1000..9999 unique    // No duplicates in collection
+```
+
+### Statistical Distributions
+
+```vague
+age: = gaussian(35, 10, 18, 65)     // mean, stddev, min, max
+income: = lognormal(10.5, 0.5)      // mu, sigma
+wait_time: = exponential(0.5)       // rate
+daily_orders: = poisson(5)          // lambda
+conversion: = beta(2, 5)            // alpha, beta
+```
+
+### Date Functions
+
+```vague
+created_at: = now()                 // Full ISO 8601 timestamp
+today_date: = today()               // Date only
+past: = daysAgo(30)                 // 30 days ago
+future: = daysFromNow(90)           // 90 days from now
+random: = datetime(2020, 2024)      // Random datetime in range
+between: = dateBetween("2023-01-01", "2023-12-31")
+```
+
+### Sequential Generation
+
+```vague
+id: = sequence("INV-", 1001)        // "INV-1001", "INV-1002", ...
+order_num: = sequenceInt("orders")  // 1, 2, 3, ...
+prev_value: = previous("amount")    // Reference previous record
+```
+
+### Negative Testing
+
+```vague
+// Generate data that violates constraints (for testing error handling)
+dataset Invalid violating {
+  bad_invoices: 100 * Invoice
+}
+```
+
 ## Examples
 
 See the `examples/` directory:
@@ -204,14 +248,17 @@ node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |
+| `-s, --seed <number>` | Seed for reproducible generation |
 | `-h, --help` | Show help |
 
 ## Development
 
 ```bash
-npm run build    # Compile TypeScript
-npm test         # Run tests (123 tests)
-npm run dev      # Watch mode
+npm run build     # Compile TypeScript
+npm test          # Run tests (160 tests)
+npm run dev       # Watch mode
+npm run examples  # Run all example files
+npm run example -- basic.vague  # Run a specific example
 ```
 
 ## Project Structure
@@ -232,9 +279,9 @@ src/
 
 See [TODO.md](TODO.md) for planned features:
 
-- Negative testing (generate constraint-violating data)
-- Probabilistic constraints
-- Date arithmetic and transformations
+- Probabilistic constraints (`assume X with probability 0.7`)
+- Date arithmetic (`due_date <= issued_date + 90.days`)
+- Conditional schema variants
 - Constraint solving (SMT integration)
 
 ## Contributing

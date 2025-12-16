@@ -102,9 +102,9 @@
     "builtins": {
       "patterns": [
         {
-          "comment": "Aggregate, distribution, and date functions",
+          "comment": "Aggregate, distribution, date, and sequence functions",
           "name": "support.function.builtin.vague",
-          "match": "\\b(sum|count|min|max|avg|round|floor|ceil|gaussian|normal|exponential|lognormal|poisson|beta|uniform|now|today|datetime|daysAgo|daysFromNow|dateBetween|formatDate)\\b"
+          "match": "\\b(sum|count|min|max|avg|round|floor|ceil|gaussian|normal|exponential|lognormal|poisson|beta|uniform|now|today|datetime|daysAgo|daysFromNow|dateBetween|formatDate|sequence|sequenceInt|previous|all|some|none)\\b"
         },
         {
           "comment": "Faker namespace prefix",

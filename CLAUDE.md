@@ -343,7 +343,7 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}' --valid
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 149 tests covering lexer, parser, generator, and validator.
+Currently 160 tests covering lexer, parser, generator, validator, and examples.
 
 ## Architecture Notes
 
@@ -390,6 +390,9 @@ Currently 149 tests covering lexer, parser, generator, and validator.
 - [x] Unique values (`id: int in 1..1000 unique`)
 - [x] Statistical distributions (`gaussian`, `exponential`, `lognormal`, `poisson`, `beta`, `uniform`)
 - [x] Date functions (`now`, `today`, `daysAgo`, `daysFromNow`, `datetime`, `dateBetween`, `formatDate`)
+- [x] Sequential generation (`sequence()`, `sequenceInt()` for auto-incrementing values)
+- [x] Previous references (`previous("field")` for sequential coherence)
+- [x] Expression superposition (`0.7: (invoice.total - invoice.amount_paid) | 0.3: int in 10..500`)
 
 See TODO.md for planned features.
 
