@@ -283,6 +283,37 @@ See [TODO.md](TODO.md) for planned features:
 - Conditional schema variants
 - Constraint solving (SMT integration)
 
+## Working with Claude
+
+This project includes Claude Code skills that help Claude assist you more effectively when working with Vague files and OpenAPI specifications.
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `vague` | Writing Vague (.vague) files - syntax, constraints, cross-references |
+| `openapi` | Working with OpenAPI specs - validation, schemas, best practices |
+
+### Installation via OpenSkills
+
+Install the skills using [OpenSkills](https://github.com/anthropics/openskills):
+
+```bash
+npm i -g openskills
+openskills install mcclowes/vague
+```
+
+This installs the skills to your `.claude/skills/` directory, making them available when you use Claude Code in this project.
+
+### Manual Installation
+
+Alternatively, copy the skills directly:
+
+```bash
+git clone https://github.com/mcclowes/vague.git
+cp -r vague/.claude/skills/* ~/.claude/skills/
+```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
