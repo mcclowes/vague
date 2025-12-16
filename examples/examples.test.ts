@@ -205,10 +205,10 @@ describe('examples', () => {
       // With 40 payments across 20 invoices, we expect some to be paid/partially-paid
       expect(paidOrPartial.length).toBeGreaterThan(0);
 
-      // Note: The constraint `amount <= invoice.total - invoice.amount_paid` uses
-      // a snapshot of amount_paid at generation time, but then blocks update it.
-      // This can lead to overpayment. This is a known limitation of the current
-      // constraint + then block interaction.
+      // No invoice should be overpaid
+      for (const inv of invoices) {
+        expect(inv.amount_paid).toBeLessThanOrEqual(inv.total as number);
+      }
     });
 
     it('respects validate block constraints', async () => {
@@ -218,10 +218,12 @@ describe('examples', () => {
       const payments = result.payments as Record<string, unknown>[];
 
       const totalInvoices = invoices.reduce((sum, inv) => sum + (inv.total as number), 0);
+      const totalPaid = invoices.reduce((sum, inv) => sum + (inv.amount_paid as number), 0);
 
       // These constraints are verified at generation time
       expect(totalInvoices).toBeGreaterThanOrEqual(5000);
       expect(totalInvoices).toBeLessThanOrEqual(18000);
+      expect(totalPaid).toBeLessThanOrEqual(totalInvoices);
       expect(payments.length).toBeLessThanOrEqual(invoices.length * 3);
     });
 

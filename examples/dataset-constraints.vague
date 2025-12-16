@@ -11,13 +11,10 @@ schema Invoice {
 }
 
 schema Payment {
-  id: int in 1..10000, 
-  invoice: any of invoices,
-  // Amount is either a partial payment (10-500) or the full invoice total
-  // Unweighted: equal chance of either option
-  // amount: int in 10..500 | invoice.total,
-  // Weighted: 30% partial payments, 70% full payments
-  amount: 0.3: int in 10..500 | 0.7: invoice.total,
+  id: int in 1..10000,
+  invoice: any of invoices where .amount_paid < .total,  // Only unpaid/partial invoices
+  // Payment amount between 10 and 500, constrained to remaining balance
+  amount: int in 10..500,
 
   // Payment cannot exceed remaining balance
   assume amount <= invoice.total - invoice.amount_paid
