@@ -28,13 +28,10 @@ import petstore from "examples/openapi-examples-generation/petstore.json"
 //   "owners" -> "Owner"
 
 schema Pet from petstore.Pet {
-  id: unique int in 1000..9999,
-  age: int in 1..15
+  age: int in 1..25
 }
 
-schema Owner from petstore.Owner {
-  id: unique int in 1..999
-}
+schema Owner from petstore.Owner {}
 
 // The dataset collections will be matched to OpenAPI schemas
 // and used to populate examples in the output spec

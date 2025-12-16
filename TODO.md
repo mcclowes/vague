@@ -1,9 +1,5 @@
 # Vague Language - TODO
 
-## Next Up
-
-- [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
-
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
@@ -12,6 +8,7 @@
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 - [ ] Explore other keywords for fields, like unique
+- [ ] 'Match' syntax
 
 ## Dataset-Level Features
 
@@ -30,6 +27,7 @@
 - [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
 - [ ] **Constraint analysis** - Warn on unsatisfiable constraints, estimate rejection probability
 - [ ] **SMT solver** - Z3 integration for complex constraints
+- [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
 
 ## Plugin System
 
