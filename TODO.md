@@ -2,17 +2,46 @@
 
 ## Next Up
 
-- [x] **Faker plugin** - `import faker from "vague-faker"` for semantic types
-- [ ] **Syntax highlighting for VScode** - Look at ../Lea for how to implement this
 - [ ] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
 - [ ] **Probability modifier** - `assume status == "paid" with probability 0.7`
+- [ ] **Smart generation order** - Topological sort of field dependencies, generate constraining fields first
+
+## Core Language
+
+- [ ] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
+- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`
+- [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
+- [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 
 ## Data Quality
 
 - [ ] **Decimal precision** - Round decimals appropriately for currency etc.
 - [ ] **Date formatting** - ISO 8601 output, configurable formats
 - [ ] **Unique values** - Ensure IDs/references are unique where needed
-- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`
+
+## Dataset-Level Features
+
+- [ ] **Use OAS for schema** - Import OpenAPI spec and reference schemas: `schema BankAccount = Codat.BankAccount`
+- [ ] **Dataset-wide constraints** - `validate { sum(invoices.total) in 100_000..500_000 }`
+- [ ] **Aggregate constraints** - Balance debits/credits across records
+
+## Negative Testing & Edge Cases
+
+- [ ] **Selective violation** - `violating due_date >= issued_date` targets specific constraints
+- [ ] **Boundary value generation** - `at boundaries` generates values at constraint edges
+- [ ] **Edge case generation** - `Invoice where unusual` biases toward low-probability branches
+
+## Advanced Features
+
+- [ ] **Previous references** - `date > previous.date` for sequential coherence
+- [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
+- [ ] **Constraint analysis** - Warn on unsatisfiable constraints, estimate rejection probability
+- [ ] **SMT solver** - Z3 integration for complex constraints
+
+## Plugin System
+
+- [ ] **Plugin architecture** - Plugin loader, namespace resolution, discovery
+- [ ] **Custom generators** - Pattern-based generators, stateful sequences
 
 ## Context System
 
@@ -20,39 +49,25 @@
 - [ ] **Context application** - `with Geography("en_GB")` actually influences generation
 - [ ] **Context inheritance** - Child records inherit parent context
 
-## Distributions
-
-- [ ] **Distribution application** - `age: int ~ AgeStructure` uses defined distribution
-- [ ] **Soft constraints** - Probabilistic constraint weighting
-
-## Dataset-Level Validation
-
-- [ ] **Dataset-wide constraints** - `validate { sum(invoices.total) in 100_000..500_000 }`
-- [ ] **Aggregate constraints** - Balance debits/credits across records
-
-## Constraint Solving
-
-- [ ] **Smart generation order** - Topological sort of field dependencies
-- [ ] **Constraint analysis** - Warn on unsatisfiable constraints
-- [ ] **SMT solver** - Z3 integration for complex constraints
-
 ## Output & Tooling
 
 - [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
 - [ ] **Seed support** - `--seed 123` for reproducible generation
 - [ ] **Watch mode** - Regenerate on file change
 - [ ] **Better error messages** - Parse error locations and suggestions
+- [ ] **LSP server** - Language server for editor support
 
 ## Technical Debt
 
 - [ ] **Type safety in generator** - Reduce `unknown` and `any` usage
 - [ ] **Error recovery in parser** - Continue parsing after errors
-- [ ] **LSP server** - Language server for editor support
 
-See ROADMAP.md for detailed implementation plans.
+---
 
 ## Completed
 
+- [x] **Faker plugin** - `import faker from "vague-faker"` for semantic types
+- [x] **Syntax highlighting for VSCode** - See `vscode-vague/` directory
 - [x] **Parent references** - `^currency` syntax for inheriting from parent scope
 - [x] **`any of` expressions** - `customer: any of companies` for referencing collection items
 - [x] **Filtered references** - `any of companies where .active == true`

@@ -138,6 +138,7 @@ Currently 75 tests covering lexer, parser, generator, and validator.
    - Loads schemas from OpenAPI 3.0.x and 3.1.x specs
    - Validates generated data against schemas
 
+
 ## What's Implemented
 
 - [x] Lexer, parser, AST, generator
@@ -151,5 +152,16 @@ Currently 75 tests covering lexer, parser, generator, and validator.
 - [x] Markov chain strings
 - [x] OpenAPI import (basic)
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
+- [x] Faker plugin for semantic types
+- [x] VSCode syntax highlighting (`vscode-vague/`)
 
-See ROADMAP.md for planned features.
+See TODO.md for planned features.
+
+## Post-Implementation Cleanup
+
+After completing any feature, always verify:
+
+1. **Examples** - Update `examples/` with new syntax if applicable
+2. **Documentation** - Update this file's syntax examples and README.md
+3. **Syntax highlighting** - Add new keywords/operators to `vscode-vague/syntaxes/vague.tmLanguage.json`
+4. **TODO.md** - Move completed items to "Completed" section

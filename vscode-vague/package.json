@@ -1,0 +1,70 @@
+{
+  "name": "vague-language",
+  "displayName": "Vague Language",
+  "description": "Syntax highlighting for Vague - a declarative language for generating realistic test data",
+  "version": "0.1.0",
+  "publisher": "mcclowes",
+  "author": {
+    "name": "Max Clayton Clowes"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcclowes/vague"
+  },
+  "bugs": {
+    "url": "https://github.com/mcclowes/vague/issues"
+  },
+  "homepage": "https://github.com/mcclowes/vague#readme",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "vague",
+    "test data",
+    "data generation",
+    "schema",
+    "syntax highlighting"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "vague",
+        "aliases": [
+          "Vague",
+          "vague"
+        ],
+        "extensions": [
+          ".vague"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vague",
+        "scopeName": "source.vague",
+        "path": "./syntaxes/vague.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.vague.codeblock",
+        "path": "./syntaxes/vague.markdown.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.vague": "vague"
+        }
+      }
+    ],
+    "configurationDefaults": {
+      "[vague]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+      }
+    }
+  }
+}

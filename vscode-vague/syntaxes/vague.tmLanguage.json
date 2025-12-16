@@ -1,0 +1,210 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Vague",
+  "scopeName": "source.vague",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#builtins" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.vague",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.vague",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.vague",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "comment": "Decimal numbers (e.g., 0.01, 999.99)",
+          "name": "constant.numeric.float.vague",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "comment": "Integers with optional underscores (e.g., 100_000)",
+          "name": "constant.numeric.integer.vague",
+          "match": "\\b\\d[\\d_]*\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "comment": "Schema and data definition keywords",
+          "name": "keyword.other.definition.vague",
+          "match": "\\b(schema|dataset|distribution|context)\\b"
+        },
+        {
+          "comment": "Import keywords",
+          "name": "keyword.control.import.vague",
+          "match": "\\b(import|from)\\b"
+        },
+        {
+          "comment": "Constraint keywords",
+          "name": "keyword.control.constraint.vague",
+          "match": "\\b(assume|validate|constraints)\\b"
+        },
+        {
+          "comment": "Control flow keywords",
+          "name": "keyword.control.vague",
+          "match": "\\b(if|match|when)\\b"
+        },
+        {
+          "comment": "Logical operators as keywords",
+          "name": "keyword.operator.logical.vague",
+          "match": "\\b(and|or|not)\\b"
+        },
+        {
+          "comment": "Other keywords",
+          "name": "keyword.other.vague",
+          "match": "\\b(let|with|where|in|per|any|of|affects)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "comment": "Primitive types",
+          "name": "storage.type.primitive.vague",
+          "match": "\\b(string|int|decimal|boolean|date)\\b"
+        },
+        {
+          "comment": "Boolean literals",
+          "name": "constant.language.boolean.vague",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "comment": "Aggregate functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(sum|count|min|max|avg)\\b"
+        },
+        {
+          "comment": "Faker namespace prefix",
+          "name": "support.class.faker.vague",
+          "match": "\\bfaker\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "comment": "Range operator",
+          "name": "keyword.operator.range.vague",
+          "match": "\\.\\."
+        },
+        {
+          "comment": "Arrow operator for weighted superposition",
+          "name": "keyword.operator.arrow.vague",
+          "match": "=>"
+        },
+        {
+          "comment": "Comparison operators",
+          "name": "keyword.operator.comparison.vague",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "comment": "Pipe operator for superposition",
+          "name": "keyword.operator.pipe.vague",
+          "match": "\\|"
+        },
+        {
+          "comment": "Parent reference operator",
+          "name": "keyword.operator.parent-ref.vague",
+          "match": "\\^"
+        },
+        {
+          "comment": "Computed field operator",
+          "name": "keyword.operator.computed.vague",
+          "match": "="
+        },
+        {
+          "comment": "Cardinality operator",
+          "name": "keyword.operator.cardinality.vague",
+          "match": "\\*"
+        },
+        {
+          "comment": "Arithmetic operators",
+          "name": "keyword.operator.arithmetic.vague",
+          "match": "[+\\-/%]"
+        },
+        {
+          "comment": "Distribution operator",
+          "name": "keyword.operator.distribution.vague",
+          "match": "~"
+        },
+        {
+          "comment": "Colon for field definitions",
+          "name": "punctuation.separator.colon.vague",
+          "match": ":"
+        },
+        {
+          "comment": "Property access",
+          "name": "punctuation.accessor.vague",
+          "match": "\\."
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.definition.block.vague",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.definition.brackets.vague",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.definition.parens.vague",
+          "match": "[()]"
+        },
+        {
+          "name": "punctuation.separator.comma.vague",
+          "match": ","
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "comment": "Schema/Type names (PascalCase)",
+          "name": "entity.name.type.vague",
+          "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+        },
+        {
+          "comment": "Field names and variables",
+          "name": "variable.other.vague",
+          "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}
