@@ -336,6 +336,7 @@ dataset TestData {
 |--------|------------------|
 | `uuid` | `550e8400-e29b-41d4-a716-446655440000` |
 | `email` | `user@example.com` |
+| `phone` / `phone-number` | `+12025551234` |
 | `uri` / `url` | `https://example.com/123` |
 | `date` | `2023-07-15` |
 | `date-time` | `2023-07-15T14:30:00.000Z` |

@@ -508,6 +508,9 @@ export class Generator {
           return this.tryPluginGenerator("uuid") ?? crypto.randomUUID();
         case "email":
           return this.tryPluginGenerator("email") ?? `user${randomInt(1, 9999)}@example.com`;
+        case "phone":
+        case "phone-number":
+          return this.tryPluginGenerator("phone") ?? `+1${randomInt(200, 999)}${randomInt(100, 999)}${randomInt(1000, 9999)}`;
         case "uri":
         case "url":
           return this.tryPluginGenerator("url") ?? `https://example.com/${randomInt(1, 9999)}`;

@@ -905,6 +905,8 @@ describe("Generator", () => {
               properties: {
                 id: { type: "string", format: "uuid" },
                 email: { type: "string", format: "email" },
+                phone: { type: "string", format: "phone" },
+                phone2: { type: "string", format: "phone-number" },
                 website: { type: "string", format: "uri" },
                 created_at: { type: "string", format: "date-time" },
                 birth_date: { type: "string", format: "date" },
@@ -941,6 +943,10 @@ describe("Generator", () => {
 
           // Email format: something@something
           expect(u.email).toMatch(/@/);
+
+          // Phone format: starts with + and contains digits
+          expect(u.phone).toMatch(/^\+?\d[\d\s()-]+$/);
+          expect(u.phone2).toMatch(/^\+?\d[\d\s()-]+$/);
 
           // URI format: starts with http(s)://
           expect(u.website).toMatch(/^https?:\/\//);
