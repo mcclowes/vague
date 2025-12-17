@@ -331,6 +331,10 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--csv-no-header` | Omit CSV header row |
 | `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
 | `--csv-nested <mode>` | Nested objects: `flatten`, `json` |
+| `--infer <file>` | Infer Vague schema from JSON or CSV data |
+| `--collection-name <name>` | Collection name for CSV inference |
+| `--infer-delimiter <char>` | CSV delimiter for inference (default: `,`) |
+| `--dataset-name <name>` | Dataset name for inference |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
 | `--oas-output <file>` | Output path for populated OpenAPI spec |
 | `--oas-example-count <n>` | Number of examples per schema (default: 1) |
@@ -355,7 +359,8 @@ src/
 ├── interpreter/ # JSON generator
 ├── validator/   # Schema validation (Ajv)
 ├── openapi/     # OpenAPI import support
-├── csv/         # CSV output formatter
+├── csv/         # CSV input/output formatting
+├── infer/       # Schema inference from data
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 ```

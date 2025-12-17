@@ -13,7 +13,7 @@ src/
 ├── validator/   # Schema validation against OpenAPI/JSON Schema
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
-├── csv/         # CSV output formatter
+├── csv/         # CSV input/output formatting
 ├── plugins/     # Built-in plugins (faker, issuer, date)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
@@ -636,7 +636,7 @@ vague schema.vague -f csv --csv-nested json -o data.csv    # JSON for nested obj
 
 ### Schema Inference from Data
 
-Reverse-engineer Vague schemas from existing JSON data:
+Reverse-engineer Vague schemas from existing JSON or CSV data:
 
 ```typescript
 import { inferSchema } from 'vague';
@@ -667,6 +667,15 @@ const vagueCode = inferSchema(data);
 ```bash
 # Infer schema from JSON file
 node dist/cli.js --infer data.json -o schema.vague
+
+# Infer schema from CSV file
+node dist/cli.js --infer data.csv -o schema.vague
+
+# CSV with custom collection name (default: derived from filename)
+node dist/cli.js --infer users.csv --collection-name employees
+
+# CSV with custom delimiter
+node dist/cli.js --infer data.csv --infer-delimiter ";"
 
 # With custom dataset name
 node dist/cli.js --infer data.json --dataset-name TestFixtures
@@ -912,6 +921,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Private fields (`age: private int` - generated but excluded from output)
 - [x] Date arithmetic (`date.days()`, `date.weeks()`, `date.months()`, `date.years()` with `+`/`-` operators)
 - [x] CSV output format (`-f csv`, `--csv-delimiter`, `--csv-arrays`, `--csv-nested`)
+- [x] CSV input for schema inference (`--infer data.csv`, `--collection-name`, `--infer-delimiter`)
 
 See TODO.md for planned features.
 

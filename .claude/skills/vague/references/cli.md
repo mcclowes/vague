@@ -78,6 +78,35 @@ Options:
 - `--oas-example-count <n>`: Number of examples per schema (default: 1)
 - `--oas-external`: Use external file references instead of inline examples
 
+## Schema Inference
+
+Infer a Vague schema from existing JSON or CSV data:
+
+```bash
+# Infer from JSON
+node dist/cli.js --infer data.json -o schema.vague
+
+# Infer from CSV
+node dist/cli.js --infer users.csv -o schema.vague
+
+# CSV with custom collection name (default: derived from filename)
+node dist/cli.js --infer data.csv --collection-name employees
+
+# CSV with custom delimiter
+node dist/cli.js --infer data.csv --infer-delimiter ";"
+
+# Custom dataset name
+node dist/cli.js --infer data.json --dataset-name TestFixtures
+```
+
+Options:
+- `--infer <file>`: Input JSON or CSV file
+- `--collection-name <name>`: Collection name for CSV (default: derived from filename)
+- `--infer-delimiter <char>`: CSV delimiter (default: `,`)
+- `--dataset-name <name>`: Name for generated dataset (default: `Generated`)
+- `--no-formats`: Disable format detection (uuid, email, etc.)
+- `--no-weights`: Disable weighted superpositions
+
 ## Auto-Detection
 
 The CLI auto-detects collection-to-schema mappings:

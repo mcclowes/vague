@@ -14,7 +14,12 @@ import {
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema } from './infer/index.js';
-import { datasetToCSV, datasetToSingleCSV, type CsvOptions } from './csv/index.js';
+import {
+  datasetToCSV,
+  datasetToSingleCSV,
+  parseCSVToDataset,
+  type CsvOptions,
+} from './csv/index.js';
 
 // Register plugins automatically
 registerPlugin(fakerPlugin);
@@ -37,7 +42,7 @@ vague - Declarative test data generator
 
 Usage:
   vague <input.vague> [options]
-  vague --infer <data.json> [options]
+  vague --infer <data.json|data.csv> [options]
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
@@ -57,8 +62,10 @@ CSV Options (when --format csv):
   --csv-nested <mode>      Nested object handling: flatten, json (default: flatten)
 
 Schema Inference:
-  --infer <data.json>      Infer Vague schema from JSON data
+  --infer <file>           Infer Vague schema from JSON or CSV data
   --dataset-name <name>    Name for generated dataset (default: "Generated")
+  --collection-name <name> Collection name for CSV input (default: derived from filename)
+  --infer-delimiter <char> CSV delimiter for inference (default: ',')
   --no-formats             Disable format detection (uuid, email, etc.)
   --no-weights             Disable weighted superpositions
   --max-enum <n>           Maximum unique values for enum detection (default: 10)
@@ -77,8 +84,10 @@ Examples:
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}'
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}' --validate-only
 
-  # Infer schema from JSON data
+  # Infer schema from JSON or CSV data
   vague --infer data.json -o schema.vague
+  vague --infer data.csv -o schema.vague
+  vague --infer data.csv --collection-name users -o schema.vague
   vague --infer data.json --dataset-name TestFixtures
 
   # Populate OpenAPI spec with examples
@@ -109,6 +118,8 @@ Examples:
   // Inference options
   let inferFile: string | null = null;
   let datasetName = 'Generated';
+  let collectionName: string | null = null;
+  let inferDelimiter = ',';
   let detectFormats = true;
   let weightedSuperpositions = true;
   let maxEnumValues = 10;
@@ -187,6 +198,10 @@ Examples:
       }
     } else if (args[i] === '--dataset-name') {
       datasetName = args[++i];
+    } else if (args[i] === '--collection-name') {
+      collectionName = args[++i];
+    } else if (args[i] === '--infer-delimiter') {
+      inferDelimiter = args[++i];
     } else if (args[i] === '--no-formats') {
       detectFormats = false;
     } else if (args[i] === '--no-weights') {
@@ -203,15 +218,30 @@ Examples:
   try {
     // Handle schema inference mode
     if (inferFile) {
-      const jsonContent = readFileSync(resolve(inferFile), 'utf-8');
+      const fileContent = readFileSync(resolve(inferFile), 'utf-8');
       let data: Record<string, unknown[]>;
 
-      try {
-        data = JSON.parse(jsonContent) as Record<string, unknown[]>;
-      } catch {
-        console.error('Error: Invalid JSON in input file');
-        process.exit(1);
-        return; // TypeScript flow analysis hint
+      // Determine if input is CSV or JSON based on file extension
+      const isCSV = inferFile.toLowerCase().endsWith('.csv');
+
+      if (isCSV) {
+        // Parse CSV input
+        // Derive collection name from filename if not specified
+        const derivedCollectionName =
+          collectionName ?? inferFile.replace(/^.*[\\/]/, '').replace(/\.csv$/i, '');
+        data = parseCSVToDataset(fileContent, {
+          delimiter: inferDelimiter,
+          collectionName: derivedCollectionName,
+        });
+      } else {
+        // Parse JSON input
+        try {
+          data = JSON.parse(fileContent) as Record<string, unknown[]>;
+        } catch {
+          console.error('Error: Invalid JSON in input file');
+          process.exit(1);
+          return; // TypeScript flow analysis hint
+        }
       }
 
       const vagueCode = inferSchema(data, {
