@@ -38,6 +38,9 @@ export {
   addDurationToDate,
   subtractDurationFromDate,
   type Duration,
+  // Regex plugin
+  regexPlugin,
+  regexShorthandPlugin,
 } from './plugins/index.js';
 export {
   inferSchema,
