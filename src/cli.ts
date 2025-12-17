@@ -9,6 +9,8 @@ import {
   fakerShorthandPlugin,
   datesPlugin,
   datesShorthandPlugin,
+  issuerPlugin,
+  issuerShorthandPlugin,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema } from './infer/index.js';
@@ -18,6 +20,8 @@ registerPlugin(fakerPlugin);
 registerPlugin(fakerShorthandPlugin);
 registerPlugin(datesPlugin);
 registerPlugin(datesShorthandPlugin);
+registerPlugin(issuerPlugin);
+registerPlugin(issuerShorthandPlugin);
 
 interface ValidationMapping {
   [collection: string]: string;
