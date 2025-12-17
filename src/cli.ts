@@ -11,9 +11,11 @@ import {
   dateShorthandPlugin,
   issuerPlugin,
   issuerShorthandPlugin,
+  regexPlugin,
+  regexShorthandPlugin,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
-import { inferSchema } from './infer/index.js';
+import { inferSchema, inferSchemaWithTypeScript } from './infer/index.js';
 import {
   datasetToCSV,
   datasetToSingleCSV,
@@ -21,14 +23,29 @@ import {
   type CsvOptions,
 } from './csv/index.js';
 import { DataValidator } from './validator/data-validator.js';
+import { loadConfig, loadConfigFrom, type ResolvedConfig, type LogLevel } from './config/index.js';
+import {
+  createLogger,
+  configureLogging,
+  setLogLevel,
+  enableDebug,
+  setTimestamps,
+} from './logging/index.js';
 
-// Register plugins automatically
-registerPlugin(fakerPlugin);
-registerPlugin(fakerShorthandPlugin);
-registerPlugin(datePlugin);
-registerPlugin(dateShorthandPlugin);
-registerPlugin(issuerPlugin);
-registerPlugin(issuerShorthandPlugin);
+// Create CLI logger
+const log = createLogger('cli');
+
+// Built-in plugins (registered after config plugins to allow overrides)
+const builtinPlugins = [
+  fakerPlugin,
+  fakerShorthandPlugin,
+  datePlugin,
+  dateShorthandPlugin,
+  issuerPlugin,
+  issuerShorthandPlugin,
+  regexPlugin,
+  regexShorthandPlugin,
+];
 
 interface ValidationMapping {
   [collection: string]: string;
@@ -55,6 +72,10 @@ Options:
   -v, --validate <spec>    Validate output against OpenAPI spec
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
+  -c, --config <file>      Use specific config file (default: auto-detect vague.config.js)
+  --no-config              Skip loading config file
+  -d, --debug              Enable debug logging (shows generation details)
+  --log-level <level>      Set log level: none, error, warn, info, debug (default: warn)
   -h, --help               Show this help message
 
 CSV Options (when --format csv):
@@ -71,6 +92,8 @@ Schema Inference:
   --no-formats             Disable format detection (uuid, email, etc.)
   --no-weights             Disable weighted superpositions
   --max-enum <n>           Maximum unique values for enum detection (default: 10)
+  --typescript             Also generate TypeScript definitions (.d.ts file)
+  --ts-only                Generate only TypeScript definitions (no .vague file)
 
 Data Validation:
   --validate-data <file>   Validate JSON data against a Vague schema
@@ -96,6 +119,10 @@ Examples:
   vague --infer data.csv --collection-name users -o schema.vague
   vague --infer data.json --dataset-name TestFixtures
 
+  # Infer schema with TypeScript definitions
+  vague --infer data.json -o schema.vague --typescript     # Outputs schema.vague and schema.vague.d.ts
+  vague --infer data.json -o types.d.ts --ts-only          # Only outputs TypeScript definitions
+
   # Populate OpenAPI spec with examples
   vague schema.vague --oas-output api-with-examples.json --oas-source api.json
   vague schema.vague --oas-output api.json --oas-source api.json --oas-example-count 3
@@ -103,6 +130,27 @@ Examples:
 
   # Validate data against Vague schema
   vague --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+
+  # Use custom config file
+  vague schema.vague -c ./custom-config.js
+  vague schema.vague --no-config  # Skip config file
+
+Configuration File (vague.config.js):
+  // vague.config.js
+  export default {
+    plugins: [
+      './my-plugin.js',           // Local plugin file
+      'vague-plugin-stripe',      // npm package
+    ],
+    seed: 42,                     // Default seed
+    format: 'json',               // Default format
+    pretty: true,                 // Pretty-print by default
+    logging: {
+      level: 'debug',             // Log level: none, error, warn, info, debug
+      components: ['generator'],  // Filter to specific components
+      timestamps: true            // Include timestamps
+    }
+  };
 `);
     process.exit(0);
   }
@@ -132,10 +180,20 @@ Examples:
   let detectFormats = true;
   let weightedSuperpositions = true;
   let maxEnumValues = 10;
+  let generateTypescript = false;
+  let typescriptOnly = false;
 
   // Data validation options
   let validateDataFile: string | null = null;
   let schemaFile: string | null = null;
+
+  // Config options
+  let configFile: string | null = null;
+  let noConfig = false;
+
+  // Logging options
+  let debugMode = false;
+  let logLevelArg: LogLevel | null = null;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -225,10 +283,86 @@ Examples:
         console.error('Error: --max-enum must be a positive integer');
         process.exit(1);
       }
+    } else if (args[i] === '--typescript') {
+      generateTypescript = true;
+    } else if (args[i] === '--ts-only') {
+      typescriptOnly = true;
+      generateTypescript = true; // ts-only implies typescript generation
     } else if (args[i] === '--validate-data') {
       validateDataFile = args[++i];
     } else if (args[i] === '--schema') {
       schemaFile = args[++i];
+    } else if (args[i] === '-c' || args[i] === '--config') {
+      configFile = args[++i];
+    } else if (args[i] === '--no-config') {
+      noConfig = true;
+    } else if (args[i] === '-d' || args[i] === '--debug') {
+      debugMode = true;
+    } else if (args[i] === '--log-level') {
+      const level = args[++i] as LogLevel;
+      if (!['none', 'error', 'warn', 'info', 'debug'].includes(level)) {
+        console.error(
+          `Error: Invalid log level '${level}'. Must be: none, error, warn, info, debug`
+        );
+        process.exit(1);
+      }
+      logLevelArg = level;
+    }
+  }
+
+  // Load config file (unless disabled)
+  let config: ResolvedConfig | null = null;
+  if (!noConfig) {
+    try {
+      config = configFile ? await loadConfigFrom(configFile) : await loadConfig();
+      if (config) {
+        // Register plugins from config first (they can be overridden by built-ins)
+        for (const plugin of config.plugins) {
+          registerPlugin(plugin);
+        }
+        if (config.configPath) {
+          console.error(`Loaded config from ${config.configPath}`);
+        }
+      }
+    } catch (err) {
+      console.error(`Error loading config: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    }
+  }
+
+  // Register built-in plugins (after config plugins so they take precedence)
+  for (const plugin of builtinPlugins) {
+    registerPlugin(plugin);
+  }
+
+  // Configure logging (config first, then CLI overrides)
+  if (config?.logging) {
+    configureLogging(config.logging);
+    log.debug('Applied logging config from file', { configPath: config.configPath });
+  }
+
+  // CLI logging flags take precedence over config
+  if (debugMode) {
+    enableDebug();
+    log.info('Debug logging enabled via --debug flag');
+  } else if (logLevelArg) {
+    setLogLevel(logLevelArg);
+    if (logLevelArg === 'info' || logLevelArg === 'debug') {
+      setTimestamps(true);
+    }
+    log.debug('Log level set via --log-level flag', { level: logLevelArg });
+  }
+
+  // Apply config defaults (CLI flags take precedence)
+  if (config) {
+    if (seed === null && config.seed !== undefined) {
+      seed = config.seed;
+    }
+    if (outputFormat === 'json' && config.format !== undefined) {
+      outputFormat = config.format;
+    }
+    if (!pretty && config.pretty !== undefined) {
+      pretty = config.pretty;
     }
   }
 
@@ -261,18 +395,58 @@ Examples:
         }
       }
 
-      const vagueCode = inferSchema(data, {
+      const inferOptions = {
         datasetName,
         detectFormats,
         weightedSuperpositions,
         maxEnumValues,
-      });
+      };
 
-      if (outputFile) {
-        writeFileSync(resolve(outputFile), vagueCode);
-        console.error(`Vague schema written to ${outputFile}`);
+      if (generateTypescript) {
+        // Generate both Vague and TypeScript
+        const result = inferSchemaWithTypeScript(data, inferOptions);
+
+        if (outputFile) {
+          // Determine output file names
+          const vagueFile = typescriptOnly
+            ? null
+            : outputFile.endsWith('.d.ts')
+              ? outputFile.replace(/\.d\.ts$/, '.vague')
+              : outputFile;
+          const tsFile = outputFile.endsWith('.vague')
+            ? outputFile.replace(/\.vague$/, '.d.ts')
+            : outputFile.endsWith('.d.ts')
+              ? outputFile
+              : outputFile + '.d.ts';
+
+          // Write Vague file (unless ts-only)
+          if (!typescriptOnly && vagueFile) {
+            writeFileSync(resolve(vagueFile), result.vague);
+            console.error(`Vague schema written to ${vagueFile}`);
+          }
+
+          // Write TypeScript file
+          writeFileSync(resolve(tsFile), result.typescript);
+          console.error(`TypeScript definitions written to ${tsFile}`);
+        } else {
+          // Output to stdout
+          if (!typescriptOnly) {
+            console.log('// === Vague Schema ===');
+            console.log(result.vague);
+            console.log('\n// === TypeScript Definitions ===');
+          }
+          console.log(result.typescript);
+        }
       } else {
-        console.log(vagueCode);
+        // Generate only Vague code
+        const vagueCode = inferSchema(data, inferOptions);
+
+        if (outputFile) {
+          writeFileSync(resolve(outputFile), vagueCode);
+          console.error(`Vague schema written to ${outputFile}`);
+        } else {
+          console.log(vagueCode);
+        }
       }
 
       process.exit(0);

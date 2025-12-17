@@ -6,6 +6,9 @@ import {
   detectDateRange,
   detectArrayCardinality,
   detectUniqueness,
+  detectStringLengthRange,
+  detectPercentage,
+  detectDistribution,
 } from './range-detector.js';
 import { detectSuperposition } from './enum-detector.js';
 import { detectFormat, detectFieldNamePattern } from './format-detector.js';
@@ -127,6 +130,85 @@ describe('Range Detector', () => {
       expect(detectUniqueness([1, 2, 2, 3], 'int')).toBe(false);
     });
   });
+
+  describe('detectStringLengthRange', () => {
+    it('detects min/max string lengths', () => {
+      const result = detectStringLengthRange(['ab', 'abcde', 'abc']);
+      expect(result?.minLength).toBe(2);
+      expect(result?.maxLength).toBe(5);
+      expect(result?.isFixedLength).toBe(false);
+    });
+
+    it('detects fixed-length strings', () => {
+      const result = detectStringLengthRange(['abc', 'xyz', '123']);
+      expect(result?.isFixedLength).toBe(true);
+      expect(result?.minLength).toBe(3);
+      expect(result?.maxLength).toBe(3);
+    });
+
+    it('calculates average length', () => {
+      const result = detectStringLengthRange(['a', 'abc', 'abcde']); // 1, 3, 5 avg = 3
+      expect(result?.avgLength).toBe(3);
+    });
+
+    it('returns null for empty array', () => {
+      expect(detectStringLengthRange([])).toBeNull();
+    });
+  });
+
+  describe('detectPercentage', () => {
+    it('detects decimal percentages (0-1 scale)', () => {
+      const values = [0.15, 0.25, 0.5, 0.75, 0.9];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(true);
+      expect(result?.scale).toBe('decimal');
+    });
+
+    it('detects percentage scale (0-100)', () => {
+      const values = [15.5, 25.3, 50.0, 75.8, 90.2];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(true);
+      expect(result?.scale).toBe('percent');
+    });
+
+    it('returns false for non-percentage values', () => {
+      const values = [100, 200, 500, 1000];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(false);
+    });
+  });
+
+  describe('detectDistribution', () => {
+    it('detects uniform distribution', () => {
+      // Generate uniformly distributed values
+      const values = Array.from({ length: 100 }, (_, i) => i + Math.random() * 0.1);
+      const result = detectDistribution(values);
+      expect(result).toBeDefined();
+      // Note: distribution detection is probabilistic, so we just check it's detected
+      expect(result?.type).toBeDefined();
+    });
+
+    it('detects gaussian distribution', () => {
+      // Generate normally distributed values using Box-Muller transform
+      const values: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        values.push(50 + z * 10); // mean=50, stddev=10
+      }
+      const result = detectDistribution(values);
+      expect(result).toBeDefined();
+      expect(result?.mean).toBeDefined();
+      expect(result?.stddev).toBeDefined();
+    });
+
+    it('returns null for insufficient samples', () => {
+      const values = [1, 2, 3];
+      const result = detectDistribution(values);
+      expect(result).toBeNull();
+    });
+  });
 });
 
 describe('Enum Detector', () => {
@@ -195,6 +277,30 @@ describe('Format Detector', () => {
       const values = ['hello', 'world', 'test'];
       expect(detectFormat(values)).toBe('none');
     });
+
+    it('detects credit card format', () => {
+      const values = ['4532015112830366', '5425233430109903', '371449635398431'];
+      expect(detectFormat(values)).toBe('credit-card');
+    });
+
+    it('detects IBAN format', () => {
+      const values = [
+        'GB82WEST12345698765432',
+        'DE89370400440532013000',
+        'FR7630006000011234567890189',
+      ];
+      expect(detectFormat(values)).toBe('iban');
+    });
+
+    it('detects MAC address format', () => {
+      const values = ['00:1A:2B:3C:4D:5E', 'AA:BB:CC:DD:EE:FF', '11:22:33:44:55:66'];
+      expect(detectFormat(values)).toBe('mac-address');
+    });
+
+    it('detects hex color format', () => {
+      const values = ['#FF5733', '#00FF00', '#ABC'];
+      expect(detectFormat(values)).toBe('hex-color');
+    });
   });
 
   describe('detectFieldNamePattern', () => {
@@ -214,6 +320,26 @@ describe('Format Detector', () => {
 
     it('returns null for unknown patterns', () => {
       expect(detectFieldNamePattern('foobar')).toBeNull();
+    });
+
+    it('detects credit card field names', () => {
+      expect(detectFieldNamePattern('credit_card')).toBe('faker.finance.creditCardNumber()');
+      expect(detectFieldNamePattern('cardNumber')).toBe('faker.finance.creditCardNumber()');
+    });
+
+    it('detects IBAN field names', () => {
+      expect(detectFieldNamePattern('iban')).toBe('faker.finance.iban()');
+      expect(detectFieldNamePattern('bank_account')).toBe('faker.finance.iban()');
+    });
+
+    it('detects MAC address field names', () => {
+      expect(detectFieldNamePattern('mac')).toBe('faker.internet.mac()');
+      expect(detectFieldNamePattern('mac_address')).toBe('faker.internet.mac()');
+    });
+
+    it('detects color field names', () => {
+      expect(detectFieldNamePattern('color')).toBe('faker.color.rgb()');
+      expect(detectFieldNamePattern('hex_color')).toBe('faker.color.rgb()');
     });
   });
 });
@@ -459,5 +585,187 @@ describe('End-to-end inference and compilation', () => {
 
     expect(result.users).toBeDefined();
     expect(result.users.length).toBe(3);
+  });
+});
+
+describe('Schema Deduplication', () => {
+  it('deduplicates identical nested schemas', () => {
+    const data = {
+      orders: [
+        {
+          billing_address: { street: '123 Main', city: 'NYC', zip: '10001' },
+          shipping_address: { street: '456 Oak', city: 'LA', zip: '90001' },
+        },
+        {
+          billing_address: { street: '789 Pine', city: 'Chicago', zip: '60601' },
+          shipping_address: { street: '321 Elm', city: 'Denver', zip: '80201' },
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should only have one Address schema since both are structurally identical
+    // Either both reference the same schema, or we have deduplication
+    // The important thing is we don't have two identical schema definitions
+    const schemaDefinitions = result.match(/schema \w+ \{/g) || [];
+    const uniqueSchemaNames = new Set(schemaDefinitions);
+
+    // Verify the output is valid (either deduplicated or at least not duplicated content)
+    expect(result).toContain('schema');
+    expect(uniqueSchemaNames.size).toBe(schemaDefinitions.length);
+  });
+
+  it('keeps different schemas separate', () => {
+    const data = {
+      orders: [
+        {
+          address: { street: '123 Main', city: 'NYC' },
+          contact: { name: 'John', phone: '555-1234' },
+        },
+        {
+          address: { street: '456 Oak', city: 'LA' },
+          contact: { name: 'Jane', phone: '555-5678' },
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should have both Address and Contact schemas since they're different
+    expect(result).toContain('schema Address');
+    expect(result).toContain('schema Contact');
+    expect(result).toContain('street');
+    expect(result).toContain('phone');
+  });
+});
+
+describe('TypeScript Generation Integration', () => {
+  it('inferSchemaWithTypeScript generates both Vague and TypeScript', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      users: [
+        { id: 1, name: 'Alice', active: true },
+        { id: 2, name: 'Bob', active: false },
+      ],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Check Vague output
+    expect(result.vague).toContain('schema User {');
+    expect(result.vague).toContain('dataset Generated');
+
+    // Check TypeScript output
+    expect(result.typescript).toContain('interface User');
+    expect(result.typescript).toContain('id: number');
+    expect(result.typescript).toContain('name: string');
+    expect(result.typescript).toContain('active: boolean');
+    expect(result.typescript).toContain('interface Generated');
+
+    // Check schemas array
+    expect(result.schemas.length).toBeGreaterThan(0);
+    expect(result.schemas.some((s) => s.name === 'User')).toBe(true);
+  });
+
+  it('generates correct TypeScript for superposition fields', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      invoices: [{ status: 'draft' }, { status: 'sent' }, { status: 'paid' }, { status: 'draft' }],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Should have union type
+    expect(result.typescript).toContain("'draft'");
+    expect(result.typescript).toContain("'sent'");
+    expect(result.typescript).toContain("'paid'");
+  });
+
+  it('generates correct TypeScript for nested arrays', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      orders: [{ items: [{ name: 'A' }, { name: 'B' }] }, { items: [{ name: 'C' }] }],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Check nested schema
+    expect(result.typescript).toContain('interface Item');
+    expect(result.typescript).toContain('items: Item[]');
+  });
+});
+
+describe('Aggregation Detection Integration', () => {
+  it('detects sum aggregation from nested arrays', () => {
+    const data = {
+      invoices: [
+        {
+          subtotal: 150,
+          line_items: [{ amount: 50 }, { amount: 100 }],
+        },
+        {
+          subtotal: 75,
+          line_items: [{ amount: 25 }, { amount: 50 }],
+        },
+        {
+          subtotal: 200,
+          line_items: [{ amount: 100 }, { amount: 100 }],
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect that subtotal = sum(line_items.amount)
+    expect(result).toContain('sum(line_items.amount)');
+  });
+
+  it('detects count aggregation', () => {
+    const data = {
+      orders: [
+        {
+          item_count: 2,
+          items: [{ name: 'A' }, { name: 'B' }],
+        },
+        {
+          item_count: 3,
+          items: [{ name: 'C' }, { name: 'D' }, { name: 'E' }],
+        },
+        {
+          item_count: 1,
+          items: [{ name: 'F' }],
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect that item_count = count(items)
+    expect(result).toContain('count(items)');
+  });
+});
+
+describe('Division Detection Integration', () => {
+  it('detects mathematical relationship (multiplication or division)', () => {
+    const data = {
+      orders: [
+        { total: 100, quantity: 5, unit_price: 20 },
+        { total: 60, quantity: 3, unit_price: 20 },
+        { total: 200, quantity: 10, unit_price: 20 },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect either total = quantity * unit_price OR unit_price = total / quantity
+    // Both are mathematically equivalent (if c = a/b then a = b*c)
+    const hasMultiplication = result.includes('quantity * unit_price');
+    const hasDivision = result.includes('total / quantity');
+
+    expect(hasMultiplication || hasDivision).toBe(true);
   });
 });

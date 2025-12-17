@@ -14,7 +14,9 @@ src/
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
 ├── csv/         # CSV input/output formatting
-├── plugins/     # Built-in plugins (faker, issuer, date)
+├── config/      # Configuration file loading (vague.config.js)
+├── logging/     # Logging utilities with levels and components
+├── plugins/     # Built-in plugins (faker, issuer, date, regex)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -30,7 +32,86 @@ node dist/cli.js <file.vague>  # Run CLI
 node dist/cli.js <file.vague> -o output.json -w  # Watch mode - regenerate on file change
 node dist/cli.js <file.vague> -f csv -o data.csv  # CSV output
 node dist/cli.js <file.vague> -v <openapi.json> -m '{"collection": "Schema"}'  # With validation
+node dist/cli.js <file.vague> --debug  # Enable debug logging
 ```
+
+## Debug Logging
+
+Vague has a comprehensive logging system for debugging generation issues.
+
+### CLI Options
+
+```bash
+# Enable full debug output
+node dist/cli.js schema.vague --debug
+
+# Set specific log level (none, error, warn, info, debug)
+node dist/cli.js schema.vague --log-level info
+```
+
+### Configuration File
+
+Add logging configuration to `vague.config.js`:
+
+```javascript
+export default {
+  logging: {
+    level: 'debug',                       // Log level
+    components: ['generator', 'constraint'], // Filter to specific components
+    timestamps: true,                     // Include timestamps
+    colors: true                          // Colored output
+  }
+};
+```
+
+### Environment Variables
+
+```bash
+# Enable debug logging
+VAGUE_DEBUG=1 node dist/cli.js schema.vague
+
+# Filter to specific components (comma-separated)
+VAGUE_DEBUG=generator,constraint node dist/cli.js schema.vague
+
+# Or use DEBUG environment variable
+DEBUG=vague node dist/cli.js schema.vague
+```
+
+### Programmatic API
+
+```typescript
+import { setLogLevel, enableDebug, configureLogging, createLogger } from 'vague';
+
+// Set log level
+setLogLevel('debug');  // 'none', 'error', 'warn', 'info', 'debug'
+
+// Or use convenience function
+enableDebug();
+
+// Or configure from object
+configureLogging({
+  level: 'debug',
+  components: ['generator'],
+  timestamps: true
+});
+
+// Create component-specific logger
+const log = createLogger('generator');
+log.debug('Custom message', { key: 'value' });
+```
+
+### Log Components
+
+- `lexer` - Tokenization
+- `parser` - Parsing
+- `generator` - Data generation pipeline
+- `constraint` - Constraint solving and validation
+- `validator` - OpenAPI schema validation
+- `plugin` - Plugin registration and lookup
+- `cli` - CLI operations
+- `openapi` - OpenAPI import processing
+- `infer` - Schema inference
+- `config` - Configuration loading
 
 ## Language Syntax
 
@@ -515,6 +596,9 @@ dataset TestData {
 | `binary` | Hex string |
 | `password` | `Pass1234!` |
 | `iban` | `GB99MOCK12345678` |
+| `credit-card` | `4532123456789012` |
+| `mac-address` | `00:1A:2B:3C:4D:5E` |
+| `isbn` | `978-3-16-148410-0` |
 
 Fields without format hints use type-based generation:
 - `string` → Markov chain text (context-aware based on field name)
@@ -767,12 +851,14 @@ inferSchema(data, {
 | Weights | Value frequency | `0.7: "paid" \| 0.3: "draft"` |
 | Nullable | Null presence | `string?` |
 | Unique | All values distinct | `unique int in 1..100` |
-| Formats | Pattern matching | `uuid()`, `email()`, etc. |
+| Formats | Pattern matching | `uuid()`, `email()`, `creditCard()`, `iban()`, `macAddress()`, `isbn()` |
 | Arrays | Array lengths | `1..5 of Item` |
 | Nested | Object structure | Separate schema definitions |
-| Derived fields | Correlation analysis | `total: round(qty * price, 2)` |
+| Derived fields | Correlation analysis | `total: round(qty * price, 2)`, `balance: total - paid`, `sum: a + b + c` |
 | Ordering | Date/value patterns | `assume end >= start` |
 | Conditionals | Value co-occurrence | `assume if status == "paid" { amount > 0 }` |
+| Percentages | 0-1 or 0-100 scale | Detected as ratio/percentage fields |
+| Distributions | Statistical analysis | `gaussian(mean, stddev, min, max)` when data fits normal distribution |
 
 ### Data Validation (Dual-Use)
 
@@ -831,7 +917,7 @@ const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 645 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
+Currently 663 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, and examples.
 
 ## Architecture Notes
 
@@ -891,6 +977,92 @@ const myPlugin: VaguePlugin = {
 registerPlugin(myPlugin);
 ```
 
+### Configuration File (vague.config.js)
+
+Instead of registering plugins programmatically, you can use a config file to load plugins automatically when using the CLI:
+
+```javascript
+// vague.config.js
+export default {
+  // Plugins to load
+  plugins: [
+    './my-plugin.js',           // Local file (relative to config)
+    'vague-plugin-stripe',      // npm package
+    {                           // Inline plugin object
+      name: 'inline',
+      generators: {
+        'hello': () => 'Hello!'
+      }
+    }
+  ],
+
+  // Default options (can be overridden by CLI flags)
+  seed: 42,                     // Default seed for reproducible output
+  format: 'json',               // Default output format: 'json' or 'csv'
+  pretty: true                  // Pretty-print JSON by default
+};
+```
+
+**Config File Discovery:**
+The CLI automatically looks for config files in this order:
+1. `vague.config.js`
+2. `vague.config.mjs`
+3. `vague.config.cjs`
+
+It searches from the current directory upward until it finds one.
+
+**CLI Options:**
+```bash
+# Use specific config file
+vague schema.vague -c ./custom-config.js
+
+# Skip config file entirely
+vague schema.vague --no-config
+```
+
+**Plugin File Format:**
+Plugins can export their content in several ways:
+
+```javascript
+// Default export (recommended)
+export default {
+  name: 'my-plugin',
+  generators: { 'foo': () => 'bar' }
+};
+
+// Named export
+export const plugin = {
+  name: 'my-plugin',
+  generators: { 'foo': () => 'bar' }
+};
+
+// Multiple plugins
+export const pluginA = { name: 'a', generators: {} };
+export const pluginB = { name: 'b', generators: {} };
+
+// Array of plugins
+export default [
+  { name: 'a', generators: {} },
+  { name: 'b', generators: {} }
+];
+```
+
+**Library API:**
+```typescript
+import { loadConfig, loadConfigFrom, registerPlugin } from 'vague';
+
+// Auto-discover and load config
+const config = await loadConfig();
+if (config) {
+  for (const plugin of config.plugins) {
+    registerPlugin(plugin);
+  }
+}
+
+// Load specific config file
+const config = await loadConfigFrom('./my-config.js');
+```
+
 ### Using Plugins in .vague Files
 
 ```vague
@@ -905,8 +1077,78 @@ schema Example {
 ### Built-in Plugins
 
 **Faker Plugin** (`src/plugins/faker.ts`):
-- Full namespace: `faker.person.firstName()`, `faker.internet.email()`
-- Shorthand: `uuid()`, `email()`, `fullName()`, `companyName()`
+
+Provides realistic data generation via [@faker-js/faker](https://fakerjs.dev/). Use either the full namespace (`faker.person.firstName()`) or shorthand (`firstName()`).
+
+**Shorthand Generators** (most common):
+```vague
+schema User {
+  id: uuid(),
+  email: email(),
+  phone: phone(),
+  firstName: firstName(),
+  lastName: lastName(),
+  fullName: fullName(),
+  company: companyName(),
+  street: streetAddress(),
+  city: city(),
+  country: country(),
+  countryCode: countryCode(),
+  zipCode: zipCode(),
+  website: url(),
+  avatar: avatar(),
+  bankAccount: iban(),
+  currency: currencyCode(),
+  created: pastDate(),
+  expires: futureDate(),
+  updated: recentDate(),
+  bio: sentence(),
+  description: paragraph()
+}
+```
+
+**Full Faker Namespace Reference**:
+
+| Category | Generators |
+|----------|------------|
+| **String** | `faker.string.uuid()`, `faker.string.alphanumeric(length?)`, `faker.string.nanoid(length?)` |
+| **Person** | `faker.person.firstName(sex?)`, `faker.person.lastName(sex?)`, `faker.person.fullName()`, `faker.person.jobTitle()`, `faker.person.jobType()`, `faker.person.gender()`, `faker.person.prefix()`, `faker.person.suffix()` |
+| **Internet** | `faker.internet.email()`, `faker.internet.userName()`, `faker.internet.url()`, `faker.internet.domainName()`, `faker.internet.ip()`, `faker.internet.ipv6()`, `faker.internet.mac()`, `faker.internet.password(length?)` |
+| **Phone** | `faker.phone.number(style?)` (style: "human", "national", "international"), `faker.phone.imei()` |
+| **Company** | `faker.company.name()`, `faker.company.catchPhrase()`, `faker.company.buzzPhrase()` |
+| **Location** | `faker.location.streetAddress(useFullAddress?)`, `faker.location.city()`, `faker.location.state()`, `faker.location.zipCode(format?)`, `faker.location.country()`, `faker.location.countryCode()`, `faker.location.latitude()`, `faker.location.longitude()` |
+| **Date** | `faker.date.past()`, `faker.date.future()`, `faker.date.recent()`, `faker.date.birthdate()` |
+| **Finance** | `faker.finance.accountNumber(length?)`, `faker.finance.iban()`, `faker.finance.bic()`, `faker.finance.creditCardNumber(issuer?)`, `faker.finance.creditCardCVV()`, `faker.finance.currency()`, `faker.finance.currencyCode()`, `faker.finance.amount(min?, max?, dec?)`, `faker.finance.transactionType()` |
+| **Commerce** | `faker.commerce.department()`, `faker.commerce.productName()`, `faker.commerce.price()`, `faker.commerce.productDescription()` |
+| **Lorem** | `faker.lorem.word()`, `faker.lorem.words(count?)`, `faker.lorem.sentence(wordCount?)`, `faker.lorem.sentences(count?)`, `faker.lorem.paragraph(sentenceCount?)`, `faker.lorem.paragraphs(count?)` |
+| **Image** | `faker.image.avatar()`, `faker.image.url()` |
+| **Database** | `faker.database.column()`, `faker.database.type()`, `faker.database.collation()`, `faker.database.engine()`, `faker.database.mongodbObjectId()` |
+| **Git** | `faker.git.branch()`, `faker.git.commitSha()`, `faker.git.commitMessage()` |
+| **Hacker** | `faker.hacker.abbreviation()`, `faker.hacker.adjective()`, `faker.hacker.noun()`, `faker.hacker.verb()`, `faker.hacker.phrase()` |
+| **Color** | `faker.color.rgb()`, `faker.color.human()` |
+| **Number** | `faker.number.int()`, `faker.number.float()` |
+| **Datatype** | `faker.datatype.boolean()` |
+| **Airline** | `faker.airline.airline()`, `faker.airline.airport()`, `faker.airline.flightNumber()` |
+| **Vehicle** | `faker.vehicle.vehicle()`, `faker.vehicle.manufacturer()`, `faker.vehicle.model()`, `faker.vehicle.vin()`, `faker.vehicle.vrm()` |
+
+```vague
+// Example: Full namespace usage
+schema Employee {
+  id: faker.string.uuid(),
+  name: faker.person.fullName(),
+  title: faker.person.jobTitle(),
+  email: faker.internet.email(),
+  phone: faker.phone.number("international"),
+  department: faker.commerce.department(),
+  office: faker.location.city(),
+  lat: faker.location.latitude(),
+  lng: faker.location.longitude(),
+  bio: faker.lorem.paragraph(),
+  github: faker.git.branch(),
+  vehicle: faker.vehicle.vehicle(),
+  vin: faker.vehicle.vin()
+}
+```
 
 **Issuer Plugin** (`src/plugins/issuer.ts`):
 Generates problematic but technically valid values for edge case and security testing.
@@ -990,7 +1232,86 @@ Shorthand generators:
 - `weekday(startYear, endYear)` or `weekday("start-date", "end-date")`
 - `weekend(startYear, endYear)` or `weekend("start-date", "end-date")`
 
-See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` for complete examples of plugin implementation.
+**Regex Plugin** (`src/plugins/regex.ts`):
+Generates strings from regex patterns and validates patterns in constraints.
+
+```vague
+schema Product {
+  // Generate strings matching regex patterns
+  sku: regex.generate("[A-Z]{3}-[0-9]{4}"),
+  barcode: regex("[0-9]{13}"),        // Shorthand for regex.generate()
+  serial: pattern("[A-Z]{2}[0-9]{6}"), // Another alias
+
+  // Common pattern generators
+  api_key: alphanumeric(32),          // 32 alphanumeric characters
+  pin: digits(6),                     // 6 digit string
+  code: alpha(4, "upper"),            // 4 uppercase letters
+  hex_color: regex.hex(6),            // 6 hex characters
+  slug: slug(2, 4),                   // URL slug with 2-4 words
+  version: semver(),                  // Semantic version (1.2.3)
+
+  // Phone numbers by region
+  us_phone: regex.phone("us"),        // (555) 123-4567
+  uk_phone: regex.phone("uk"),        // 01234 567890
+  intl_phone: regex.phone("intl"),    // +1 234 567 8901
+
+  // Other format generators
+  plate: licensePlate("us"),          // ABC-1234
+  zip: postalCode("us"),              // 12345 or 12345-6789
+  ip_v4: regex.ip("v4"),              // 192.168.1.1
+  mac: regex.mac(),                   // AA:BB:CC:DD:EE:FF
+  card: regex.creditCard("visa"),     // 4XXXXXXXXXXXXXXX
+
+  // Social handles
+  twitter: mention(),                 // @username
+  tag: hashtag(),                     // #HashTag
+  hex: colorHex()                     // #AABBCC
+}
+
+schema Validation {
+  code: regex("[A-Z]{3}-[0-9]{3}"),
+
+  // Validate patterns in constraints
+  assume regex.test("^[A-Z]{3}-[0-9]{3}$", code),
+  assume matches("^[A-Z]", code)      // Shorthand for regex.test()
+}
+
+schema StringOps {
+  source: "Order12345ABC",
+
+  // Extract first match (note: 'match' is reserved, use 'find')
+  number: regex.find("[0-9]+", source),        // "12345"
+
+  // Extract all matches
+  digits: regex.matchAll("[0-9]", source),     // ["1","2","3","4","5"]
+
+  // Capture groups
+  groups: regex.capture("([A-Za-z]+)([0-9]+)", source),  // ["Order", "12345"]
+
+  // Replace pattern
+  redacted: regex.replace("[0-9]+", source, "XXX"),      // "OrderXXXABC"
+
+  // Split by pattern
+  parts: regex.split("[0-9]+", source)         // ["Order", "ABC"]
+}
+```
+
+Full namespace generators:
+- `regex.generate(pattern)`, `regex.test(pattern, value)`, `regex.find(pattern, value)`
+- `regex.matchAll(pattern, value)`, `regex.capture(pattern, value)`
+- `regex.replace(pattern, value, replacement)`, `regex.split(pattern, value)`
+- `regex.alphanumeric(len)`, `regex.digits(len)`, `regex.alpha(len, case)`
+- `regex.hex(len)`, `regex.slug(min, max)`, `regex.phone(format)`
+- `regex.licensePlate(format)`, `regex.postalCode(format)`, `regex.ip(version)`
+- `regex.mac(sep)`, `regex.creditCard(format)`, `regex.semver(prerelease)`
+- `regex.colorHex(hash)`, `regex.hashtag(min, max)`, `regex.mention(min, max)`
+
+Shorthand generators:
+- `regex(pattern)`, `pattern(pattern)`, `matches(pattern, value)`
+- `alphanumeric()`, `digits()`, `alpha()`, `hexString()`, `slug()`
+- `licensePlate()`, `postalCode()`, `semver()`, `colorHex()`, `hashtag()`, `mention()`
+
+See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and `src/plugins/regex.ts` for complete examples of plugin implementation.
 
 ## What's Implemented
 
@@ -1008,6 +1329,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Faker plugin for semantic types
 - [x] Issuer plugin for edge case testing (Unicode, encoding, boundary values)
 - [x] Dates plugin for weekday/weekend date generation (`date.weekday()`, `date.weekend()`)
+- [x] Regex plugin for pattern-based generation and validation (`regex()`, `matches()`, `regex.test()`)
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
 - [x] Collection predicates (`all()`, `some()`, `none()` for validation)
@@ -1043,6 +1365,8 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 - [x] Refine blocks (`} refine { if condition { field: newType } }` - conditional field overrides)
+- [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
+- [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
 
 See TODO.md for planned features.
 

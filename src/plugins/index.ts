@@ -12,3 +12,4 @@ export {
   subtractDurationFromDate,
   type Duration,
 } from './date.js';
+export { regexPlugin, regexShorthandPlugin } from './regex.js';

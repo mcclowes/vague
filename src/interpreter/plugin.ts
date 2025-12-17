@@ -1,4 +1,7 @@
 import type { GeneratorContext } from './context.js';
+import { createLogger } from '../logging/index.js';
+
+const pluginLog = createLogger('plugin');
 
 /**
  * A generator function that can be registered with a plugin.
@@ -22,6 +25,10 @@ const pluginRegistry: Map<string, VaguePlugin> = new Map();
  */
 export function registerPlugin(plugin: VaguePlugin): void {
   pluginRegistry.set(plugin.name, plugin);
+  pluginLog.debug('Plugin registered', {
+    name: plugin.name,
+    generators: Object.keys(plugin.generators).length,
+  });
 }
 
 /**

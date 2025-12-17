@@ -16,6 +16,12 @@ export type DetectedFormat =
   | 'time'
   | 'hostname'
   | 'slug'
+  | 'credit-card'
+  | 'iban'
+  | 'mac-address'
+  | 'isbn'
+  | 'hex-color'
+  | 'ssn'
   | 'none';
 
 interface FormatPattern {
@@ -39,6 +45,45 @@ const FORMAT_PATTERNS: FormatPattern[] = [
   {
     format: 'url',
     pattern: /^https?:\/\/[^\s/$.?#].[^\s]*$/i,
+    minMatchRatio: 0.9,
+  },
+  // Credit card patterns (Visa, Mastercard, Amex, Discover, etc.)
+  // Supports with/without spaces or dashes
+  {
+    format: 'credit-card',
+    pattern:
+      /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12}|(?:2131|1800|35\d{3})\d{11})$|^(?:4[0-9]{3}|5[1-5][0-9]{2}|3[47][0-9]{2}|6(?:011|5[0-9]{2}))[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}$/,
+    minMatchRatio: 0.85,
+  },
+  // IBAN - International Bank Account Number (starts with 2-letter country code)
+  {
+    format: 'iban',
+    pattern: /^[A-Z]{2}[0-9]{2}[A-Z0-9]{4}[0-9]{7}([A-Z0-9]?){0,16}$/i,
+    minMatchRatio: 0.85,
+  },
+  // MAC address - 6 pairs of hex digits separated by : or -
+  {
+    format: 'mac-address',
+    pattern: /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/,
+    minMatchRatio: 0.9,
+  },
+  // ISBN-10 or ISBN-13 (with or without hyphens)
+  {
+    format: 'isbn',
+    pattern:
+      /^(?:ISBN(?:-1[03])?:?\s*)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s]){3})[-\s0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[-\s]){4})[-\s0-9]{17}$)[0-9]{1,5}[-\s]?[0-9]+[-\s]?[0-9]+[-\s]?[0-9X]$/i,
+    minMatchRatio: 0.85,
+  },
+  // Hex color codes (#RGB or #RRGGBB)
+  {
+    format: 'hex-color',
+    pattern: /^#(?:[0-9a-fA-F]{3}){1,2}$/,
+    minMatchRatio: 0.9,
+  },
+  // US Social Security Number (XXX-XX-XXXX)
+  {
+    format: 'ssn',
+    pattern: /^(?!000|666|9\d{2})\d{3}-(?!00)\d{2}-(?!0000)\d{4}$/,
     minMatchRatio: 0.9,
   },
   // IPv4 before phone to avoid false matches
@@ -140,6 +185,19 @@ export function getGeneratorForFormat(format: DetectedFormat): string | null {
       return null;
     case 'slug':
       return 'faker.lorem.slug()';
+    case 'credit-card':
+      return 'faker.finance.creditCardNumber()';
+    case 'iban':
+      return 'faker.finance.iban()';
+    case 'mac-address':
+      return 'faker.internet.mac()';
+    case 'isbn':
+      return 'faker.commerce.isbn()';
+    case 'hex-color':
+      return 'faker.color.rgb()';
+    case 'ssn':
+      // Note: Use issuer plugin for SSN-like values if testing edge cases
+      return 'faker.string.numeric({ length: 9, allowLeadingZeros: false })';
     default:
       return null;
   }
@@ -207,6 +265,9 @@ export function detectFieldNamePattern(fieldName: string): string | null {
     ip: 'faker.internet.ipv4()',
     ip_address: 'faker.internet.ipv4()',
     ipAddress: 'faker.internet.ipv4()',
+    mac: 'faker.internet.mac()',
+    mac_address: 'faker.internet.mac()',
+    macAddress: 'faker.internet.mac()',
 
     // Company
     company: 'companyName()',
@@ -223,6 +284,42 @@ export function detectFieldNamePattern(fieldName: string): string | null {
     about: 'faker.lorem.paragraph()',
     summary: 'faker.lorem.sentence()',
     title: 'faker.lorem.sentence()',
+
+    // Finance
+    credit_card: 'faker.finance.creditCardNumber()',
+    creditCard: 'faker.finance.creditCardNumber()',
+    card_number: 'faker.finance.creditCardNumber()',
+    cardNumber: 'faker.finance.creditCardNumber()',
+    iban: 'faker.finance.iban()',
+    bank_account: 'faker.finance.iban()',
+    bankAccount: 'faker.finance.iban()',
+    bic: 'faker.finance.bic()',
+    swift: 'faker.finance.bic()',
+    swift_code: 'faker.finance.bic()',
+    swiftCode: 'faker.finance.bic()',
+    cvv: 'faker.finance.creditCardCVV()',
+    cvc: 'faker.finance.creditCardCVV()',
+    currency: 'faker.finance.currencyCode()',
+    currency_code: 'faker.finance.currencyCode()',
+    currencyCode: 'faker.finance.currencyCode()',
+
+    // Books/Products
+    isbn: 'faker.commerce.isbn()',
+
+    // Colors
+    color: 'faker.color.rgb()',
+    hex_color: 'faker.color.rgb()',
+    hexColor: 'faker.color.rgb()',
+
+    // Job/Work
+    job: 'faker.person.jobTitle()',
+    job_title: 'faker.person.jobTitle()',
+    jobTitle: 'faker.person.jobTitle()',
+    department: 'faker.commerce.department()',
+
+    // Identifiers
+    slug: 'faker.lorem.slug()',
+    sku: 'faker.commerce.isbn()',
   };
 
   return patterns[lowerName] || patterns[fieldName] || null;

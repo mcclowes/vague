@@ -70,6 +70,11 @@ import {
   stringFunctions,
   sequenceFunctions,
 } from './builtins/index.js';
+import { createLogger } from '../logging/index.js';
+
+// Create loggers for different components
+const generatorLog = createLogger('generator');
+const constraintLog = createLogger('constraint');
 
 // Re-export for external use
 export { setSeed, getSeed } from './random.js';
@@ -92,21 +97,40 @@ export class Generator {
   }
 
   async generate(program: Program): Promise<Record<string, unknown[]>> {
+    generatorLog.debug('Starting generation', { statements: program.statements.length });
+
     // First pass: collect schemas and process imports
     for (const stmt of program.statements) {
       if (stmt.type === 'ImportStatement') {
+        generatorLog.debug('Loading OpenAPI import', { name: stmt.name, path: stmt.path });
         const schemas = await this.openApiLoader.load(stmt.path);
         this.ctx.importedSchemas.set(stmt.name, schemas);
+        generatorLog.info('Loaded OpenAPI schemas', { name: stmt.name, count: schemas.size });
       } else if (stmt.type === 'SchemaDefinition') {
         this.ctx.schemas.set(stmt.name, stmt);
+        generatorLog.debug('Registered schema', {
+          name: stmt.name,
+          fields: stmt.fields.length,
+          constraints: stmt.assumes?.length ?? 0,
+        });
       }
     }
+
+    generatorLog.info('Schema registration complete', {
+      schemas: this.ctx.schemas.size,
+      imports: this.ctx.importedSchemas.size,
+    });
 
     // Second pass: generate datasets
     const result: Record<string, unknown[]> = {};
 
     for (const stmt of program.statements) {
       if (stmt.type === 'DatasetDefinition') {
+        generatorLog.debug('Generating dataset', {
+          name: stmt.name,
+          collections: stmt.collections.length,
+          violating: stmt.violating ?? false,
+        });
         const data = this.generateDataset(stmt);
         Object.assign(result, data);
       }
@@ -117,11 +141,21 @@ export class Generator {
 
   private generateDataset(dataset: DatasetDefinition): Record<string, unknown[]> {
     const maxAttempts = 20;
+    const mode = dataset.violating ? 'violating' : 'satisfying';
 
     // Set violating mode in context
     this.ctx.violating = dataset.violating;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        constraintLog.debug('Retrying dataset generation', {
+          dataset: dataset.name,
+          attempt: attempt + 1,
+          maxAttempts,
+          mode,
+        });
+      }
+
       const result: Record<string, unknown[]> = {};
 
       // Generate all collections
@@ -136,8 +170,20 @@ export class Generator {
       const constraintsPass =
         !dataset.validation || this.validateDatasetConstraints(dataset.validation, result);
       if (dataset.violating ? !constraintsPass : constraintsPass) {
+        generatorLog.debug('Dataset generated successfully', {
+          dataset: dataset.name,
+          attempts: attempt + 1,
+          collections: Object.keys(result).length,
+        });
         return result;
       }
+
+      constraintLog.debug('Dataset constraints not satisfied', {
+        dataset: dataset.name,
+        attempt: attempt + 1,
+        constraintsPass,
+        violatingMode: dataset.violating,
+      });
 
       // Clear collections for retry
       for (const collection of dataset.collections) {
@@ -146,7 +192,11 @@ export class Generator {
     }
 
     // Fallback: return last attempt with warning
-    const mode = dataset.violating ? 'violating' : 'satisfying';
+    constraintLog.warn(`Could not generate ${mode} data for dataset`, {
+      dataset: dataset.name,
+      maxAttempts,
+      mode,
+    });
     warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, undefined, dataset.name));
     const result: Record<string, unknown[]> = {};
     for (const collection of dataset.collections) {
