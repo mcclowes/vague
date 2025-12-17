@@ -1,0 +1,31 @@
+// Demo using custom plugins loaded via vague.config.js
+//
+// Run from this directory:
+//   node ../../dist/cli.js demo.vague
+//
+// The config file (vague.config.js) is auto-detected and plugins are loaded.
+
+schema Location {
+  // Using the custom 'my' plugin
+  id: my.user.id(),
+  greeting: my.greeting(),
+  coords: my.coordinates(),
+  pattern: my.repeat("ab", 3),
+
+  // Using the inline plugin from config
+  created: inline.timestamp(),
+  score: inline.random(1, 100)
+}
+
+schema User {
+  id: my.user.id(),
+  name: string,
+  // Built-in plugins still work alongside custom ones
+  email: email(),
+  uuid: uuid()
+}
+
+dataset Demo {
+  locations: 3 of Location,
+  users: 5 of User
+}

@@ -799,7 +799,7 @@ const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 645 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
+Currently 663 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, and examples.
 
 ## Architecture Notes
 
@@ -857,6 +857,92 @@ const myPlugin: VaguePlugin = {
 };
 
 registerPlugin(myPlugin);
+```
+
+### Configuration File (vague.config.js)
+
+Instead of registering plugins programmatically, you can use a config file to load plugins automatically when using the CLI:
+
+```javascript
+// vague.config.js
+export default {
+  // Plugins to load
+  plugins: [
+    './my-plugin.js',           // Local file (relative to config)
+    'vague-plugin-stripe',      // npm package
+    {                           // Inline plugin object
+      name: 'inline',
+      generators: {
+        'hello': () => 'Hello!'
+      }
+    }
+  ],
+
+  // Default options (can be overridden by CLI flags)
+  seed: 42,                     // Default seed for reproducible output
+  format: 'json',               // Default output format: 'json' or 'csv'
+  pretty: true                  // Pretty-print JSON by default
+};
+```
+
+**Config File Discovery:**
+The CLI automatically looks for config files in this order:
+1. `vague.config.js`
+2. `vague.config.mjs`
+3. `vague.config.cjs`
+
+It searches from the current directory upward until it finds one.
+
+**CLI Options:**
+```bash
+# Use specific config file
+vague schema.vague -c ./custom-config.js
+
+# Skip config file entirely
+vague schema.vague --no-config
+```
+
+**Plugin File Format:**
+Plugins can export their content in several ways:
+
+```javascript
+// Default export (recommended)
+export default {
+  name: 'my-plugin',
+  generators: { 'foo': () => 'bar' }
+};
+
+// Named export
+export const plugin = {
+  name: 'my-plugin',
+  generators: { 'foo': () => 'bar' }
+};
+
+// Multiple plugins
+export const pluginA = { name: 'a', generators: {} };
+export const pluginB = { name: 'b', generators: {} };
+
+// Array of plugins
+export default [
+  { name: 'a', generators: {} },
+  { name: 'b', generators: {} }
+];
+```
+
+**Library API:**
+```typescript
+import { loadConfig, loadConfigFrom, registerPlugin } from 'vague';
+
+// Auto-discover and load config
+const config = await loadConfig();
+if (config) {
+  for (const plugin of config.plugins) {
+    registerPlugin(plugin);
+  }
+}
+
+// Load specific config file
+const config = await loadConfigFrom('./my-config.js');
 ```
 
 ### Using Plugins in .vague Files
@@ -1010,6 +1096,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Correlation detection in inference (derived fields, ordering constraints, conditional constraints)
 - [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
+- [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
 
 See TODO.md for planned features.
 
