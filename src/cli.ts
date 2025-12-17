@@ -1,16 +1,23 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, watch as fsWatch } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { compile, registerPlugin, setSeed } from './index.js';
 import { SchemaValidator } from './validator/index.js';
-import { fakerPlugin, fakerShorthandPlugin } from './plugins/index.js';
+import {
+  fakerPlugin,
+  fakerShorthandPlugin,
+  datesPlugin,
+  datesShorthandPlugin,
+} from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema } from './infer/index.js';
 
-// Register faker plugins automatically
+// Register plugins automatically
 registerPlugin(fakerPlugin);
 registerPlugin(fakerShorthandPlugin);
+registerPlugin(datesPlugin);
+registerPlugin(datesShorthandPlugin);
 
 interface ValidationMapping {
   [collection: string]: string;
@@ -31,6 +38,7 @@ Options:
   -o, --output <file>      Write output to file (default: stdout)
   -p, --pretty             Pretty-print JSON output
   -s, --seed <number>      Seed for reproducible random generation
+  -w, --watch              Watch input file and regenerate on changes
   -v, --validate <spec>    Validate output against OpenAPI spec
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
@@ -78,6 +86,7 @@ Examples:
   let oasSource: string | null = null;
   let oasExternal = false;
   let oasExampleCount = 1;
+  let watchMode = false;
 
   // Inference options
   let inferFile: string | null = null;
@@ -108,6 +117,8 @@ Examples:
         console.error('Error: Seed must be a valid integer');
         process.exit(1);
       }
+    } else if (args[i] === '-w' || args[i] === '--watch') {
+      watchMode = true;
     } else if (args[i] === '-v' || args[i] === '--validate') {
       validateSpec = args[++i];
     } else if (args[i] === '-m' || args[i] === '--mapping') {
@@ -183,118 +194,164 @@ Examples:
       process.exit(1);
     }
 
-    // Set seed if provided for reproducible generation
-    if (seed !== null) {
-      setSeed(seed);
+    // Watch mode validation - requires output file
+    if (watchMode && !outputFile) {
+      console.error('Error: Watch mode requires -o/--output to be specified');
+      process.exit(1);
     }
 
-    const source = readFileSync(resolve(inputFile), 'utf-8');
-    const result = await compile(source);
+    // Define compilation function for reuse in watch mode
+    async function runCompilation(): Promise<boolean> {
+      // Set seed if provided for reproducible generation
+      if (seed !== null) {
+        setSeed(seed);
+      }
 
-    // Validate if spec provided
-    if (validateSpec) {
-      const validator = new SchemaValidator();
-      const loadedSchemas = await validator.loadOpenAPISchemas(resolve(validateSpec));
+      const source = readFileSync(resolve(inputFile!), 'utf-8');
+      const result = await compile(source);
 
-      console.error(`Loaded ${loadedSchemas.length} schemas from ${validateSpec}`);
+      // Validate if spec provided
+      if (validateSpec) {
+        const validator = new SchemaValidator();
+        const loadedSchemas = await validator.loadOpenAPISchemas(resolve(validateSpec));
 
-      if (schemaMapping) {
-        const validationResults = validator.validateDataset(
-          result as Record<string, unknown[]>,
-          schemaMapping
-        );
+        console.error(`Loaded ${loadedSchemas.length} schemas from ${validateSpec}`);
 
-        let totalValidated = 0;
-        let totalFailed = 0;
-        let hasErrors = false;
+        if (schemaMapping) {
+          const validationResults = validator.validateDataset(
+            result as Record<string, unknown[]>,
+            schemaMapping
+          );
 
-        for (const { collection, schema, result: collResult } of validationResults) {
-          totalValidated += collResult.itemsValidated;
-          totalFailed += collResult.itemsFailed;
+          let totalValidated = 0;
+          let totalFailed = 0;
+          let hasErrors = false;
 
-          if (collResult.valid) {
-            console.error(
-              `✓ ${collection} (${collResult.itemsValidated} items) - valid against ${schema}`
-            );
-          } else {
-            hasErrors = true;
-            console.error(
-              `✗ ${collection} (${collResult.itemsFailed}/${collResult.itemsValidated} failed) - invalid against ${schema}`
-            );
+          for (const { collection, schema, result: collResult } of validationResults) {
+            totalValidated += collResult.itemsValidated;
+            totalFailed += collResult.itemsFailed;
 
-            // Show first few errors
-            const errorsToShow = collResult.errors.slice(0, 5);
-            for (const err of errorsToShow) {
-              console.error(`  ${err.path}: ${err.message}`);
-            }
-            if (collResult.errors.length > 5) {
-              console.error(`  ... and ${collResult.errors.length - 5} more errors`);
+            if (collResult.valid) {
+              console.error(
+                `✓ ${collection} (${collResult.itemsValidated} items) - valid against ${schema}`
+              );
+            } else {
+              hasErrors = true;
+              console.error(
+                `✗ ${collection} (${collResult.itemsFailed}/${collResult.itemsValidated} failed) - invalid against ${schema}`
+              );
+
+              // Show first few errors
+              const errorsToShow = collResult.errors.slice(0, 5);
+              for (const err of errorsToShow) {
+                console.error(`  ${err.path}: ${err.message}`);
+              }
+              if (collResult.errors.length > 5) {
+                console.error(`  ... and ${collResult.errors.length - 5} more errors`);
+              }
             }
           }
+
+          console.error(
+            `\nValidation summary: ${totalValidated - totalFailed}/${totalValidated} items valid`
+          );
+
+          if (hasErrors && validateOnly) {
+            return false;
+          }
+        } else {
+          console.error('Available schemas:', loadedSchemas.slice(0, 20).join(', '));
+          if (loadedSchemas.length > 20) {
+            console.error(`  ... and ${loadedSchemas.length - 20} more`);
+          }
+          console.error(
+            '\nUse -m/--mapping to specify which collections to validate against which schemas'
+          );
+        }
+      }
+
+      // Populate OpenAPI spec with examples if requested
+      if (oasOutput) {
+        if (!oasSource) {
+          console.error('Error: --oas-source is required when using --oas-output');
+          return false;
         }
 
-        console.error(
-          `\nValidation summary: ${totalValidated - totalFailed}/${totalValidated} items valid`
+        const populator = new OpenAPIExamplePopulator();
+        const oasDoc = await populator.loadDocument(resolve(oasSource));
+
+        const outputDir = dirname(resolve(oasOutput));
+        const { document: populatedDoc, externalFiles } = populator.populate(
+          oasDoc,
+          result as Record<string, unknown[]>,
+          {
+            externalRefs: oasExternal,
+            exampleCount: oasExampleCount,
+            outputDir,
+            mapping: schemaMapping ?? undefined,
+          }
         );
 
-        if (hasErrors && validateOnly) {
-          process.exit(1);
+        // Write external files if using external refs
+        if (externalFiles && externalFiles.size > 0) {
+          populator.writeExternalFiles(externalFiles);
+          console.error(`Written ${externalFiles.size} external example files`);
         }
-      } else {
-        console.error('Available schemas:', loadedSchemas.slice(0, 20).join(', '));
-        if (loadedSchemas.length > 20) {
-          console.error(`  ... and ${loadedSchemas.length - 20} more`);
-        }
-        console.error(
-          '\nUse -m/--mapping to specify which collections to validate against which schemas'
-        );
+
+        // Write the populated OpenAPI spec
+        const oasJson = JSON.stringify(populatedDoc, null, 2);
+        writeFileSync(resolve(oasOutput), oasJson);
+        console.error(`OpenAPI spec with examples written to ${oasOutput}`);
       }
+
+      // Output data unless validate-only
+      if (!validateOnly) {
+        const json = pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
+
+        if (outputFile) {
+          writeFileSync(resolve(outputFile), json);
+          console.error(`Output written to ${outputFile}`);
+        } else {
+          console.log(json);
+        }
+      }
+
+      return true;
     }
 
-    // Populate OpenAPI spec with examples if requested
-    if (oasOutput) {
-      if (!oasSource) {
-        console.error('Error: --oas-source is required when using --oas-output');
-        process.exit(1);
-      }
-
-      const populator = new OpenAPIExamplePopulator();
-      const oasDoc = await populator.loadDocument(resolve(oasSource));
-
-      const outputDir = dirname(resolve(oasOutput));
-      const { document: populatedDoc, externalFiles } = populator.populate(
-        oasDoc,
-        result as Record<string, unknown[]>,
-        {
-          externalRefs: oasExternal,
-          exampleCount: oasExampleCount,
-          outputDir,
-          mapping: schemaMapping ?? undefined,
-        }
-      );
-
-      // Write external files if using external refs
-      if (externalFiles && externalFiles.size > 0) {
-        populator.writeExternalFiles(externalFiles);
-        console.error(`Written ${externalFiles.size} external example files`);
-      }
-
-      // Write the populated OpenAPI spec
-      const oasJson = JSON.stringify(populatedDoc, null, 2);
-      writeFileSync(resolve(oasOutput), oasJson);
-      console.error(`OpenAPI spec with examples written to ${oasOutput}`);
+    // Run initial compilation
+    const success = await runCompilation();
+    if (!success && !watchMode) {
+      process.exit(1);
     }
 
-    // Output data unless validate-only
-    if (!validateOnly) {
-      const json = pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
+    // Set up watch mode if enabled
+    if (watchMode) {
+      const resolvedInput = resolve(inputFile);
+      console.error(`\nWatching ${inputFile} for changes... (Ctrl+C to exit)`);
 
-      if (outputFile) {
-        writeFileSync(resolve(outputFile), json);
-        console.error(`Output written to ${outputFile}`);
-      } else {
-        console.log(json);
-      }
+      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+      fsWatch(resolvedInput, (eventType) => {
+        if (eventType === 'change') {
+          // Debounce rapid changes
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+          }
+          debounceTimer = setTimeout(async () => {
+            const timestamp = new Date().toLocaleTimeString();
+            console.error(`\n[${timestamp}] File changed, regenerating...`);
+            try {
+              await runCompilation();
+            } catch (err) {
+              console.error('Error:', err instanceof Error ? err.message : err);
+            }
+          }, 100);
+        }
+      });
+
+      // Keep process alive
+      process.stdin.resume();
     }
   } catch (err) {
     console.error('Error:', err instanceof Error ? err.message : err);

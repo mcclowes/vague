@@ -1462,8 +1462,32 @@ export class Generator {
         return (this.ctx.previous as Record<string, unknown>)[fieldName] ?? null;
       }
 
-      default:
+      default: {
+        // Check if this is a plugin call (callee contains a dot like "dates.weekday")
+        const parts = call.callee.split('.');
+        if (parts.length > 1) {
+          const pluginName = parts[0];
+          const generatorPath = parts.slice(1).join('.');
+
+          const plugin = pluginRegistry.get(pluginName);
+          if (plugin) {
+            const generator = plugin.generators[generatorPath];
+            if (generator) {
+              return generator(args, this.ctx);
+            }
+          }
+        }
+
+        // Try shorthand generators (no namespace prefix)
+        for (const plugin of pluginRegistry.values()) {
+          const generator = plugin.generators[call.callee];
+          if (generator) {
+            return generator(args, this.ctx);
+          }
+        }
+
         return null;
+      }
     }
   }
 

@@ -261,6 +261,9 @@ node dist/cli.js file.vague -p
 # Reproducible output (seeded random)
 node dist/cli.js file.vague --seed 123
 
+# Watch mode - regenerate on file change
+node dist/cli.js file.vague -o output.json -w
+
 # Validate against OpenAPI spec
 node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}'
 
@@ -292,6 +295,7 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `-o, --output <file>` | Write output to file |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
+| `-w, --watch` | Watch input file and regenerate on changes |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |

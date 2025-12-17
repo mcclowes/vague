@@ -19,6 +19,8 @@ export {
   setFakerSeed,
   issuerPlugin,
   issuerShorthandPlugin,
+  datesPlugin,
+  datesShorthandPlugin,
 } from './plugins/index.js';
 export {
   inferSchema,
