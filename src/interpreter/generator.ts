@@ -10,6 +10,7 @@ import {
   RangeExpression,
   CallExpression,
   BinaryExpression,
+  UnaryExpression,
   ParentReference,
   AnyOfExpression,
   LogicalExpression,
@@ -1145,6 +1146,16 @@ export class Generator {
         return condition
           ? this.evaluateExpression(ternary.consequent)
           : this.evaluateExpression(ternary.alternate);
+      }
+
+      case 'UnaryExpression': {
+        const unary = expr as UnaryExpression;
+        const operand = this.evaluateExpression(unary.operand) as number;
+        if (unary.operator === '-') {
+          return -operand;
+        }
+        // '+' operator returns the value as-is
+        return operand;
       }
 
       default:

@@ -3409,4 +3409,135 @@ describe('Generator', () => {
       }
     });
   });
+
+  describe('negative ranges', () => {
+    it('generates int in negative to positive range', async () => {
+      const source = `
+        schema Temperature {
+          celsius: int in -40..50
+        }
+
+        dataset TestData {
+          temps: 20 of Temperature
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.temps).toHaveLength(20);
+      for (const temp of result.temps) {
+        const t = temp as Record<string, unknown>;
+        expect(t.celsius).toBeGreaterThanOrEqual(-40);
+        expect(t.celsius).toBeLessThanOrEqual(50);
+      }
+    });
+
+    it('generates int in fully negative range', async () => {
+      const source = `
+        schema Account {
+          balance: int in -1000..-1
+        }
+
+        dataset TestData {
+          accounts: 20 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.accounts).toHaveLength(20);
+      for (const account of result.accounts) {
+        const a = account as Record<string, unknown>;
+        expect(a.balance).toBeGreaterThanOrEqual(-1000);
+        expect(a.balance).toBeLessThanOrEqual(-1);
+        expect(a.balance).toBeLessThan(0); // Must be negative
+      }
+    });
+
+    it('generates decimal in negative range', async () => {
+      const source = `
+        schema Transaction {
+          amount: decimal(2) in -99.99..-0.01
+        }
+
+        dataset TestData {
+          transactions: 20 of Transaction
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.transactions).toHaveLength(20);
+      for (const transaction of result.transactions) {
+        const t = transaction as Record<string, unknown>;
+        expect(t.amount).toBeGreaterThanOrEqual(-99.99);
+        expect(t.amount).toBeLessThanOrEqual(-0.01);
+        expect(t.amount).toBeLessThan(0); // Must be negative
+      }
+    });
+
+    it('generates values with unary plus', async () => {
+      const source = `
+        schema Value {
+          num: int in +1..+100
+        }
+
+        dataset TestData {
+          values: 10 of Value
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.values).toHaveLength(10);
+      for (const value of result.values) {
+        const v = value as Record<string, unknown>;
+        expect(v.num).toBeGreaterThanOrEqual(1);
+        expect(v.num).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it('uses negative numbers in constraints', async () => {
+      const source = `
+        schema Account {
+          balance: int in -500..500,
+          assume balance >= -100
+        }
+
+        dataset TestData {
+          accounts: 30 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const account of result.accounts) {
+        const a = account as Record<string, unknown>;
+        expect(a.balance).toBeGreaterThanOrEqual(-100);
+        expect(a.balance).toBeLessThanOrEqual(500);
+      }
+    });
+
+    it('uses negative numbers in computed fields', async () => {
+      const source = `
+        schema Invoice {
+          subtotal: int in 100..500,
+          discount: -50,
+          total: subtotal + discount
+        }
+
+        dataset TestData {
+          invoices: 10 of Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const invoice of result.invoices) {
+        const i = invoice as Record<string, unknown>;
+        expect(i.discount).toBe(-50);
+        expect(i.total).toBe((i.subtotal as number) - 50);
+      }
+    });
+  });
 });
