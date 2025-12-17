@@ -28,7 +28,7 @@ describe('Dates Plugin', () => {
         expect(typeof e.meeting_date).toBe('string');
 
         const date = new Date(e.meeting_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay(); // Use UTC to match ISO date output
         // Monday = 1, Tuesday = 2, ..., Friday = 5
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
@@ -55,7 +55,7 @@ describe('Dates Plugin', () => {
         const date = new Date(dateStr);
 
         // Check it's a weekday
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
 
@@ -80,7 +80,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.meeting_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
       }
@@ -107,7 +107,7 @@ describe('Dates Plugin', () => {
         expect(typeof e.party_date).toBe('string');
 
         const date = new Date(e.party_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         // Saturday = 6, Sunday = 0
         expect(dayOfWeek === 0 || dayOfWeek === 6).toBe(true);
       }
@@ -133,7 +133,7 @@ describe('Dates Plugin', () => {
         const date = new Date(dateStr);
 
         // Check it's a weekend
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek === 0 || dayOfWeek === 6).toBe(true);
 
         // Check it's in March 2024
@@ -157,7 +157,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.party_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek === 0 || dayOfWeek === 6).toBe(true);
       }
     });
@@ -182,7 +182,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.monday_meeting as string);
-        expect(date.getDay()).toBe(1); // Monday
+        expect(date.getUTCDay()).toBe(1); // Monday
       }
     });
 
@@ -202,7 +202,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.sunday_brunch as string);
-        expect(date.getDay()).toBe(0); // Sunday
+        expect(date.getUTCDay()).toBe(0); // Sunday
       }
     });
 
@@ -222,7 +222,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.saturday_event as string);
-        expect(date.getDay()).toBe(6); // Saturday
+        expect(date.getUTCDay()).toBe(6); // Saturday
       }
     });
   });
@@ -249,7 +249,7 @@ describe('Dates Plugin', () => {
       for (const event of result.events) {
         const e = event as Record<string, unknown>;
         const date = new Date(e.event_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
 
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
           weekdayCount++;
@@ -294,7 +294,7 @@ describe('Dates Plugin', () => {
 
         // Verify it's a weekday
         const date = new Date(m.scheduled_date as string);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
       }
@@ -321,7 +321,7 @@ describe('Dates Plugin', () => {
         expect(dateStr).toMatch(/^2024-/);
 
         const date = new Date(dateStr);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
       }
@@ -347,7 +347,7 @@ describe('Dates Plugin', () => {
         expect(dateStr).toMatch(new RegExp(`^${currentYear}-`));
 
         const date = new Date(dateStr);
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
       }

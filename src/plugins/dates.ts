@@ -63,6 +63,7 @@ function parseDateRange(startArg: unknown, endArg: unknown): { start: Date; end:
 
 /**
  * Generate a random date within range, optionally filtered by day-of-week
+ * Uses UTC consistently to avoid timezone issues
  */
 function generateDateWithFilter(
   startArg: unknown,
@@ -77,7 +78,7 @@ function generateDateWithFilter(
   for (let i = 0; i < maxRetries; i++) {
     const time = startTime + random() * (endTime - startTime);
     const date = new Date(time);
-    const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+    const dayOfWeek = date.getUTCDay(); // Use UTC to match toISOString output
 
     if (filter(dayOfWeek)) {
       return date.toISOString().split('T')[0];
@@ -92,7 +93,7 @@ function generateDateWithFilter(
   for (let offset = 0; offset <= totalDays; offset++) {
     const checkOffset = (startOffset + offset) % (totalDays + 1);
     const date = new Date(startTime + checkOffset * msPerDay);
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = date.getUTCDay(); // Use UTC to match toISOString output
 
     if (filter(dayOfWeek)) {
       return date.toISOString().split('T')[0];
