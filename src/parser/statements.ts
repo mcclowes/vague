@@ -8,6 +8,7 @@ import {
   DistributionDefinition,
   DatasetDefinition,
   FieldDefinition,
+  FieldType,
   Expression,
   RangeExpression,
   ContextApplication,
@@ -133,26 +134,14 @@ export class StatementParser extends TypeParser {
     const name = this.consume(TokenType.IDENTIFIER, 'Expected field name').value;
     this.consume(TokenType.COLON, "Expected ':'");
 
-    const computed = this.match(TokenType.EQUALS);
-
-    if (computed) {
-      const expr = this.parseExpression();
-      const optional = this.match(TokenType.QUESTION);
-
-      return {
-        type: 'FieldDefinition',
-        name,
-        fieldType: { type: 'ReferenceType', path: { type: 'QualifiedName', parts: ['computed'] } },
-        optional,
-        computed: true,
-        distribution: expr,
-      };
-    }
-
     const unique = this.match(TokenType.UNIQUE);
     const isPrivate = this.match(TokenType.PRIVATE);
     const fieldType = this.parseFieldType();
     const optional = this.match(TokenType.QUESTION);
+
+    // Check if the field type is actually a computed expression
+    // (contains field references, binary operations, etc.)
+    const computed = this.isComputedExpression(fieldType);
 
     let condition: Expression | undefined;
     if (this.match(TokenType.WHEN)) {
@@ -169,18 +158,131 @@ export class StatementParser extends TypeParser {
       constraints = this.parseExpression();
     }
 
+    // If computed, convert the field type to the computed format
+    if (computed) {
+      const expr = this.fieldTypeToExpression(fieldType);
+      return {
+        type: 'FieldDefinition',
+        name,
+        fieldType: { type: 'ReferenceType', path: { type: 'QualifiedName', parts: ['computed'] } },
+        optional,
+        computed: true,
+        unique: unique || undefined,
+        private: isPrivate || undefined,
+        condition,
+        distribution: expr,
+        constraints,
+      };
+    }
+
     return {
       type: 'FieldDefinition',
       name,
       fieldType,
       optional,
-      computed,
+      computed: false,
       unique: unique || undefined,
       private: isPrivate || undefined,
       condition,
       distribution,
       constraints,
     };
+  }
+
+  /**
+   * Determines if a field type represents a computed expression
+   * (i.e., it references other fields or uses operators)
+   */
+  private isComputedExpression(fieldType: FieldType): boolean {
+    if (fieldType.type === 'ExpressionType') {
+      return this.expressionHasFieldRefs(fieldType.expression);
+    }
+    return false;
+  }
+
+  /**
+   * Check if an expression contains field references or operations
+   * that require other fields to be generated first
+   */
+  private expressionHasFieldRefs(expr: Expression): boolean {
+    switch (expr.type) {
+      case 'Identifier':
+        // Bare identifier that's not a known function - it's a field reference
+        return true;
+
+      case 'QualifiedName':
+        // Field access like invoice.total or line_items.amount
+        return true;
+
+      case 'BinaryExpression':
+        // Any binary operation (arithmetic, comparison)
+        return true;
+
+      case 'LogicalExpression':
+        // Logical operations (and, or)
+        return true;
+
+      case 'TernaryExpression':
+        // Conditional expressions reference other fields
+        return true;
+
+      case 'CallExpression': {
+        // Function calls: check if any argument references fields
+        // Aggregate functions (sum, count, etc.) always reference fields
+        const aggregates = [
+          'sum',
+          'count',
+          'min',
+          'max',
+          'avg',
+          'first',
+          'last',
+          'median',
+          'product',
+          'round',
+          'floor',
+          'ceil',
+          'previous',
+          'sequence',
+          'sequenceInt',
+        ];
+        // callee is a string in CallExpression
+        if (aggregates.includes(expr.callee)) {
+          return true;
+        }
+        // Check arguments for field refs
+        for (const arg of expr.arguments) {
+          if (this.expressionHasFieldRefs(arg)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      case 'ParentReference':
+        // ^field references parent
+        return true;
+
+      case 'UnaryExpression':
+        return this.expressionHasFieldRefs(expr.operand);
+
+      case 'NotExpression':
+        return this.expressionHasFieldRefs(expr.operand);
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Convert a field type back to an expression for computed field storage
+   */
+  private fieldTypeToExpression(fieldType: FieldType): Expression {
+    if (fieldType.type === 'ExpressionType') {
+      return fieldType.expression;
+    }
+    // Should not reach here if isComputedExpression returned true
+    throw this.error(`Cannot convert field type to expression: ${fieldType.type}`);
   }
 
   // ============================================

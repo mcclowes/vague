@@ -42,10 +42,10 @@ schema Order {
 
 ### Multiple Computed Totals
 ```vague
-subtotal_price: = sum(line_items.price) * sum(line_items.quantity),
-total_shipping: = sum(shipping_lines.price),
-total_tax: = sum(tax_lines.price),
-total_discounts: = sum(discount_codes.amount)
+subtotal_price: sum(line_items.price) * sum(line_items.quantity),
+total_shipping: sum(shipping_lines.price),
+total_tax: sum(tax_lines.price),
+total_discounts: sum(discount_codes.amount)
 ```
 
 ### Constraints on Gift Cards

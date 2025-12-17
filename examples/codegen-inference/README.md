@@ -84,15 +84,15 @@ Running inference on the sample data produces (see `generated-schema.vague`):
 
 ```vague
 schema Address {
-  city: = faker.location.city(),
+  city: faker.location.city(),
   country: "US",
-  postal_code: = faker.location.zipCode()
+  postal_code: faker.location.zipCode()
 }
 
 schema Customer {
   id: unique string,
-  email: = email(),
-  name: = fullName(),
+  email: email(),
+  name: fullName(),
   tier: 0.4: "enterprise" | 0.4: "starter" | 0.2: "growth",
   created_at: date in 2022..2024,
   lifetime_value: unique decimal in 150..28750,
@@ -182,9 +182,9 @@ dataset TestFixtures {
 schema Order {
   items: 1..5 of Item,
   // Replace inferred field with computation
-  subtotal: = sum(items.unit_price),
-  tax: = round(subtotal * 0.1, 2),
-  total: = subtotal + tax
+  subtotal: sum(items.unit_price),
+  tax: round(subtotal * 0.1, 2),
+  total: subtotal + tax
 }
 ```
 

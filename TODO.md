@@ -142,7 +142,7 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Parent references** - `^currency` syntax for inheriting from parent scope
 - [x] **`any of` expressions** - `customer: any of companies` for referencing collection items
 - [x] **Filtered references** - `any of companies where .active == true`
-- [x] **Computed field evaluation** - `total: = sum(line_items.amount)` with aggregates
+- [x] **Computed field evaluation** - `total: sum(line_items.amount)` with aggregates
 - [x] **Hard constraints** - `assume due_date >= issued_date` with rejection sampling
 - [x] **Conditional constraints** - `assume if status == "paid" { ... }`
 - [x] **Logical operators** - `and`, `or`, `not` in constraints

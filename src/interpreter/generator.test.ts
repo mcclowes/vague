@@ -530,7 +530,7 @@ describe('Generator', () => {
     it('resolves parent reference in nested schema', async () => {
       const source = `
         schema LineItem {
-          parent_currency: = ^currency
+          parent_currency: ^currency
         }
 
         schema Invoice {
@@ -732,7 +732,7 @@ describe('Generator', () => {
 
         schema Invoice {
           line_items: 3..5 of LineItem,
-          total: = sum(line_items.amount)
+          total: sum(line_items.amount)
         }
 
         dataset TestData {
@@ -758,7 +758,7 @@ describe('Generator', () => {
 
         schema Container {
           items: 2..6 of Item,
-          item_count: = count(items)
+          item_count: count(items)
         }
 
         dataset TestData {
@@ -783,8 +783,8 @@ describe('Generator', () => {
 
         schema Game {
           scores: 5 of Score,
-          lowest: = min(scores.value),
-          highest: = max(scores.value)
+          lowest: min(scores.value),
+          highest: max(scores.value)
         }
 
         dataset TestData {
@@ -811,7 +811,7 @@ describe('Generator', () => {
 
         schema Product {
           ratings: 4 of Rating,
-          avg_rating: = avg(ratings.stars)
+          avg_rating: avg(ratings.stars)
         }
 
         dataset TestData {
@@ -839,9 +839,9 @@ describe('Generator', () => {
 
         schema Order {
           items: 2..4 of LineItem,
-          subtotal: = sum(items.unit_price),
-          item_count: = count(items),
-          avg_price: = avg(items.unit_price)
+          subtotal: sum(items.unit_price),
+          item_count: count(items),
+          avg_price: avg(items.unit_price)
         }
 
         dataset TestData {
@@ -876,8 +876,8 @@ describe('Generator', () => {
 
         schema Container {
           items: 5 of Item,
-          first_val: = first(items.value),
-          last_val: = last(items.value)
+          first_val: first(items.value),
+          last_val: last(items.value)
         }
 
         dataset TestData {
@@ -904,7 +904,7 @@ describe('Generator', () => {
 
         schema Analysis {
           scores: 5 of Score,
-          median_score: = median(scores.value)
+          median_score: median(scores.value)
         }
 
         dataset TestData {
@@ -934,7 +934,7 @@ describe('Generator', () => {
 
         schema Calculation {
           factors: 3 of Factor,
-          result: = product(factors.value)
+          result: product(factors.value)
         }
 
         dataset TestData {
@@ -961,8 +961,8 @@ describe('Generator', () => {
 
         schema Container {
           items: 0 of Item,
-          first_val: = first(items.value),
-          last_val: = last(items.value)
+          first_val: first(items.value),
+          last_val: last(items.value)
         }
 
         dataset TestData {
@@ -1511,7 +1511,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           value: int in 1..100,
-          category: = value > 50 ? "high" : "low"
+          category: value > 50 ? "high" : "low"
         }
 
         dataset TestData {
@@ -1535,7 +1535,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           score: int in 0..100,
-          grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+          grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
         }
 
         dataset TestData {
@@ -1561,7 +1561,7 @@ describe('Generator', () => {
       const source = `
         schema Order {
           quantity: int in 1..20,
-          discount: = quantity >= 10 ? 0.1 : 0
+          discount: quantity >= 10 ? 0.1 : 0
         }
 
         dataset TestData {
@@ -1586,7 +1586,7 @@ describe('Generator', () => {
         schema Order {
           quantity: int in 1..20,
           is_premium: boolean,
-          discount: = quantity >= 10 and is_premium ? 0.2 : 0
+          discount: quantity >= 10 and is_premium ? 0.2 : 0
         }
 
         dataset TestData {
@@ -1611,7 +1611,7 @@ describe('Generator', () => {
         schema Product {
           on_sale: boolean,
           low_stock: boolean,
-          highlight: = on_sale or low_stock ? "featured" : "normal"
+          highlight: on_sale or low_stock ? "featured" : "normal"
         }
 
         dataset TestData {
@@ -1639,7 +1639,7 @@ describe('Generator', () => {
       const source = `
         schema User {
           is_banned: boolean,
-          status: = not is_banned ? "active" : "banned"
+          status: not is_banned ? "active" : "banned"
         }
 
         dataset TestData {
@@ -1665,7 +1665,7 @@ describe('Generator', () => {
           total: int in 10..200,
           is_member: boolean,
           has_coupon: boolean,
-          discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+          discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
         }
 
         dataset TestData {
@@ -1861,8 +1861,8 @@ describe('Generator', () => {
       const source = `
         schema Order {
           subtotal: decimal in 100..200,
-          tax: = round(subtotal * 0.2, 2),
-          total: = round(subtotal * 1.2, 2)
+          tax: round(subtotal * 0.2, 2),
+          total: round(subtotal * 1.2, 2)
         }
 
         dataset TestData {
@@ -1884,8 +1884,8 @@ describe('Generator', () => {
       const source = `
         schema Item {
           price: decimal in 10.5..20.9,
-          floored: = floor(price, 1),
-          ceiled: = ceil(price, 1)
+          floored: floor(price, 1),
+          ceiled: ceil(price, 1)
         }
 
         dataset TestData {
@@ -2055,7 +2055,7 @@ describe('Generator', () => {
     it('gaussian() generates normally distributed values', async () => {
       const source = `
         schema Person {
-          age: = gaussian(35, 10, 18, 65)
+          age: gaussian(35, 10, 18, 65)
         }
 
         dataset TestData {
@@ -2081,7 +2081,7 @@ describe('Generator', () => {
     it('exponential() generates exponentially distributed values', async () => {
       const source = `
         schema Event {
-          wait_time: = exponential(0.5, 0, 20)
+          wait_time: exponential(0.5, 0, 20)
         }
 
         dataset TestData {
@@ -2105,7 +2105,7 @@ describe('Generator', () => {
     it('poisson() generates count data', async () => {
       const source = `
         schema Day {
-          events: = poisson(5)
+          events: poisson(5)
         }
 
         dataset TestData {
@@ -2130,7 +2130,7 @@ describe('Generator', () => {
     it('beta() generates values between 0 and 1', async () => {
       const source = `
         schema Item {
-          probability: = beta(2, 5)
+          probability: beta(2, 5)
         }
 
         dataset TestData {
@@ -2155,7 +2155,7 @@ describe('Generator', () => {
     it('uniform() generates uniformly distributed values', async () => {
       const source = `
         schema Item {
-          value: = uniform(10, 20)
+          value: uniform(10, 20)
         }
 
         dataset TestData {
@@ -2180,7 +2180,7 @@ describe('Generator', () => {
     it('lognormal() generates right-skewed values', async () => {
       const source = `
         schema Salary {
-          amount: = lognormal(10, 0.5, 10000, 500000)
+          amount: lognormal(10, 0.5, 10000, 500000)
         }
 
         dataset TestData {
@@ -2202,7 +2202,7 @@ describe('Generator', () => {
     it('today() returns current date in YYYY-MM-DD format', async () => {
       const source = `
         schema Event {
-          event_date: = today()
+          event_date: today()
         }
 
         dataset TestData {
@@ -2224,7 +2224,7 @@ describe('Generator', () => {
     it('now() returns current datetime in ISO 8601 format', async () => {
       const source = `
         schema Event {
-          timestamp: = now()
+          timestamp: now()
         }
 
         dataset TestData {
@@ -2243,7 +2243,7 @@ describe('Generator', () => {
     it('daysAgo() returns date in the past', async () => {
       const source = `
         schema Event {
-          past_date: = daysAgo(30)
+          past_date: daysAgo(30)
         }
 
         dataset TestData {
@@ -2264,7 +2264,7 @@ describe('Generator', () => {
     it('daysFromNow() returns date in the future', async () => {
       const source = `
         schema Event {
-          future_date: = daysFromNow(90)
+          future_date: daysFromNow(90)
         }
 
         dataset TestData {
@@ -2285,7 +2285,7 @@ describe('Generator', () => {
     it('datetime() generates random datetime within range', async () => {
       const source = `
         schema Event {
-          timestamp: = datetime(2020, 2022)
+          timestamp: datetime(2020, 2022)
         }
 
         dataset TestData {
@@ -2306,7 +2306,7 @@ describe('Generator', () => {
     it('dateBetween() generates random date within range', async () => {
       const source = `
         schema Event {
-          event_date: = dateBetween("2023-06-01", "2023-06-30")
+          event_date: dateBetween("2023-06-01", "2023-06-30")
         }
 
         dataset TestData {
@@ -2356,7 +2356,7 @@ describe('Generator', () => {
     it('sequence() generates auto-incrementing string values', async () => {
       const source = `
         schema Invoice {
-          id: = sequence("INV-", 1001),
+          id: sequence("INV-", 1001),
           amount: int in 100..500
         }
 
@@ -2378,7 +2378,7 @@ describe('Generator', () => {
     it('sequenceInt() generates auto-incrementing integers', async () => {
       const source = `
         schema Order {
-          order_num: = sequenceInt("orders", 100),
+          order_num: sequenceInt("orders", 100),
           total: int in 50..200
         }
 
@@ -2400,7 +2400,7 @@ describe('Generator', () => {
     it('sequence() with default start value begins at 1', async () => {
       const source = `
         schema Item {
-          code: = sequence("ITEM-")
+          code: sequence("ITEM-")
         }
 
         dataset TestData {
@@ -2420,7 +2420,7 @@ describe('Generator', () => {
       const source = `
         schema Event {
           value: int in 1..100,
-          prev_value: = previous("value")
+          prev_value: previous("value")
         }
 
         dataset TestData {
@@ -2439,9 +2439,9 @@ describe('Generator', () => {
     it('previous() enables sequential coherence', async () => {
       const source = `
         schema TimeSeries {
-          seq: = sequenceInt("ts", 1),
+          seq: sequenceInt("ts", 1),
           timestamp: int in 1000..2000,
-          prev_ts: = previous("timestamp")
+          prev_ts: previous("timestamp")
         }
 
         dataset TestData {
@@ -2464,8 +2464,8 @@ describe('Generator', () => {
     it('multiple sequences are independent', async () => {
       const source = `
         schema Record {
-          invoice_id: = sequence("INV-", 100),
-          order_id: = sequence("ORD-", 500)
+          invoice_id: sequence("INV-", 100),
+          order_id: sequence("ORD-", 500)
         }
 
         dataset TestData {
@@ -2490,7 +2490,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "hello world",
-          upper: = uppercase(name)
+          upper: uppercase(name)
         }
 
         dataset TestData {
@@ -2508,7 +2508,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "HELLO WORLD",
-          lower: = lowercase(name)
+          lower: lowercase(name)
         }
 
         dataset TestData {
@@ -2526,7 +2526,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "hello world",
-          capitalized: = capitalize(name)
+          capitalized: capitalize(name)
         }
 
         dataset TestData {
@@ -2544,7 +2544,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "Hello World",
-          slug: = kebabCase(title)
+          slug: kebabCase(title)
         }
 
         dataset TestData {
@@ -2562,7 +2562,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "helloWorld",
-          slug: = kebabCase(title)
+          slug: kebabCase(title)
         }
 
         dataset TestData {
@@ -2580,7 +2580,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "Hello World",
-          snake: = snakeCase(title)
+          snake: snakeCase(title)
         }
 
         dataset TestData {
@@ -2598,7 +2598,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "helloWorld",
-          snake: = snakeCase(title)
+          snake: snakeCase(title)
         }
 
         dataset TestData {
@@ -2616,7 +2616,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "hello world",
-          camel: = camelCase(title)
+          camel: camelCase(title)
         }
 
         dataset TestData {
@@ -2634,7 +2634,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           title: "hello-world-test",
-          camel: = camelCase(title)
+          camel: camelCase(title)
         }
 
         dataset TestData {
@@ -2652,7 +2652,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "  hello world  ",
-          trimmed: = trim(name)
+          trimmed: trim(name)
         }
 
         dataset TestData {
@@ -2671,7 +2671,7 @@ describe('Generator', () => {
         schema Item {
           first: "Hello",
           last: "World",
-          full: = concat(first, " ", last, "!")
+          full: concat(first, " ", last, "!")
         }
 
         dataset TestData {
@@ -2689,8 +2689,8 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "Hello World",
-          part1: = substring(name, 0, 5),
-          part2: = substring(name, 6)
+          part1: substring(name, 0, 5),
+          part2: substring(name, 6)
         }
 
         dataset TestData {
@@ -2709,7 +2709,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "foo bar foo",
-          replaced: = replace(name, "foo", "baz")
+          replaced: replace(name, "foo", "baz")
         }
 
         dataset TestData {
@@ -2727,7 +2727,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           name: "Hello",
-          len: = length(name)
+          len: length(name)
         }
 
         dataset TestData {
@@ -2744,10 +2744,10 @@ describe('Generator', () => {
     it('string functions handle null values gracefully', async () => {
       const source = `
         schema Item {
-          upper: = uppercase(null),
-          lower: = lowercase(null),
-          trim_val: = trim(null),
-          len: = length(null)
+          upper: uppercase(null),
+          lower: lowercase(null),
+          trim_val: trim(null),
+          len: length(null)
         }
 
         dataset TestData {
@@ -2773,8 +2773,8 @@ describe('Generator', () => {
       const source = `
         schema Product {
           name: "  My Product Name  ",
-          trimmed: = trim(name),
-          slug: = kebabCase(trimmed)
+          trimmed: trim(name),
+          slug: kebabCase(trimmed)
         }
 
         dataset TestData {
@@ -2913,7 +2913,7 @@ describe('Generator', () => {
       const source = `
         schema Person {
           age: private int in 0..105,
-          age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+          age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior"
         }
 
         dataset TestData {
@@ -2937,7 +2937,7 @@ describe('Generator', () => {
       const source = `
         schema Item {
           internal_score: private int in 1..100,
-          visible_grade: = internal_score >= 50 ? "pass" : "fail",
+          visible_grade: internal_score >= 50 ? "pass" : "fail",
           assume internal_score >= 30
         }
 
@@ -2962,7 +2962,7 @@ describe('Generator', () => {
       const source = `
         schema Order {
           internal_id: unique private int in 1..1000,
-          public_ref: = concat("ORD-", internal_id)
+          public_ref: concat("ORD-", internal_id)
         }
 
         dataset TestData {
@@ -2992,7 +2992,7 @@ describe('Generator', () => {
         schema Product {
           base_cost: private decimal in 10..50,
           markup: private decimal in 1.1..1.5,
-          price: = round(base_cost * markup, 2)
+          price: round(base_cost * markup, 2)
         }
 
         dataset TestData {
@@ -3022,7 +3022,7 @@ describe('Generator', () => {
         dataset TestData {
           items: 5 of Item {
             internal: private int in 1..10,
-            label: = concat("Item-", internal)
+            label: concat("Item-", internal)
           }
         }
       `;

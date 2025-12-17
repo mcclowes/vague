@@ -10,28 +10,28 @@
 schema CMajorArpNote {
   pitch: [48, 52, 55, 60],  // C3, E3, G3, C4 - cycles in order!
   duration: 0.5,
-  velocity: = round(gaussian(70, 8, 55, 90), 0)
+  velocity: round(gaussian(70, 8, 55, 90), 0)
 }
 
 // G major arpeggio (G-B-D-G ascending)
 schema GMajorArpNote {
   pitch: [43, 47, 50, 55],  // G2, B2, D3, G3
   duration: 0.5,
-  velocity: = round(gaussian(70, 8, 55, 90), 0)
+  velocity: round(gaussian(70, 8, 55, 90), 0)
 }
 
 // Am arpeggio (A-C-E-A ascending)
 schema AMinorArpNote {
   pitch: [45, 48, 52, 57],  // A2, C3, E3, A3
   duration: 0.5,
-  velocity: = round(gaussian(70, 8, 55, 90), 0)
+  velocity: round(gaussian(70, 8, 55, 90), 0)
 }
 
 // F major arpeggio (F-A-C-F ascending)
 schema FMajorArpNote {
   pitch: [41, 45, 48, 53],  // F2, A2, C3, F3
   duration: 0.5,
-  velocity: = round(gaussian(70, 8, 55, 90), 0)
+  velocity: round(gaussian(70, 8, 55, 90), 0)
 }
 
 // Collection schemas for the MIDI converter
@@ -62,7 +62,7 @@ schema ChordToneMelody {
          0.25: 79 |  // G5
          0.20: 81,   // A5
   duration: 0.40: 1 | 0.35: 0.5 | 0.15: 2 | 0.10: 1.5,
-  velocity: = round(gaussian(80, 10, 60, 100), 0)
+  velocity: round(gaussian(80, 10, 60, 100), 0)
 }
 
 schema ChordTonePhrase {
@@ -77,7 +77,7 @@ schema ChordTonePhrase {
 schema ProgressionBassNote {
   pitch: [36, 31, 33, 29],  // C2, G1, A1, F1 (I-V-vi-IV roots)
   duration: 2,
-  velocity: = round(gaussian(85, 8, 70, 100), 0)
+  velocity: round(gaussian(85, 8, 70, 100), 0)
 }
 
 // =============================================================================

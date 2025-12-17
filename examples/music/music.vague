@@ -22,10 +22,10 @@ schema Note {
   duration: 0.35: 1 | 0.30: 0.5 | 0.15: 2 | 0.10: 0.25 | 0.10: 1.5,
 
   // Velocity (volume) with natural variation around mezzo-forte
-  velocity: = round(gaussian(80, 12, 45, 120), 0),
+  velocity: round(gaussian(80, 12, 45, 120), 0),
 
   // Humanization: slight timing offset in milliseconds
-  timing_offset_ms: = round(gaussian(0, 8, 0, 15), 1),
+  timing_offset_ms: round(gaussian(0, 8, 0, 15), 1),
 
   // Start time will be computed by the converter
   beat: int in 0..0  // Placeholder, set by parent
@@ -34,15 +34,15 @@ schema Note {
 // A note with melodic continuity (stepwise motion tendency)
 schema MelodicNote {
   pitch: int in 60..72,
-  prev_pitch: = previous("pitch"),
+  prev_pitch: previous("pitch"),
 
   // Favor stepwise motion (intervals of 1-2 semitones)
   assume prev_pitch == null or
          (pitch >= prev_pitch - 3 and pitch <= prev_pitch + 3),
 
   duration: 0.40: 1 | 0.35: 0.5 | 0.15: 2 | 0.10: 0.25,
-  velocity: = round(gaussian(75, 10, 50, 110), 0),
-  timing_offset_ms: = round(gaussian(0, 6, 0, 12), 1)
+  velocity: round(gaussian(75, 10, 50, 110), 0),
+  timing_offset_ms: round(gaussian(0, 6, 0, 12), 1)
 }
 
 // =============================================================================
@@ -66,7 +66,7 @@ schema Chord {
   duration: 0.50: 4 | 0.30: 2 | 0.20: 8,
 
   // Velocity for chord (slightly softer than melody)
-  velocity: = round(gaussian(65, 10, 40, 90), 0)
+  velocity: round(gaussian(65, 10, 40, 90), 0)
 }
 
 // =============================================================================
@@ -81,8 +81,8 @@ schema DrumHit {
          0.10: 46 |  // Open hi-hat
          0.05: 49,   // Crash
 
-  velocity: = round(gaussian(90, 15, 60, 127), 0),
-  timing_offset_ms: = round(gaussian(0, 5, 0, 10), 1)
+  velocity: round(gaussian(90, 15, 60, 127), 0),
+  timing_offset_ms: round(gaussian(0, 5, 0, 10), 1)
 }
 
 schema DrumPattern {
@@ -94,7 +94,7 @@ schema DrumStep {
   // Whether this step has a hit
   active: 0.6: true | 0.4: false,
   sound: 0.40: 36 | 0.30: 38 | 0.30: 42,
-  velocity: = active ? round(gaussian(85, 12, 50, 120), 0) : 0
+  velocity: active ? round(gaussian(85, 12, 50, 120), 0) : 0
 }
 
 // =============================================================================
@@ -111,8 +111,8 @@ schema BassNote {
 
   // Bass often plays on the beat with some syncopation
   duration: 0.45: 1 | 0.30: 0.5 | 0.15: 2 | 0.10: 0.75,
-  velocity: = round(gaussian(85, 10, 60, 110), 0),
-  timing_offset_ms: = round(gaussian(0, 4, 0, 8), 1)
+  velocity: round(gaussian(85, 10, 60, 110), 0),
+  timing_offset_ms: round(gaussian(0, 4, 0, 8), 1)
 }
 
 // =============================================================================
@@ -178,15 +178,15 @@ schema Song {
 
 schema Section {
   type: 0.40: "verse" | 0.35: "chorus" | 0.15: "bridge" | 0.10: "intro",
-  bars: = type == "bridge" ? 4 : 8,
+  bars: type == "bridge" ? 4 : 8,
   melody: (type == "intro" ? 1 : 2) of MelodicPhrase,
   chords: 1 of ChordProgression,
   bass: (type == "intro" ? 1 : 2) of BassLine,
 
   // Intensity affects dynamics
-  intensity: = type == "chorus" ? 0.9 :
-               type == "verse" ? 0.6 :
-               type == "bridge" ? 0.5 : 0.3
+  intensity: type == "chorus" ? 0.9 :
+             type == "verse" ? 0.6 :
+             type == "bridge" ? 0.5 : 0.3
 }
 
 // =============================================================================

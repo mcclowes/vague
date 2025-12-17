@@ -1,0 +1,42 @@
+schema Pet {
+  id: uuid(),
+  name: string,
+  species: "dog" | "cat" | "bird" | "fish",
+  age: int,
+  vaccinated: boolean
+  
+  assume if species == "dog" { 
+    age >= 1, age <= 15 
+  }
+  assume if species == "cat" { age >= 1, age <= 25 }
+  assume if species == "bird" { age >= 1, age <= 30 }
+
+  assume if species == "fish" { 
+    age >= 1, age <= 5,
+    vaccinated == false,
+  }
+}
+
+schema HealthyPet from Pet {
+  age: int in 1..10  // override with custom generation
+}
+
+schema IllPet from Pet {
+  age: gaussian(7, 5, 0, 30)  // override with custom generation
+}
+
+schema Owner {
+  id: uuid(),
+  name: string,
+  email: string,
+  phone: string,
+  memberSince: date in 2020..2024,
+  tier: "Gold" | "Silver" | "Bronze"
+}
+
+dataset PetStoreData {
+  pets: 10 of Pet,
+  healthyPets: 5 of HealthyPet,
+  illPets: 5 of IllPet,
+  owners: 5 of Owner
+}

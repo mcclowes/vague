@@ -28,9 +28,9 @@ Generate production-like data volumes before migrations to catch performance iss
 ### 4. **Fraud Detection Training Data**
 ```vague
 schema Transaction {
-  amount: = lognormal(4.5, 1.2, 1, 50000),  // Real spending patterns
+  amount: lognormal(4.5, 1.2, 1, 50000),  // Real spending patterns
   merchant: any of merchants,
-  timestamp: = datetime(2023, 2024),
+  timestamp: datetime(2023, 2024),
   is_fraud: 0.02: true | 0.98: false  // 2% fraud rate
 }
 then {
@@ -85,7 +85,7 @@ Model patient cohorts with realistic dropout rates, adverse events, and efficacy
 schema NPC {
   name: faker.person.firstName(),
   profession: "blacksmith" | "merchant" | "guard" | "farmer",
-  wealth: = profession == "merchant" ? gaussian(500, 100, 100, 2000) : gaussian(50, 20, 10, 200),
+  wealth: profession == "merchant" ? gaussian(500, 100, 100, 2000) : gaussian(50, 20, 10, 200),
   inventory: (profession == "merchant" ? 10..30 : 1..5) * Item,
   relationships: 2..8 * Relationship
 }
@@ -95,9 +95,9 @@ Generate entire towns with economically coherent NPCs.
 ### 10. **Leaderboard & Matchmaking Testing**
 ```vague
 schema Player {
-  skill_rating: = gaussian(1500, 300, 500, 2500),  // Elo-like distribution
-  games_played: = poisson(50),
-  win_rate: = beta(skill_rating / 100, (3000 - skill_rating) / 100)
+  skill_rating: gaussian(1500, 300, 500, 2500),  // Elo-like distribution
+  games_played: poisson(50),
+  win_rate: beta(skill_rating / 100, (3000 - skill_rating) / 100)
 }
 ```
 Generate realistic player populations to test ranking algorithms and matchmaking balance.
@@ -111,7 +111,7 @@ Generate realistic player populations to test ranking algorithms and matchmaking
 schema ShoppingSession {
   items: 1..10 * CartItem,
   completed: 0.3: true | 0.7: false,  // 70% abandonment
-  abandon_stage: = not completed ? ("browse" | "cart" | "checkout" | "payment") : null
+  abandon_stage: not completed ? ("browse" | "cart" | "checkout" | "payment") : null
 }
 ```
 Generate funnel data to test analytics dashboards and retargeting logic.
@@ -130,7 +130,7 @@ When real data is sensitive (medical, financial, PII), generate statistically si
 ```vague
 schema SupportTicket {
   category: 0.6: "billing" | 0.25: "technical" | 0.1: "feature_request" | 0.05: "security",
-  priority: = category == "security" ? "critical" : ("low" | "medium" | "high")
+  priority: category == "security" ? "critical" : ("low" | "medium" | "high")
 }
 ```
 Create intentionally imbalanced datasets to test model robustness.
@@ -138,8 +138,8 @@ Create intentionally imbalanced datasets to test model robustness.
 ### 15. **Time Series Anomaly Detection**
 ```vague
 schema SensorReading {
-  timestamp: = sequenceInt("ts", 1000),
-  value: = gaussian(100, 5, 80, 120),
+  timestamp: sequenceInt("ts", 1000),
+  value: gaussian(100, 5, 80, 120),
   is_anomaly: 0.01: true | 0.99: false
 }
 then {
@@ -177,10 +177,10 @@ Generate PII-like data (faker integration) to test anonymization pipelines, data
 ### 19. **Log Analysis Pipeline Testing**
 ```vague
 schema LogEntry {
-  timestamp: = datetime("2024-01-01", "2024-01-31"),
+  timestamp: datetime("2024-01-01", "2024-01-31"),
   level: 0.7: "INFO" | 0.2: "WARN" | 0.08: "ERROR" | 0.02: "FATAL",
   service: "auth" | "api" | "worker" | "db",
-  latency_ms: = level == "ERROR" ? exponential(0.01, 1000, 30000) : exponential(0.1, 10, 500)
+  latency_ms: level == "ERROR" ? exponential(0.01, 1000, 30000) : exponential(0.1, 10, 500)
 }
 ```
 Generate realistic log volumes to test Elasticsearch queries, alerting thresholds, and dashboard performance.
@@ -195,9 +195,9 @@ Model growth scenarios: "What happens when we have 10x users with this access pa
 ### 21. **Student Information System Testing**
 ```vague
 schema Student {
-  gpa: = gaussian(3.0, 0.5, 0.0, 4.0),
+  gpa: gaussian(3.0, 0.5, 0.0, 4.0),
   courses: 3..6 * Enrollment,
-  financial_aid: = gpa >= 3.5 ? "scholarship" : (gpa >= 2.0 ? "loan" : "none")
+  financial_aid: gpa >= 3.5 ? "scholarship" : (gpa >= 2.0 ? "loan" : "none")
 }
 ```
 
@@ -213,9 +213,9 @@ Generate realistic business scenarios for employee training without exposing rea
 schema Device {
   id: unique sequence("DEV-", 1),
   firmware: "1.0.0" | "1.1.0" | "2.0.0",
-  battery: = gaussian(75, 20, 5, 100),
-  last_seen: = daysAgo(poisson(2)),
-  status: = battery < 10 ? "critical" : (last_seen > daysAgo(7) ? "offline" : "online")
+  battery: gaussian(75, 20, 5, 100),
+  last_seen: daysAgo(poisson(2)),
+  status: battery < 10 ? "critical" : (last_seen > daysAgo(7) ? "offline" : "online")
 }
 ```
 Test device management dashboards and alerting with realistic fleet distributions.

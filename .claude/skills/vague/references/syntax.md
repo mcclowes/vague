@@ -65,14 +65,14 @@ code: unique "A" | "B" | "C" | "D"  // Works with superposition too
 schema Person {
   // Private fields are generated and usable in logic, but excluded from output
   age: private int in 0..105,
-  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+  age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior"
 }
 // Output: { "age_bracket": "adult" }  -- no "age" field
 
 schema Product {
   // Can combine with unique
   internal_id: unique private int in 1..10000,
-  public_ref: = concat("PROD-", internal_id)
+  public_ref: concat("PROD-", internal_id)
 }
 ```
 
@@ -109,7 +109,7 @@ schema Invoice {
 
 ```vague
 schema LineItem {
-  currency: = ^base_currency   // Inherit from parent schema
+  currency: ^base_currency   // Inherit from parent schema
 }
 ```
 
@@ -120,15 +120,15 @@ schema Invoice {
   line_items: 1..10 of LineItem,
 
   // Aggregates
-  total: = sum(line_items.amount),
-  item_count: = count(line_items),
-  avg_price: = avg(line_items.unit_price),
-  min_price: = min(line_items.unit_price),
-  max_price: = max(line_items.unit_price),
+  total: sum(line_items.amount),
+  item_count: count(line_items),
+  avg_price: avg(line_items.unit_price),
+  min_price: min(line_items.unit_price),
+  max_price: max(line_items.unit_price),
 
   // Arithmetic expressions
-  tax: = round(sum(line_items.amount) * 0.2, 2),
-  grand_total: = round(sum(line_items.amount) * 1.2, 2)
+  tax: round(sum(line_items.amount) * 0.2, 2),
+  grand_total: round(sum(line_items.amount) * 1.2, 2)
 }
 ```
 
@@ -138,13 +138,13 @@ schema Invoice {
 schema Invoice {
   total: int in 100..500,
   amount_paid: int in 0..0,
-  status: = amount_paid >= total ? "paid" : "partially-paid"
+  status: amount_paid >= total ? "paid" : "partially-paid"
 }
 
 schema Item {
   score: int in 0..100,
   // Nested ternary
-  grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+  grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 }
 
 schema Order {
@@ -152,7 +152,7 @@ schema Order {
   is_member: boolean,
   has_coupon: boolean,
   // Logical operators
-  discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+  discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 }
 ```
 

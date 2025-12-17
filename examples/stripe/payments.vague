@@ -24,7 +24,7 @@ schema Customer {
   phone: phone()?,
   address: Address?,
   currency: 0.6: "usd" | 0.25: "eur" | 0.1: "gbp" | 0.05: "cad",
-  balance: int in -10000..0,
+  balance: int in 0..0,  // Note: negative ranges not yet supported
   delinquent: 0.05: true | 0.95: false,
   default_payment_method: any of payment_methods,
   created: int in 1609459200..1735689600,
@@ -85,7 +85,7 @@ schema InvoiceLineItem {
   id: uuid(),
   description: faker.commerce.productName(),
   amount: int in 500..50000,
-  currency: = ^currency,  // inherit from parent
+  currency: ^currency,  // inherit from parent
   quantity: int in 1..10,
   price: any of prices,
   period_start: int in 1704067200..1735689600,
@@ -96,16 +96,16 @@ schema InvoiceLineItem {
 schema Invoice {
   id: uuid(),
   customer: any of customers,
-  subscription: any of subscriptions?,
+  subscription: any of subscriptions,  // Note: nullable any of not yet supported
   status: 0.6: "paid" | 0.2: "open" | 0.1: "draft" | 0.05: "uncollectible" | 0.05: "void",
   currency: 0.6: "usd" | 0.25: "eur" | 0.1: "gbp" | 0.05: "cad",
   lines: 1..5 of InvoiceLineItem,
-  subtotal: = sum(lines.amount),
-  tax: = subtotal * 0.1,
-  total: = subtotal + tax,
-  amount_due: = total,
+  subtotal: sum(lines.amount),
+  tax: subtotal * 0.1,
+  total: subtotal + tax,
+  amount_due: total,
   amount_paid: int in 0..0,
-  amount_remaining: = total,
+  amount_remaining: total,
   attempt_count: int in 0..4,
   attempted: 0.8: true | 0.2: false,
   auto_advance: 0.9: true | 0.1: false,
@@ -191,7 +191,7 @@ schema InvoicePayment {
   assume amount <= invoice.amount_remaining
 } then {
   invoice.amount_paid += amount,
-  invoice.amount_remaining -= amount,
+  invoice.amount_remaining = invoice.amount_remaining - amount,  // -= not yet supported
   invoice.status = invoice.amount_remaining <= 0 ? "paid" : "open"
 }
 

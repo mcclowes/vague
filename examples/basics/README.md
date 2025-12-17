@@ -49,7 +49,7 @@ Shows how to reference previously generated records and inherit values from pare
 
 **Key concepts:**
 - Cross-record reference: `customer: any of companies`
-- Parent reference: `currency: = ^base_currency` (inherits from parent)
+- Parent reference: `currency: ^base_currency` (inherits from parent)
 - Relationships between schemas in a dataset
 
 ---

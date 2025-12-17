@@ -123,7 +123,7 @@ describe('Parser', () => {
     it('parses computed field', () => {
       const ast = parse(`
         schema Invoice {
-          total: = sum(line_items)
+          total: sum(line_items)
         }
       `);
 
@@ -292,7 +292,7 @@ describe('Parser', () => {
     it('parses parent reference', () => {
       const ast = parse(`
         schema Invoice {
-          currency: = ^company.currency
+          currency: ^company.currency
         }
       `);
 
@@ -544,7 +544,7 @@ describe('Parser', () => {
       const ast = parse(`
         schema X {
           a: int in 1..100,
-          b: = a > 80 ? "high" : a > 50 ? "medium" : "low"
+          b: a > 80 ? "high" : a > 50 ? "medium" : "low"
         }
       `);
 
@@ -783,9 +783,9 @@ describe('Parser', () => {
       const ast = parse(`
         schema Order {
           items: 1..10 of LineItem,
-          subtotal: = sum(items.price),
-          tax: = subtotal * 0.2,
-          total: = subtotal + tax
+          subtotal: sum(items.price),
+          tax: subtotal * 0.2,
+          total: subtotal + tax
         }
       `);
 
@@ -828,7 +828,7 @@ describe('Parser', () => {
       const ast = parse(`
         schema TimeSeries {
           value: int in 1..100,
-          prev: = previous("value")
+          prev: previous("value")
         }
       `);
 
@@ -841,7 +841,7 @@ describe('Parser', () => {
     it('parses sequence function', () => {
       const ast = parse(`
         schema Invoice {
-          id: = sequence("INV-", 1000)
+          id: sequence("INV-", 1000)
         }
       `);
 

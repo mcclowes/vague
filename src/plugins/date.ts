@@ -17,8 +17,8 @@
  *     event_date: date.weekday("2024-01-01", "2024-12-31")
  *
  *     // Date arithmetic
- *     due_date: = issued_date + date.days(30)
- *     end_date: = start_date + date.months(12)
+ *     due_date: issued_date + date.days(30)
+ *     end_date: start_date + date.months(12)
  *   }
  *
  * Or with shorthand names:

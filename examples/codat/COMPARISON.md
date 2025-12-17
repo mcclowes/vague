@@ -62,8 +62,8 @@ function generateCustomer(): Customer {
 schema InvoiceLineItem {
   quantity: int in 1..100,
   unitAmount: decimal in 10..5000,
-  taxAmount: = unitAmount * 0.2,
-  totalAmount: = unitAmount * quantity
+  taxAmount: unitAmount * 0.2,
+  totalAmount: unitAmount * quantity
 }
 ```
 

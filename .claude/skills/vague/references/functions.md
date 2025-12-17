@@ -22,7 +22,7 @@ ceil(value, decimals)    // Ceiling to N decimal places
 
 Example:
 ```vague
-tax: = round(subtotal * 0.2, 2)
+tax: round(subtotal * 0.2, 2)
 ```
 
 ## Date Functions
@@ -65,8 +65,8 @@ Example for sequential coherence:
 ```vague
 schema TimeSeries {
   timestamp: int in 1000..2000,
-  prev_ts: = previous("timestamp"),
-  delta: = timestamp - (previous("timestamp") ?? timestamp)
+  prev_ts: previous("timestamp"),
+  delta: timestamp - (previous("timestamp") ?? timestamp)
 }
 ```
 

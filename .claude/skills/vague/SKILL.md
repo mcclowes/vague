@@ -14,7 +14,7 @@ schema Invoice {
   status: "draft" | "sent" | "paid",
   total: decimal in 100.00..5000.00,
   line_items: 1..5 of LineItem,
-  tax: = round(total * 0.2, 2),
+  tax: round(total * 0.2, 2),
   assume total > 0
 }
 
@@ -29,7 +29,7 @@ dataset TestData {
 - **Superposition**: `"a" | "b"` or weighted `0.7: "a" | 0.3: "b"`
 - **Ranges**: `int in 1..100`, `date in 2020..2024`
 - **Collections**: `1..5 of Item` or `100 of Item`
-- **Computed**: `total: = sum(items.amount)`
+- **Computed**: `total: sum(items.amount)`
 - **Constraints**: `assume due_date >= issued_date`
 - **References**: `any of companies where .active == true`
 - **Parent ref**: `= ^parent_field`

@@ -71,7 +71,7 @@ function valueToVague(value: unknown): string {
 function generateFieldType(field: InferredField): string {
   // Generator function (e.g., uuid(), email())
   if (field.generator) {
-    return `= ${field.generator}`;
+    return field.generator;
   }
 
   // Superposition (enum-like)
@@ -180,7 +180,7 @@ export function generateSchema(schema: InferredSchema): string {
     // Check if this field is derived from other fields
     const derivedExpr = schema.derivedFields?.get(field.name);
     if (derivedExpr) {
-      fieldLines.push(`  ${fieldName}: = ${derivedExpr}`);
+      fieldLines.push(`  ${fieldName}: ${derivedExpr}`);
       continue;
     }
 

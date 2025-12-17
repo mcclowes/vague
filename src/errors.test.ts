@@ -208,7 +208,7 @@ describe('Error handling', () => {
     it('handles invalid function call', async () => {
       const source = `
         schema X {
-          value: = nonexistentFunction()
+          value: nonexistentFunction()
         }
         dataset Test {
           items: 1 of X
@@ -227,7 +227,7 @@ describe('Error handling', () => {
       const source = `
         schema X {
           value: int in 1..10,
-          total: = sum(value)
+          total: sum(value)
         }
         dataset Test {
           items: 1 of X
@@ -248,7 +248,7 @@ describe('Error handling', () => {
         schema X {
           a: int in 1..10,
           b: int in 0..0,
-          c: = a / b
+          c: a / b
         }
         dataset Test {
           items: 1 of X
@@ -264,7 +264,7 @@ describe('Error handling', () => {
     it('handles invalid parent reference', async () => {
       const source = `
         schema Child {
-          value: = ^nonexistent.field
+          value: ^nonexistent.field
         }
         dataset Test {
           items: 5 of Child

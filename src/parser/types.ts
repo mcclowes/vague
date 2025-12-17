@@ -163,6 +163,65 @@ export class TypeParser extends ExpressionParser {
     if (id === 'string') return { type: 'PrimitiveType', name: 'string' };
     if (id === 'boolean') return { type: 'PrimitiveType', name: 'boolean' };
 
+    // Built-in functions that should be treated as computed expressions, not generators
+    const builtinFunctions = [
+      // Aggregates
+      'sum',
+      'count',
+      'min',
+      'max',
+      'avg',
+      'first',
+      'last',
+      'median',
+      'product',
+      // Rounding
+      'round',
+      'floor',
+      'ceil',
+      // Sequential
+      'previous',
+      'sequence',
+      'sequenceInt',
+      // String functions
+      'uppercase',
+      'lowercase',
+      'capitalize',
+      'kebabCase',
+      'snakeCase',
+      'camelCase',
+      'trim',
+      'concat',
+      'substring',
+      'replace',
+      'length',
+      // Date functions
+      'now',
+      'today',
+      'daysAgo',
+      'daysFromNow',
+      'datetime',
+      'dateBetween',
+      'formatDate',
+      // Predicates
+      'all',
+      'some',
+      'none',
+      // Distributions
+      'gaussian',
+      'exponential',
+      'poisson',
+      'beta',
+      'uniform',
+      'lognormal',
+    ];
+
+    // If it's a built-in function, don't treat as generator - restore and let expression parser handle it
+    if (builtinFunctions.includes(id)) {
+      this.pos--;
+      return null;
+    }
+
     // Check for generator type: qualified (faker.uuid) or with args (uuid())
     let name = id;
     let isGenerator = false;
@@ -364,6 +423,39 @@ export class TypeParser extends ExpressionParser {
   // ============================================
 
   private parseExpressionAsFieldType(): FieldType {
+    // Special case: check for a simple identifier that might be followed by ? (nullable reference)
+    // We need to handle this before parseExpression because ? is also the ternary operator
+    if (this.check(TokenType.IDENTIFIER)) {
+      const saved = this.savePosition();
+      const id = this.advance().value;
+
+      // Check if followed by ? and then a field terminator (comma, brace, when, where, tilde)
+      if (this.check(TokenType.QUESTION)) {
+        const questionPos = this.pos;
+        this.advance(); // consume ?
+
+        // If followed by a field terminator, it's a nullable reference
+        if (
+          this.check(TokenType.COMMA) ||
+          this.check(TokenType.RBRACE) ||
+          this.check(TokenType.WHEN) ||
+          this.check(TokenType.WHERE) ||
+          this.check(TokenType.TILDE) ||
+          this.isAtEnd()
+        ) {
+          // Restore to before ? so parseFieldDefinition can consume it
+          this.pos = questionPos;
+          return {
+            type: 'ReferenceType',
+            path: { type: 'QualifiedName', parts: [id] },
+          };
+        }
+      }
+
+      // Not a nullable reference, restore and parse as full expression
+      this.restorePosition(saved);
+    }
+
     const expr = this.parseExpression();
 
     if (expr.type === 'SuperpositionExpression') {
@@ -393,8 +485,18 @@ export class TypeParser extends ExpressionParser {
       };
     }
 
-    // Expression types (any of, parent reference)
-    if (expr.type === 'AnyOfExpression' || expr.type === 'ParentReference') {
+    // Expression types (any of, parent reference, function calls, binary ops, etc.)
+    // These will be evaluated at generation time
+    if (
+      expr.type === 'AnyOfExpression' ||
+      expr.type === 'ParentReference' ||
+      expr.type === 'CallExpression' ||
+      expr.type === 'BinaryExpression' ||
+      expr.type === 'TernaryExpression' ||
+      expr.type === 'LogicalExpression' ||
+      expr.type === 'UnaryExpression' ||
+      expr.type === 'NotExpression'
+    ) {
       return {
         type: 'ExpressionType',
         expression: expr,

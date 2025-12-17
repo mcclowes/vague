@@ -142,7 +142,7 @@ dataset Test {
 ### Parent References
 ```vague
 schema LineItem {
-  currency: = ^base_currency   // Inherit from parent schema
+  currency: ^base_currency   // Inherit from parent schema
 }
 ```
 
@@ -150,18 +150,18 @@ schema LineItem {
 ```vague
 schema Invoice {
   line_items: 1..10 of LineItem,
-  total: = sum(line_items.amount),
-  item_count: = count(line_items),
-  avg_price: = avg(line_items.unit_price),
-  min_price: = min(line_items.unit_price),
-  max_price: = max(line_items.unit_price),
-  median_price: = median(line_items.unit_price),
-  first_item_price: = first(line_items.unit_price),
-  last_item_price: = last(line_items.unit_price),
-  price_product: = product(line_items.unit_price),
+  total: sum(line_items.amount),
+  item_count: count(line_items),
+  avg_price: avg(line_items.unit_price),
+  min_price: min(line_items.unit_price),
+  max_price: max(line_items.unit_price),
+  median_price: median(line_items.unit_price),
+  first_item_price: first(line_items.unit_price),
+  last_item_price: last(line_items.unit_price),
+  price_product: product(line_items.unit_price),
   // Arithmetic expressions
-  tax: = round(sum(line_items.amount) * 0.2, 2),
-  grand_total: = round(sum(line_items.amount) * 1.2, 2)
+  tax: round(sum(line_items.amount) * 0.2, 2),
+  grand_total: round(sum(line_items.amount) * 1.2, 2)
 }
 ```
 
@@ -169,9 +169,9 @@ schema Invoice {
 ```vague
 schema Order {
   subtotal: decimal in 100..500,
-  tax: = round(subtotal * 0.2, 2),    // Round to 2 decimal places
-  floored: = floor(subtotal, 1),      // Floor to 1 decimal place
-  ceiled: = ceil(subtotal, 0)         // Ceil to whole number
+  tax: round(subtotal * 0.2, 2),    // Round to 2 decimal places
+  floored: floor(subtotal, 1),      // Floor to 1 decimal place
+  ceiled: ceil(subtotal, 0)         // Ceil to whole number
 }
 ```
 
@@ -188,19 +188,19 @@ schema Invoice {
 schema Person {
   // Private fields are generated and usable in logic, but excluded from output
   age: private int in 0..105,
-  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+  age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior"
 }
 // Output: { "age_bracket": "adult" }  -- no "age" field
 
 schema Product {
   // Can combine with unique
   internal_id: unique private int in 1..10000,
-  public_ref: = concat("PROD-", internal_id),
+  public_ref: concat("PROD-", internal_id),
 
   // Multiple private fields for intermediate calculations
   base_cost: private decimal in 10..50,
   markup: private decimal in 1.2..1.8,
-  price: = round(base_cost * markup, 2)
+  price: round(base_cost * markup, 2)
 }
 ```
 
@@ -208,22 +208,22 @@ schema Product {
 ```vague
 schema Event {
   // Current date/time
-  created_at: = now(),              // Full ISO 8601: "2025-01-15T10:30:00.000Z"
-  created_date: = today(),          // Date only: "2025-01-15"
+  created_at: now(),              // Full ISO 8601: "2025-01-15T10:30:00.000Z"
+  created_date: today(),          // Date only: "2025-01-15"
 
   // Relative dates
-  past_event: = daysAgo(30),        // 30 days in the past
-  future_event: = daysFromNow(90),  // 90 days in the future
+  past_event: daysAgo(30),        // 30 days in the past
+  future_event: daysFromNow(90),  // 90 days in the future
 
   // Random datetime with range (years or ISO strings)
-  timestamp: = datetime(2020, 2024),
-  specific: = datetime("2023-01-01", "2023-12-31"),
+  timestamp: datetime(2020, 2024),
+  specific: datetime("2023-01-01", "2023-12-31"),
 
   // Random date between two dates
-  event_date: = dateBetween("2023-06-01", "2023-06-30"),
+  event_date: dateBetween("2023-06-01", "2023-06-30"),
 
   // Format dates (YYYY, MM, DD, HH, mm, ss)
-  formatted: = formatDate(now(), "YYYY-MM-DD HH:mm"),
+  formatted: formatDate(now(), "YYYY-MM-DD HH:mm"),
 
   // Date type generates ISO 8601 strings
   simple_date: date,                // Random date (YYYY-MM-DD)
@@ -237,12 +237,12 @@ schema Invoice {
   issued_date: date in 2024..2024,
 
   // Add duration to a date
-  due_date: = issued_date + date.days(30),
-  reminder_date: = due_date - date.weeks(1),
+  due_date: issued_date + date.days(30),
+  reminder_date: due_date - date.weeks(1),
 
   // Duration functions: days, weeks, months, years, hours, minutes
-  quarterly_review: = issued_date + date.months(3),
-  annual_renewal: = issued_date + date.years(1),
+  quarterly_review: issued_date + date.months(3),
+  annual_renewal: issued_date + date.years(1),
 
   // Works in constraints
   assume due_date >= issued_date,
@@ -256,21 +256,21 @@ schema Product {
   title: "Hello World",
 
   // Case transformations
-  upper: = uppercase(title),           // "HELLO WORLD"
-  lower: = lowercase(title),           // "hello world"
-  capitalized: = capitalize(title),    // "Hello World"
+  upper: uppercase(title),           // "HELLO WORLD"
+  lower: lowercase(title),           // "hello world"
+  capitalized: capitalize(title),    // "Hello World"
 
   // Case style conversions
-  slug: = kebabCase(title),            // "hello-world"
-  snake: = snakeCase(title),           // "hello_world"
-  camel: = camelCase(title),           // "helloWorld"
+  slug: kebabCase(title),            // "hello-world"
+  snake: snakeCase(title),           // "hello_world"
+  camel: camelCase(title),           // "helloWorld"
 
   // String manipulation
-  trimmed: = trim("  hello  "),        // "hello"
-  combined: = concat(title, "!"),      // "Hello World!"
-  part: = substring(title, 0, 5),      // "Hello"
-  replaced: = replace(title, "World", "There"),  // "Hello There"
-  len: = length(title)                 // 11
+  trimmed: trim("  hello  "),        // "hello"
+  combined: concat(title, "!"),      // "Hello World!"
+  part: substring(title, 0, 5),      // "Hello"
+  replaced: replace(title, "World", "There"),  // "Hello There"
+  len: length(title)                 // 11
 }
 ```
 
@@ -278,21 +278,21 @@ schema Product {
 ```vague
 schema Invoice {
   // Auto-incrementing string IDs
-  id: = sequence("INV-", 1001),         // "INV-1001", "INV-1002", ...
+  id: sequence("INV-", 1001),         // "INV-1001", "INV-1002", ...
 
   // Auto-incrementing integers
-  order_num: = sequenceInt("orders", 100),  // 100, 101, 102, ...
+  order_num: sequenceInt("orders", 100),  // 100, 101, 102, ...
 
   // Reference previous record in collection
-  prev_amount: = previous("amount"),    // null for first record
+  prev_amount: previous("amount"),    // null for first record
   amount: int in 100..500
 }
 
 // Use previous() for sequential coherence
 schema TimeSeries {
   timestamp: int in 1000..2000,
-  prev_ts: = previous("timestamp"),     // Chain to previous record
-  delta: = timestamp - (previous("timestamp") ?? timestamp)
+  prev_ts: previous("timestamp"),     // Chain to previous record
+  delta: timestamp - (previous("timestamp") ?? timestamp)
 }
 ```
 
@@ -300,22 +300,22 @@ schema TimeSeries {
 ```vague
 schema Person {
   // Normal/Gaussian distribution - for natural measurements
-  age: = gaussian(35, 10, 18, 65),      // mean, stddev, min, max
+  age: gaussian(35, 10, 18, 65),      // mean, stddev, min, max
 
   // Log-normal - for right-skewed data like income, prices
-  income: = lognormal(10.5, 0.5, 20000, 500000),
+  income: lognormal(10.5, 0.5, 20000, 500000),
 
   // Exponential - for wait times, decay
-  wait_time: = exponential(0.5, 0, 60),  // rate, min, max
+  wait_time: exponential(0.5, 0, 60),  // rate, min, max
 
   // Poisson - for count data (events per time period)
-  daily_orders: = poisson(5),            // lambda (expected count)
+  daily_orders: poisson(5),            // lambda (expected count)
 
   // Beta - for probabilities and proportions (0-1 range)
-  conversion_rate: = beta(2, 5),         // alpha, beta shape params
+  conversion_rate: beta(2, 5),         // alpha, beta shape params
 
   // Uniform - explicit uniform distribution
-  random_value: = uniform(0, 100)        // min, max
+  random_value: uniform(0, 100)        // min, max
 }
 ```
 
@@ -325,13 +325,13 @@ schema Invoice {
   total: int in 100..500,
   amount_paid: int in 0..0,
   // Conditional value based on expression
-  status: = amount_paid >= total ? "paid" : "partially-paid"
+  status: amount_paid >= total ? "paid" : "partially-paid"
 }
 
 schema Item {
   score: int in 0..100,
   // Nested ternary for multiple conditions
-  grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+  grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 }
 
 schema Order {
@@ -339,7 +339,7 @@ schema Order {
   is_member: boolean,
   has_coupon: boolean,
   // Logical operators: and, or, not
-  discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+  discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 }
 ```
 
@@ -738,7 +738,7 @@ inferSchema(data, {
 | Formats | Pattern matching | `uuid()`, `email()`, etc. |
 | Arrays | Array lengths | `1..5 of Item` |
 | Nested | Object structure | Separate schema definitions |
-| Derived fields | Correlation analysis | `total: = round(qty * price, 2)` |
+| Derived fields | Correlation analysis | `total: round(qty * price, 2)` |
 | Ordering | Date/value patterns | `assume end >= start` |
 | Conditionals | Value co-occurrence | `assume if status == "paid" { amount > 0 }` |
 

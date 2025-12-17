@@ -40,7 +40,7 @@ schema Invoice {
   status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft",
   amount: int in 100..10000,
   line_items: 1..5 * LineItem,
-  total: = sum(line_items.amount),
+  total: sum(line_items.amount),
 
   assume if status == "paid" {
     amount > 0

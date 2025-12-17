@@ -359,7 +359,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Invoice {
           issued_date: "2024-01-15",
-          due_date: = issued_date + date.days(30)
+          due_date: issued_date + date.days(30)
         }
 
         dataset TestData {
@@ -378,7 +378,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Event {
           event_date: "2024-03-15",
-          reminder_date: = event_date - date.days(7)
+          reminder_date: event_date - date.days(7)
         }
 
         dataset TestData {
@@ -397,7 +397,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Project {
           start_date: "2024-01-01",
-          milestone_date: = start_date + date.weeks(2)
+          milestone_date: start_date + date.weeks(2)
         }
 
         dataset TestData {
@@ -416,7 +416,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Subscription {
           start_date: "2024-01-15",
-          renewal_date: = start_date + date.months(3)
+          renewal_date: start_date + date.months(3)
         }
 
         dataset TestData {
@@ -436,7 +436,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Contract {
           signed_date: "2024-06-15",
-          expiry_date: = signed_date + date.years(1)
+          expiry_date: signed_date + date.years(1)
         }
 
         dataset TestData {
@@ -456,7 +456,7 @@ describe('Date Plugin', () => {
       const source = `
         schema Invoice {
           issued_date: date in 2024..2024,
-          due_date: = issued_date + date.days(30)
+          due_date: issued_date + date.days(30)
         }
 
         dataset TestData {

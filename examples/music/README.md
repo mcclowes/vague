@@ -83,7 +83,7 @@ Notes are weighted to favor musically important scale degrees.
 ```vague
 schema MelodicNote {
   pitch: int in 60..72,
-  prev_pitch: = previous("pitch"),
+  prev_pitch: previous("pitch"),
 
   // Constrain to stepwise motion
   assume prev_pitch == null or
@@ -94,8 +94,8 @@ The `previous()` function enables sequential awareness, and constraints enforce 
 
 ### Humanization
 ```vague
-velocity: = round(gaussian(80, 12, 45, 120), 0),
-timing_offset_ms: = round(gaussian(0, 8, -15, 15), 1)
+velocity: round(gaussian(80, 12, 45, 120), 0),
+timing_offset_ms: round(gaussian(0, 8, -15, 15), 1)
 ```
 Gaussian distributions add natural variation to dynamics and timing.
 
@@ -143,7 +143,7 @@ schema CounterpointNote {
   melody_pitch: any of melody_notes,
   // Harmony a third or fifth above/below
   interval: 0.4: 3 | 0.4: 4 | 0.2: 7,
-  pitch: = melody_pitch.pitch + interval
+  pitch: melody_pitch.pitch + interval
 }
 ```
 

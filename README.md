@@ -7,9 +7,16 @@ A declarative language for generating realistic test data. Vague treats ambiguit
 ## Installation
 
 ```bash
-npm install
-npm run build
+npm install vague-lang
 ```
+
+Or install globally for CLI usage:
+
+```bash
+npm install -g vague-lang
+```
+
+[![npm version](https://img.shields.io/npm/v/vague-lang.svg)](https://www.npmjs.com/package/vague-lang)
 
 ## Quick Start
 
@@ -118,7 +125,7 @@ schema Invoice {
 ```vague
 schema LineItem {
   // Inherit currency from parent invoice
-  currency: = ^base_currency
+  currency: ^base_currency
 }
 
 schema Invoice {
@@ -133,15 +140,15 @@ schema Invoice {
 schema Invoice {
   line_items: 1..10 of LineItem,
 
-  total: = sum(line_items.amount),
-  item_count: = count(line_items),
-  avg_price: = avg(line_items.unit_price),
-  min_price: = min(line_items.unit_price),
-  max_price: = max(line_items.unit_price),
-  median_price: = median(line_items.unit_price),
-  first_item: = first(line_items.unit_price),
-  last_item: = last(line_items.unit_price),
-  price_product: = product(line_items.unit_price)
+  total: sum(line_items.amount),
+  item_count: count(line_items),
+  avg_price: avg(line_items.unit_price),
+  min_price: min(line_items.unit_price),
+  max_price: max(line_items.unit_price),
+  median_price: median(line_items.unit_price),
+  first_item: first(line_items.unit_price),
+  last_item: last(line_items.unit_price),
+  price_product: product(line_items.unit_price)
 }
 ```
 
@@ -155,8 +162,8 @@ notes: string | null        // Explicit
 ### Ternary Expressions
 
 ```vague
-status: = amount_paid >= total ? "paid" : "pending"
-grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+status: amount_paid >= total ? "paid" : "pending"
+grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 ```
 
 ### Conditional Fields
@@ -200,7 +207,7 @@ id: unique int in 1000..9999    // No duplicates in collection
 ```vague
 schema Person {
   age: private int in 0..105,                    // Generated but excluded from output
-  age_bracket: = age < 18 ? "minor" : "adult"    // Computed from private field
+  age_bracket: age < 18 ? "minor" : "adult"    // Computed from private field
 }
 // Output: { "age_bracket": "adult" } -- no "age" field
 ```
@@ -215,51 +222,51 @@ color: ["red", "green", "blue"]
 ### Statistical Distributions
 
 ```vague
-age: = gaussian(35, 10, 18, 65)     // mean, stddev, min, max
-income: = lognormal(10.5, 0.5)      // mu, sigma
-wait_time: = exponential(0.5)       // rate
-daily_orders: = poisson(5)          // lambda
-conversion: = beta(2, 5)            // alpha, beta
+age: gaussian(35, 10, 18, 65)     // mean, stddev, min, max
+income: lognormal(10.5, 0.5)      // mu, sigma
+wait_time: exponential(0.5)       // rate
+daily_orders: poisson(5)          // lambda
+conversion: beta(2, 5)            // alpha, beta
 ```
 
 ### Date Functions
 
 ```vague
-created_at: = now()                 // Full ISO 8601 timestamp
-today_date: = today()               // Date only
-past: = daysAgo(30)                 // 30 days ago
-future: = daysFromNow(90)           // 90 days from now
-random: = datetime(2020, 2024)      // Random datetime in range
-between: = dateBetween("2023-01-01", "2023-12-31")
+created_at: now()                 // Full ISO 8601 timestamp
+today_date: today()               // Date only
+past: daysAgo(30)                 // 30 days ago
+future: daysFromNow(90)           // 90 days from now
+random: datetime(2020, 2024)      // Random datetime in range
+between: dateBetween("2023-01-01", "2023-12-31")
 ```
 
 ### Sequential Generation
 
 ```vague
-id: = sequence("INV-", 1001)        // "INV-1001", "INV-1002", ...
-order_num: = sequenceInt("orders")  // 1, 2, 3, ...
-prev_value: = previous("amount")    // Reference previous record
+id: sequence("INV-", 1001)        // "INV-1001", "INV-1002", ...
+order_num: sequenceInt("orders")  // 1, 2, 3, ...
+prev_value: previous("amount")    // Reference previous record
 ```
 
 ### String Transformations
 
 ```vague
 // Case transformations
-upper: = uppercase(name)             // "HELLO WORLD"
-lower: = lowercase(name)             // "hello world"
-capitalized: = capitalize(name)      // "Hello World"
+upper: uppercase(name)             // "HELLO WORLD"
+lower: lowercase(name)             // "hello world"
+capitalized: capitalize(name)      // "Hello World"
 
 // Case style conversions
-slug: = kebabCase(title)             // "hello-world"
-snake: = snakeCase(title)            // "hello_world"
-camel: = camelCase(title)            // "helloWorld"
+slug: kebabCase(title)             // "hello-world"
+snake: snakeCase(title)            // "hello_world"
+camel: camelCase(title)            // "helloWorld"
 
 // String manipulation
-trimmed: = trim("  hello  ")         // "hello"
-combined: = concat(first, " ", last) // "John Doe"
-part: = substring(name, 0, 5)        // First 5 characters
-replaced: = replace(name, "foo", "bar")
-len: = length(name)                  // String length
+trimmed: trim("  hello  ")         // "hello"
+combined: concat(first, " ", last) // "John Doe"
+part: substring(name, 0, 5)        // First 5 characters
+replaced: replace(name, "foo", "bar")
+len: length(name)                  // String length
 ```
 
 ### Negative Testing

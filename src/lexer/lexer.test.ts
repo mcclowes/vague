@@ -73,11 +73,11 @@ describe('Lexer', () => {
   });
 
   it('tokenizes parent reference', () => {
-    const lexer = new Lexer('currency: = ^company.currency');
+    const lexer = new Lexer('currency: ^company.currency');
     const tokens = lexer.tokenize();
 
-    expect(tokens[3]).toMatchObject({ type: TokenType.CARET });
-    expect(tokens[4]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'company' });
+    expect(tokens[2]).toMatchObject({ type: TokenType.CARET });
+    expect(tokens[3]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'company' });
   });
 
   it('tokenizes cardinality', () => {

@@ -1,15 +1,15 @@
 import petstore from "examples/openapi-importing/petstore.json"
 
-schema ImportedPet from petstore.Pet {
+schema Pet from petstore.Pet {
   age: int in 1..15  // override with custom generation
 }
 
-schema EnhancedOwner from petstore.Owner {
+schema Owner from petstore.Owner {
   memberSince: date in 2020..2024,  // add fields not in OpenAPI spec
   tier: "Gold" | "Silver" | "Bronze"
 }
 
 dataset PetStoreData {
-  pets: 10 of ImportedPet,
-  owners: 5 of EnhancedOwner
+  pets: 10 of Pet,
+  owners: 5 of Owner
 }

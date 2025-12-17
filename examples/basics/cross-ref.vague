@@ -8,7 +8,7 @@ schema LineItem {
   description: string,
   quantity: int in 1..10,
   unit_price: decimal in 10..500,
-  currency: = ^base_currency  // inherit from parent schema
+  currency: ^base_currency  // inherit from parent schema
 }
 
 schema Invoice {

@@ -157,7 +157,7 @@ schema Invoice {
   id: unique int in 1000..9999,
   status: 0.7: "paid" | 0.2: "pending" | 0.1: "draft",
   total: decimal,
-  tax: = round(total * 0.2, 2),
+  tax: round(total * 0.2, 2),
   assume total > 0
 }
 ```

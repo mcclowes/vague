@@ -25,7 +25,7 @@ schema WinequalityRed {
   volatile_acidity: decimal(2) in 0.12..1.58,
   citric_acid: decimal(2) in 0..1,
   residual_sugar: decimal(1) in 0.9..15.5,
-  chlorides: = fixed_acidity * 0.0108,           // Derived field detected
+  chlorides: fixed_acidity * 0.0108,           // Derived field detected
   free_sulfur_dioxide: decimal(1) in 1..72,
   total_sulfur_dioxide: decimal(1) in 6..289,
   density: decimal in 0.99007..1.00369,

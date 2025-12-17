@@ -39,8 +39,8 @@ invoice: any of invoices where .status == "open"
 
 ### Computed Fields with Arithmetic
 ```vague
-tax: = subtotal * 0.1,
-total: = subtotal + tax
+tax: subtotal * 0.1,
+total: subtotal + tax
 ```
 
 ## Running

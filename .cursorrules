@@ -1,0 +1,184 @@
+# Vague Language
+
+Use when writing Vague (.vague) files - a declarative language for generating realistic test data with superposition, constraints, and cross-references.
+
+## Quick Start
+
+```vague
+schema Invoice {
+  id: unique int in 1000..9999,
+  status: "draft" | "sent" | "paid",
+  total: decimal in 100.00..5000.00,
+  line_items: 1..5 of LineItem,
+  tax: = round(total * 0.2, 2),
+  assume total > 0
+}
+
+dataset TestData {
+  invoices: 100 of Invoice
+}
+```
+
+## Core Syntax
+
+- **Types**: `string`, `int`, `decimal`, `boolean`, `date`
+- **Superposition**: `"a" | "b"` or weighted `0.7: "a" | 0.3: "b"`
+- **Ranges**: `int in 1..100`, `date in 2020..2024`
+- **Collections**: `1..5 of Item` or `100 of Item`
+- **Computed**: `total: = sum(items.amount)`
+- **Constraints**: `assume due_date >= issued_date`
+- **References**: `any of companies where .active == true`
+- **Parent ref**: `= ^parent_field`
+- **Nullable**: `string?` or `string | null`
+- **Unique**: `id: unique int in 1..1000`
+
+## Advanced Features
+
+### Private Fields
+```vague
+schema Person {
+  age: private int in 0..105,
+  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+}
+```
+
+### Dynamic Cardinality
+```vague
+schema Order {
+  size: "small" | "large",
+  items: (size == "large" ? 5..10 : 1..3) of LineItem
+}
+```
+
+### Side Effects (then blocks)
+```vague
+schema Payment {
+  invoice: any of invoices,
+  amount: int in 50..500
+}
+then {
+  invoice.amount_paid += amount,
+  invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partially-paid"
+}
+```
+
+### Dataset-Level Constraints
+```vague
+dataset TestData {
+  invoices: 100 of Invoice,
+  payments: 50 of Payment,
+  validate {
+    sum(invoices.total) >= 100000,
+    all(invoices, .amount_paid <= .total),
+    some(invoices, .status == "paid")
+  }
+}
+```
+
+### OpenAPI Schema Import
+```vague
+import petstore from "petstore.json"
+schema Pet from petstore.Pet {
+  age: int in 1..15  // Override or add fields
+}
+```
+
+## Built-in Functions
+
+### Aggregates
+- `sum(items.amount)`, `count(items)`, `avg(items.price)`, `min(items.price)`, `max(items.price)`
+
+### Decimal Precision
+- `round(value, decimals)`, `floor(value, decimals)`, `ceil(value, decimals)`
+
+### Date Functions
+- `now()`, `today()`, `daysAgo(30)`, `daysFromNow(90)`, `datetime(2020, 2024)`, `dateBetween("2023-06-01", "2023-06-30")`
+
+### Sequential Functions
+- `sequence("INV-", 1001)` - Auto-incrementing string IDs
+- `sequenceInt("orders", 100)` - Auto-incrementing integers
+- `previous("amount")` - Reference previous record
+
+### Statistical Distributions
+- `gaussian(mean, stddev, min, max)` - Normal/Gaussian distribution
+- `lognormal(mu, sigma, min, max)` - Log-normal distribution
+- `exponential(rate, min, max)` - Exponential distribution
+- `poisson(lambda)` - Poisson distribution
+- `beta(alpha, beta)` - Beta distribution
+- `uniform(min, max)` - Uniform distribution
+
+### Predicate Functions (Dataset Validation)
+- `all(collection, .field > 0)` - All items must satisfy
+- `some(collection, .status == "paid")` - At least one must satisfy
+- `none(collection, .total < 0)` - No items should satisfy
+
+## CLI Usage
+
+```bash
+# Generate data
+node dist/cli.js <file.vague>
+
+# With seed for reproducibility
+node dist/cli.js <file.vague> --seed 123
+
+# CSV output
+node dist/cli.js data.vague -f csv -o output.csv
+
+# Validate against OpenAPI spec
+node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
+
+# Infer schema from JSON/CSV
+node dist/cli.js --infer data.json -o schema.vague
+```
+
+---
+
+# OpenAPI Specification Expert
+
+Use when working with OpenAPI Specification files to validate, create/modify paths and schemas, check references, and enforce best practices.
+
+## Quick Start
+
+```yaml
+openapi: 3.1.0
+info:
+  title: API Name
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required: [id, email]
+      properties:
+        id: {type: string}
+        email: {type: string, format: email}
+```
+
+## Core Principles
+
+- **Required Structure**: `openapi`, `info`, and `paths` or `webhooks` at root
+- **Reuse Components**: Define schemas/parameters/responses in `components/`, reference with `$ref`
+- **Match Parameters**: Path parameters like `{id}` MUST have parameter definitions
+- **Case Sensitive**: All field names follow JSON Schema case sensitivity
+
+## Key Rules
+
+- Unique `operationId` per operation
+- Use CommonMark in `description` fields
+- Concrete paths match before templated
+- Document all response codes
+

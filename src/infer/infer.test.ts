@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { registerPlugin, fakerShorthandPlugin } from '../index.js';
 import { detectValueType, aggregateTypes } from './type-detector.js';
 import {
   detectNumericRange,
@@ -435,6 +436,10 @@ describe('Schema Inference', () => {
 });
 
 describe('End-to-end inference and compilation', () => {
+  beforeAll(() => {
+    registerPlugin(fakerShorthandPlugin);
+  });
+
   it('generates valid Vague code that can be compiled', async () => {
     // This test verifies the output is syntactically valid Vague code
     const { compile } = await import('../index.js');

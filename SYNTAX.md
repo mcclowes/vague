@@ -61,7 +61,7 @@ notes: string | null     # Alternative: explicit null
 schema Person {
   # Generated but excluded from output
   age: private int in 0..105,
-  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+  age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior"
 }
 # Output: { "age_bracket": "adult" } -- no "age" field
 
@@ -143,7 +143,7 @@ charge: any of charges where .status == "succeeded" and .amount > 0
 
 ```vague
 schema LineItem {
-  currency: = ^base_currency    # ^ = parent schema's field
+  currency: ^base_currency    # ^ = parent schema's field
 }
 
 schema Invoice {
@@ -160,20 +160,20 @@ schema Invoice {
 
 ```vague
 # Aggregates
-total: = sum(items.amount)
-count: = count(items)
-average: = avg(items.price)
-lowest: = min(items.price)
-highest: = max(items.price)
+total: sum(items.amount)
+count: count(items)
+average: avg(items.price)
+lowest: min(items.price)
+highest: max(items.price)
 
 # Arithmetic
-tax: = total * 0.2
-grand_total: = sum(items.amount) * 1.2
+tax: total * 0.2
+grand_total: sum(items.amount) * 1.2
 
 # Rounding
-tax: = round(subtotal * 0.2, 2)    # 2 decimal places
-floored: = floor(value, 1)
-ceiled: = ceil(value, 0)
+tax: round(subtotal * 0.2, 2)    # 2 decimal places
+floored: floor(value, 1)
+ceiled: ceil(value, 0)
 ```
 
 ---
@@ -182,13 +182,13 @@ ceiled: = ceil(value, 0)
 
 ```vague
 # Simple conditional
-status: = amount_paid >= total ? "paid" : "pending"
+status: amount_paid >= total ? "paid" : "pending"
 
 # Nested ternary
-grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
+grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 
 # With logical operators
-discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
+discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 ```
 
 ---
@@ -197,21 +197,21 @@ discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 
 ```vague
 # Case transformations
-upper: = uppercase(name)         # "HELLO WORLD"
-lower: = lowercase(name)         # "hello world"
-cap: = capitalize(name)          # "Hello World"
+upper: uppercase(name)         # "HELLO WORLD"
+lower: lowercase(name)         # "hello world"
+cap: capitalize(name)          # "Hello World"
 
 # Case style conversions
-slug: = kebabCase(title)         # "hello-world"
-snake: = snakeCase(title)        # "hello_world"
-camel: = camelCase(title)        # "helloWorld"
+slug: kebabCase(title)         # "hello-world"
+snake: snakeCase(title)        # "hello_world"
+camel: camelCase(title)        # "helloWorld"
 
 # String manipulation
-trimmed: = trim("  hello  ")     # "hello"
-combined: = concat(a, " ", b)    # "John Doe"
-part: = substring(name, 0, 5)    # First 5 chars
-replaced: = replace(s, "a", "b")
-len: = length(name)
+trimmed: trim("  hello  ")     # "hello"
+combined: concat(a, " ", b)    # "John Doe"
+part: substring(name, 0, 5)    # First 5 chars
+replaced: replace(s, "a", "b")
+len: length(name)
 ```
 
 ---
@@ -265,22 +265,22 @@ party: weekend(2024, 2025)
 
 ```vague
 # Normal/Gaussian (mean, stddev, min, max)
-age: = gaussian(35, 10, 18, 65)
+age: gaussian(35, 10, 18, 65)
 
 # Log-normal (mu, sigma, min, max)
-income: = lognormal(10.5, 0.5, 20000, 500000)
+income: lognormal(10.5, 0.5, 20000, 500000)
 
 # Exponential (rate, min, max)
-wait_time: = exponential(0.5, 0, 60)
+wait_time: exponential(0.5, 0, 60)
 
 # Poisson (lambda)
-daily_orders: = poisson(5)
+daily_orders: poisson(5)
 
 # Beta (alpha, beta) - returns 0-1
-conversion_rate: = beta(2, 5)
+conversion_rate: beta(2, 5)
 
 # Uniform (min, max)
-random_value: = uniform(0, 100)
+random_value: uniform(0, 100)
 ```
 
 ---
@@ -288,13 +288,13 @@ random_value: = uniform(0, 100)
 ## Date Functions
 
 ```vague
-created_at: = now()                    # Current ISO timestamp
-created_date: = today()                # Current date (YYYY-MM-DD)
-past_event: = daysAgo(30)              # 30 days ago
-future_event: = daysFromNow(90)        # 90 days from now
-timestamp: = datetime(2020, 2024)      # Random in year range
-event_date: = dateBetween("2023-01-01", "2023-12-31")
-formatted: = formatDate(now(), "YYYY-MM-DD HH:mm")
+created_at: now()                    # Current ISO timestamp
+created_date: today()                # Current date (YYYY-MM-DD)
+past_event: daysAgo(30)              # 30 days ago
+future_event: daysFromNow(90)        # 90 days from now
+timestamp: datetime(2020, 2024)      # Random in year range
+event_date: dateBetween("2023-01-01", "2023-12-31")
+formatted: formatDate(now(), "YYYY-MM-DD HH:mm")
 ```
 
 ---
@@ -303,13 +303,13 @@ formatted: = formatDate(now(), "YYYY-MM-DD HH:mm")
 
 ```vague
 # String sequence: "INV-1001", "INV-1002", ...
-id: = sequence("INV-", 1001)
+id: sequence("INV-", 1001)
 
 # Integer sequence: 100, 101, 102, ...
-order_num: = sequenceInt("orders", 100)
+order_num: sequenceInt("orders", 100)
 
 # Previous record's value (null for first)
-prev_amount: = previous("amount")
+prev_amount: previous("amount")
 ```
 
 ---
@@ -422,20 +422,20 @@ schema LineItem {
   product: faker.commerce.productName(),
   quantity: int in 1..10,
   unit_price: decimal in 9.99..199.99,
-  amount: = quantity * unit_price,
-  currency: = ^base_currency
+  amount: quantity * unit_price,
+  currency: ^base_currency
 }
 
 schema Invoice {
-  id: = sequence("INV-", 1001),
+  id: sequence("INV-", 1001),
   customer: any of customers where .status == "active",
   base_currency: "USD" | "EUR" | "GBP",
   line_items: 1..5 * LineItem,
-  subtotal: = sum(line_items.amount),
-  tax: = round(subtotal * 0.2, 2),
-  total: = subtotal + tax,
+  subtotal: sum(line_items.amount),
+  tax: round(subtotal * 0.2, 2),
+  total: subtotal + tax,
   amount_paid: int in 0..0,
-  status: = amount_paid >= total ? "paid" : "pending",
+  status: amount_paid >= total ? "paid" : "pending",
 
   assume total > 0
 }

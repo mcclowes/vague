@@ -10,9 +10,9 @@ schema Order {
   size: "small" | "medium" | "large",
   is_priority: boolean,
   items: (size == "large" ? 5..10 : size == "medium" ? 3..5 : 1..2) of LineItem,  // dynamic cardinality
-  subtotal: = sum(items.unit_price),
-  item_count: = count(items),
-  shipping: = is_priority or size == "large" ? "express" : "standard"  // ternary with logical operators
+  subtotal: sum(items.unit_price),
+  item_count: count(items),
+  shipping: is_priority or size == "large" ? "express" : "standard"  // ternary with logical operators
 }
 
 schema Shipment {

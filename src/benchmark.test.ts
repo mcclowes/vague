@@ -101,8 +101,8 @@ describe('Memory and performance benchmarks', () => {
         }
         schema Invoice {
           items: 5 of LineItem,
-          subtotal: = sum(items.quantity) * 10,
-          item_count: = count(items)
+          subtotal: sum(items.quantity) * 10,
+          item_count: count(items)
         }
         dataset Test {
           invoices: 500 of Invoice
