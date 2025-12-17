@@ -13,6 +13,7 @@ import {
   issuerShorthandPlugin,
   regexPlugin,
   regexShorthandPlugin,
+  discoverPlugins,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema, inferSchemaWithTypeScript } from './infer/index.js';
@@ -76,6 +77,9 @@ Options:
   --no-config              Skip loading config file
   -d, --debug              Enable debug logging (shows generation details)
   --log-level <level>      Set log level: none, error, warn, info, debug (default: warn)
+  --plugins <dir>          Load plugins from directory (can be used multiple times)
+  --no-auto-plugins        Disable automatic plugin discovery
+  --verbose                Show verbose output (e.g., discovered plugins)
   -h, --help               Show this help message
 
 CSV Options (when --format csv):
@@ -195,6 +199,11 @@ Configuration File (vague.config.js):
   let debugMode = false;
   let logLevelArg: LogLevel | null = null;
 
+  // Plugin options
+  const pluginDirs: string[] = [];
+  let autoPlugins = true;
+  let verbose = false;
+
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
     if (args[i] === '--infer') {
@@ -307,6 +316,24 @@ Configuration File (vague.config.js):
         process.exit(1);
       }
       logLevelArg = level;
+    } else if (args[i] === '--plugins') {
+      pluginDirs.push(args[++i]);
+    } else if (args[i] === '--no-auto-plugins') {
+      autoPlugins = false;
+    } else if (args[i] === '--verbose') {
+      verbose = true;
+    }
+  }
+
+  // Discover and register external plugins
+  if (autoPlugins || pluginDirs.length > 0) {
+    const discovered = await discoverPlugins({
+      pluginDirs,
+      searchNodeModules: autoPlugins,
+      verbose,
+    });
+    for (const { plugin } of discovered) {
+      registerPlugin(plugin);
     }
   }
 
