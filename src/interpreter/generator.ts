@@ -42,6 +42,7 @@ import {
   poisson,
   beta,
 } from './random.js';
+import { randomUUID } from 'node:crypto';
 
 // Re-export seed functions for external use
 export { setSeed, getSeed } from './random.js';
@@ -514,7 +515,7 @@ export class Generator {
       // Handle common OpenAPI/JSON Schema formats
       switch (format) {
         case 'uuid':
-          return this.tryPluginGenerator('uuid') ?? crypto.randomUUID();
+          return this.tryPluginGenerator('uuid') ?? randomUUID();
         case 'email':
           return this.tryPluginGenerator('email') ?? `user${randomInt(1, 9999)}@example.com`;
         case 'phone':
