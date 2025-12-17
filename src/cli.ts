@@ -21,7 +21,17 @@ import {
   type CsvOptions,
 } from './csv/index.js';
 import { DataValidator } from './validator/data-validator.js';
-import { loadConfig, loadConfigFrom, type ResolvedConfig } from './config/index.js';
+import { loadConfig, loadConfigFrom, type ResolvedConfig, type LogLevel } from './config/index.js';
+import {
+  createLogger,
+  configureLogging,
+  setLogLevel,
+  enableDebug,
+  setTimestamps,
+} from './logging/index.js';
+
+// Create CLI logger
+const log = createLogger('cli');
 
 // Built-in plugins (registered after config plugins to allow overrides)
 const builtinPlugins = [
@@ -60,6 +70,8 @@ Options:
   --validate-only          Only validate, don't output data
   -c, --config <file>      Use specific config file (default: auto-detect vague.config.js)
   --no-config              Skip loading config file
+  -d, --debug              Enable debug logging (shows generation details)
+  --log-level <level>      Set log level: none, error, warn, info, debug (default: warn)
   -h, --help               Show this help message
 
 CSV Options (when --format csv):
@@ -128,7 +140,12 @@ Configuration File (vague.config.js):
     ],
     seed: 42,                     // Default seed
     format: 'json',               // Default format
-    pretty: true                  // Pretty-print by default
+    pretty: true,                 // Pretty-print by default
+    logging: {
+      level: 'debug',             // Log level: none, error, warn, info, debug
+      components: ['generator'],  // Filter to specific components
+      timestamps: true            // Include timestamps
+    }
   };
 `);
     process.exit(0);
@@ -169,6 +186,10 @@ Configuration File (vague.config.js):
   // Config options
   let configFile: string | null = null;
   let noConfig = false;
+
+  // Logging options
+  let debugMode = false;
+  let logLevelArg: LogLevel | null = null;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -271,6 +292,17 @@ Configuration File (vague.config.js):
       configFile = args[++i];
     } else if (args[i] === '--no-config') {
       noConfig = true;
+    } else if (args[i] === '-d' || args[i] === '--debug') {
+      debugMode = true;
+    } else if (args[i] === '--log-level') {
+      const level = args[++i] as LogLevel;
+      if (!['none', 'error', 'warn', 'info', 'debug'].includes(level)) {
+        console.error(
+          `Error: Invalid log level '${level}'. Must be: none, error, warn, info, debug`
+        );
+        process.exit(1);
+      }
+      logLevelArg = level;
     }
   }
 
@@ -297,6 +329,24 @@ Configuration File (vague.config.js):
   // Register built-in plugins (after config plugins so they take precedence)
   for (const plugin of builtinPlugins) {
     registerPlugin(plugin);
+  }
+
+  // Configure logging (config first, then CLI overrides)
+  if (config?.logging) {
+    configureLogging(config.logging);
+    log.debug('Applied logging config from file', { configPath: config.configPath });
+  }
+
+  // CLI logging flags take precedence over config
+  if (debugMode) {
+    enableDebug();
+    log.info('Debug logging enabled via --debug flag');
+  } else if (logLevelArg) {
+    setLogLevel(logLevelArg);
+    if (logLevelArg === 'info' || logLevelArg === 'debug') {
+      setTimestamps(true);
+    }
+    log.debug('Log level set via --log-level flag', { level: logLevelArg });
   }
 
   // Apply config defaults (CLI flags take precedence)

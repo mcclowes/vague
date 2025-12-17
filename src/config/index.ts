@@ -7,6 +7,9 @@ export {
   type ResolvedConfig,
   type PluginSpec,
   type PluginLoadResult,
+  type LoggingConfig,
+  type LogLevel,
+  type LogComponent,
   ConfigError,
   PluginLoadError,
 } from './types.js';

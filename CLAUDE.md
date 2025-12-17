@@ -14,6 +14,8 @@ src/
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
 ├── csv/         # CSV input/output formatting
+├── config/      # Configuration file loading (vague.config.js)
+├── logging/     # Logging utilities with levels and components
 ├── plugins/     # Built-in plugins (faker, issuer, date)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
@@ -30,7 +32,86 @@ node dist/cli.js <file.vague>  # Run CLI
 node dist/cli.js <file.vague> -o output.json -w  # Watch mode - regenerate on file change
 node dist/cli.js <file.vague> -f csv -o data.csv  # CSV output
 node dist/cli.js <file.vague> -v <openapi.json> -m '{"collection": "Schema"}'  # With validation
+node dist/cli.js <file.vague> --debug  # Enable debug logging
 ```
+
+## Debug Logging
+
+Vague has a comprehensive logging system for debugging generation issues.
+
+### CLI Options
+
+```bash
+# Enable full debug output
+node dist/cli.js schema.vague --debug
+
+# Set specific log level (none, error, warn, info, debug)
+node dist/cli.js schema.vague --log-level info
+```
+
+### Configuration File
+
+Add logging configuration to `vague.config.js`:
+
+```javascript
+export default {
+  logging: {
+    level: 'debug',                       // Log level
+    components: ['generator', 'constraint'], // Filter to specific components
+    timestamps: true,                     // Include timestamps
+    colors: true                          // Colored output
+  }
+};
+```
+
+### Environment Variables
+
+```bash
+# Enable debug logging
+VAGUE_DEBUG=1 node dist/cli.js schema.vague
+
+# Filter to specific components (comma-separated)
+VAGUE_DEBUG=generator,constraint node dist/cli.js schema.vague
+
+# Or use DEBUG environment variable
+DEBUG=vague node dist/cli.js schema.vague
+```
+
+### Programmatic API
+
+```typescript
+import { setLogLevel, enableDebug, configureLogging, createLogger } from 'vague';
+
+// Set log level
+setLogLevel('debug');  // 'none', 'error', 'warn', 'info', 'debug'
+
+// Or use convenience function
+enableDebug();
+
+// Or configure from object
+configureLogging({
+  level: 'debug',
+  components: ['generator'],
+  timestamps: true
+});
+
+// Create component-specific logger
+const log = createLogger('generator');
+log.debug('Custom message', { key: 'value' });
+```
+
+### Log Components
+
+- `lexer` - Tokenization
+- `parser` - Parsing
+- `generator` - Data generation pipeline
+- `constraint` - Constraint solving and validation
+- `validator` - OpenAPI schema validation
+- `plugin` - Plugin registration and lookup
+- `cli` - CLI operations
+- `openapi` - OpenAPI import processing
+- `infer` - Schema inference
+- `config` - Configuration loading
 
 ## Language Syntax
 
@@ -1097,6 +1178,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 - [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
+- [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
 
 See TODO.md for planned features.
 

@@ -70,9 +70,24 @@ export {
   type VagueConfig,
   type ResolvedConfig,
   type PluginSpec,
+  type LoggingConfig,
+  type LogLevel,
+  type LogComponent,
   ConfigError,
   PluginLoadError,
 } from './config/index.js';
+export {
+  createLogger,
+  configureLogging,
+  setLogLevel,
+  getLogLevel,
+  enableDebug,
+  disableLogging,
+  setComponents,
+  enableAllComponents,
+  setTimestamps,
+  setColors,
+} from './logging/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
