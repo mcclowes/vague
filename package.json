@@ -71,6 +71,7 @@
     "@faker-js/faker": "^10.1.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "randexp": "^0.5.3",
     "swagger-parser": "^10.0.3"
   }
 }

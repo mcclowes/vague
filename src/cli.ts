@@ -11,6 +11,8 @@ import {
   dateShorthandPlugin,
   issuerPlugin,
   issuerShorthandPlugin,
+  regexPlugin,
+  regexShorthandPlugin,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema, inferSchemaWithTypeScript } from './infer/index.js';
@@ -41,6 +43,8 @@ const builtinPlugins = [
   dateShorthandPlugin,
   issuerPlugin,
   issuerShorthandPlugin,
+  regexPlugin,
+  regexShorthandPlugin,
 ];
 
 interface ValidationMapping {

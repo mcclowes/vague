@@ -16,7 +16,7 @@ src/
 ├── csv/         # CSV input/output formatting
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
-├── plugins/     # Built-in plugins (faker, issuer, date)
+├── plugins/     # Built-in plugins (faker, issuer, date, regex)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -1125,7 +1125,86 @@ Shorthand generators:
 - `weekday(startYear, endYear)` or `weekday("start-date", "end-date")`
 - `weekend(startYear, endYear)` or `weekend("start-date", "end-date")`
 
-See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` for complete examples of plugin implementation.
+**Regex Plugin** (`src/plugins/regex.ts`):
+Generates strings from regex patterns and validates patterns in constraints.
+
+```vague
+schema Product {
+  // Generate strings matching regex patterns
+  sku: regex.generate("[A-Z]{3}-[0-9]{4}"),
+  barcode: regex("[0-9]{13}"),        // Shorthand for regex.generate()
+  serial: pattern("[A-Z]{2}[0-9]{6}"), // Another alias
+
+  // Common pattern generators
+  api_key: alphanumeric(32),          // 32 alphanumeric characters
+  pin: digits(6),                     // 6 digit string
+  code: alpha(4, "upper"),            // 4 uppercase letters
+  hex_color: regex.hex(6),            // 6 hex characters
+  slug: slug(2, 4),                   // URL slug with 2-4 words
+  version: semver(),                  // Semantic version (1.2.3)
+
+  // Phone numbers by region
+  us_phone: regex.phone("us"),        // (555) 123-4567
+  uk_phone: regex.phone("uk"),        // 01234 567890
+  intl_phone: regex.phone("intl"),    // +1 234 567 8901
+
+  // Other format generators
+  plate: licensePlate("us"),          // ABC-1234
+  zip: postalCode("us"),              // 12345 or 12345-6789
+  ip_v4: regex.ip("v4"),              // 192.168.1.1
+  mac: regex.mac(),                   // AA:BB:CC:DD:EE:FF
+  card: regex.creditCard("visa"),     // 4XXXXXXXXXXXXXXX
+
+  // Social handles
+  twitter: mention(),                 // @username
+  tag: hashtag(),                     // #HashTag
+  hex: colorHex()                     // #AABBCC
+}
+
+schema Validation {
+  code: regex("[A-Z]{3}-[0-9]{3}"),
+
+  // Validate patterns in constraints
+  assume regex.test("^[A-Z]{3}-[0-9]{3}$", code),
+  assume matches("^[A-Z]", code)      // Shorthand for regex.test()
+}
+
+schema StringOps {
+  source: "Order12345ABC",
+
+  // Extract first match (note: 'match' is reserved, use 'find')
+  number: regex.find("[0-9]+", source),        // "12345"
+
+  // Extract all matches
+  digits: regex.matchAll("[0-9]", source),     // ["1","2","3","4","5"]
+
+  // Capture groups
+  groups: regex.capture("([A-Za-z]+)([0-9]+)", source),  // ["Order", "12345"]
+
+  // Replace pattern
+  redacted: regex.replace("[0-9]+", source, "XXX"),      // "OrderXXXABC"
+
+  // Split by pattern
+  parts: regex.split("[0-9]+", source)         // ["Order", "ABC"]
+}
+```
+
+Full namespace generators:
+- `regex.generate(pattern)`, `regex.test(pattern, value)`, `regex.find(pattern, value)`
+- `regex.matchAll(pattern, value)`, `regex.capture(pattern, value)`
+- `regex.replace(pattern, value, replacement)`, `regex.split(pattern, value)`
+- `regex.alphanumeric(len)`, `regex.digits(len)`, `regex.alpha(len, case)`
+- `regex.hex(len)`, `regex.slug(min, max)`, `regex.phone(format)`
+- `regex.licensePlate(format)`, `regex.postalCode(format)`, `regex.ip(version)`
+- `regex.mac(sep)`, `regex.creditCard(format)`, `regex.semver(prerelease)`
+- `regex.colorHex(hash)`, `regex.hashtag(min, max)`, `regex.mention(min, max)`
+
+Shorthand generators:
+- `regex(pattern)`, `pattern(pattern)`, `matches(pattern, value)`
+- `alphanumeric()`, `digits()`, `alpha()`, `hexString()`, `slug()`
+- `licensePlate()`, `postalCode()`, `semver()`, `colorHex()`, `hashtag()`, `mention()`
+
+See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and `src/plugins/regex.ts` for complete examples of plugin implementation.
 
 ## What's Implemented
 
@@ -1143,6 +1222,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Faker plugin for semantic types
 - [x] Issuer plugin for edge case testing (Unicode, encoding, boundary values)
 - [x] Dates plugin for weekday/weekend date generation (`date.weekday()`, `date.weekend()`)
+- [x] Regex plugin for pattern-based generation and validation (`regex()`, `matches()`, `regex.test()`)
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
 - [x] Collection predicates (`all()`, `some()`, `none()` for validation)

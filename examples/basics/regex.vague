@@ -1,0 +1,90 @@
+// Regex Plugin Examples
+// The regex plugin provides pattern-based string generation and validation
+
+schema Product {
+  // Generate strings from regex patterns
+  sku: regex.generate("[A-Z]{3}-[0-9]{4}"),
+
+  // Shorthand: regex() is an alias for regex.generate()
+  barcode: regex("[0-9]{13}"),
+
+  // Another shorthand: pattern()
+  serial: pattern("[A-Z]{2}[0-9]{6}[A-Z]"),
+
+  // Common pattern helpers
+  version: semver(),
+  color: colorHex(),
+  slug: slug(2, 4),
+
+  // Validate patterns in constraints
+  assume regex.test("^[A-Z]{3}-[0-9]{4}$", sku),
+  assume matches("^[0-9]{13}$", barcode)
+}
+
+schema User {
+  // Alphanumeric and digit generators
+  api_key: alphanumeric(32),
+  pin: digits(6),
+
+  // Social media handles
+  twitter: mention(),
+  hashtag: hashtag(1, 3),
+
+  // Network identifiers
+  ip_address: regex.ip("v4"),
+  mac_address: regex.mac()
+}
+
+schema Contact {
+  // Phone numbers in different formats
+  us_phone: regex.phone("us"),
+  uk_phone: regex.phone("uk"),
+  intl_phone: regex.phone("intl"),
+
+  // Postal codes by country
+  us_zip: postalCode("us"),
+  uk_postcode: postalCode("uk"),
+  ca_postal: postalCode("ca")
+}
+
+schema Vehicle {
+  // License plates by region
+  us_plate: licensePlate("us"),
+  uk_plate: licensePlate("uk"),
+
+  // Custom pattern for VIN-like code
+  vin_code: regex("[A-HJ-NPR-Z0-9]{17}")
+}
+
+schema Transaction {
+  // Credit card patterns (not valid numbers, just pattern-matching)
+  visa: regex.creditCard("visa"),
+  mastercard: regex.creditCard("mastercard"),
+  amex: regex.creditCard("amex")
+}
+
+schema StringOperations {
+  // Extract and transform with regex
+  source: "Order12345ABC",
+
+  // Find first match
+  order_number: regex.find("[0-9]+", source),
+
+  // Find all matches
+  all_numbers: regex.matchAll("[0-9]", source),
+
+  // Replace pattern
+  redacted: regex.replace("[0-9]+", source, "XXXXX"),
+
+  // Split by pattern
+  parts: regex.split("[0-9]+", source)
+}
+
+dataset TestData {
+  products: 10 of Product,
+  users: 5 of User,
+  contacts: 5 of Contact,
+  vehicles: 5 of Vehicle,
+  transactions: 3 of Transaction,
+  operations: 1 of StringOperations
+}
