@@ -102,14 +102,64 @@
     "builtins": {
       "patterns": [
         {
-          "comment": "Aggregate, distribution, date, and sequence functions",
+          "comment": "Aggregate functions",
           "name": "support.function.builtin.vague",
-          "match": "\\b(sum|count|min|max|avg|round|floor|ceil|gaussian|normal|exponential|lognormal|poisson|beta|uniform|now|today|datetime|daysAgo|daysFromNow|dateBetween|formatDate|sequence|sequenceInt|previous|all|some|none)\\b"
+          "match": "\\b(sum|count|min|max|avg)\\b"
+        },
+        {
+          "comment": "Math functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(round|floor|ceil)\\b"
+        },
+        {
+          "comment": "Distribution functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(gaussian|normal|exponential|lognormal|poisson|beta|uniform)\\b"
+        },
+        {
+          "comment": "Date and time functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(now|today|datetime|daysAgo|daysFromNow|dateBetween|formatDate|weekday|weekend|dayOfWeek)\\b"
+        },
+        {
+          "comment": "Sequence functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(sequence|sequenceInt|previous)\\b"
+        },
+        {
+          "comment": "Collection predicates",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(all|some|none)\\b"
+        },
+        {
+          "comment": "String transformation functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(uppercase|lowercase|capitalize|kebabCase|snakeCase|camelCase|trim|concat|substring|replace|length)\\b"
+        },
+        {
+          "comment": "Generator functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(uuid|email|phone|firstName|lastName|fullName|companyName|city|country|state|zipCode|streetAddress|sentence|paragraph)\\b"
+        },
+        {
+          "comment": "Regex functions",
+          "name": "support.function.builtin.vague",
+          "match": "\\b(regex|alphanumeric|digits|semver|matches)\\b"
         },
         {
           "comment": "Faker namespace prefix",
           "name": "support.class.faker.vague",
           "match": "\\bfaker\\b"
+        },
+        {
+          "comment": "Issuer namespace prefix",
+          "name": "support.class.issuer.vague",
+          "match": "\\bissuer\\b"
+        },
+        {
+          "comment": "Date namespace prefix",
+          "name": "support.class.date.vague",
+          "match": "\\bdate\\b(?=\\.)"
         }
       ]
     },

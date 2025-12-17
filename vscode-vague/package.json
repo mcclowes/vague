@@ -2,7 +2,7 @@
   "name": "vague-language",
   "displayName": "Vague Language",
   "description": "Syntax highlighting for Vague - a declarative language for generating realistic test data",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "mcclowes",
   "author": {
     "name": "Max Clayton Clowes"
