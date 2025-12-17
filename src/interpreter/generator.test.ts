@@ -106,6 +106,68 @@ describe('Generator', () => {
     expect(paidCount).toBeGreaterThan(70);
   });
 
+  it('generates mixed weighted/unweighted superposition values', async () => {
+    // When some options have weights and others don't, unweighted options
+    // should share the remaining probability (1 - sum of explicit weights)
+    const source = `
+      schema Invoice {
+        status: 0.85: "Active" | "Archived"
+      }
+
+      dataset TestData {
+        invoices: 100 * Invoice
+      }
+    `;
+
+    const result = await compile(source);
+
+    let activeCount = 0;
+    let archivedCount = 0;
+    for (const invoice of result.invoices) {
+      const status = (invoice as Record<string, unknown>).status;
+      if (status === 'Active') {
+        activeCount++;
+      } else if (status === 'Archived') {
+        archivedCount++;
+      }
+    }
+
+    // "Active" should be roughly 85%, "Archived" should be roughly 15%
+    expect(activeCount).toBeGreaterThan(60); // Should be ~85%
+    expect(archivedCount).toBeGreaterThan(0); // Should be ~15%, at least some
+    expect(archivedCount).toBeLessThan(40); // Should not be too many
+  });
+
+  it('generates mixed weighted/unweighted with multiple unweighted options', async () => {
+    // When multiple unweighted options exist, they should share remaining probability equally
+    const source = `
+      schema Item {
+        category: 0.6: "main" | "side" | "dessert"
+      }
+
+      dataset TestData {
+        items: 100 * Item
+      }
+    `;
+
+    const result = await compile(source);
+
+    let mainCount = 0;
+    let sideCount = 0;
+    let dessertCount = 0;
+    for (const item of result.items) {
+      const category = (item as Record<string, unknown>).category;
+      if (category === 'main') mainCount++;
+      else if (category === 'side') sideCount++;
+      else if (category === 'dessert') dessertCount++;
+    }
+
+    // "main" should be ~60%, "side" and "dessert" should be ~20% each
+    expect(mainCount).toBeGreaterThan(40); // Should be ~60%
+    expect(sideCount).toBeGreaterThan(0); // Should be ~20%
+    expect(dessertCount).toBeGreaterThan(0); // Should be ~20%
+  });
+
   it('generates nullable fields with question mark shorthand', async () => {
     const source = `
       schema Item {

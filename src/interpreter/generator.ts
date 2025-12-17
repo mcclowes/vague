@@ -767,12 +767,26 @@ export class Generator {
       const idx = Math.floor(random() * options.length);
       result = this.evaluateExpression(options[idx].value);
     } else {
-      // Weighted selection
-      const totalWeight = options.reduce((sum, o) => sum + (o.weight ?? 0), 0);
+      // Weighted selection with support for mixed weighted/unweighted options
+      // Unweighted options share the remaining probability after explicit weights
+      const explicitWeights = options.filter((o) => o.weight !== undefined);
+      const unweightedOptions = options.filter((o) => o.weight === undefined);
+      const totalExplicitWeight = explicitWeights.reduce((sum, o) => sum + o.weight!, 0);
+
+      // Calculate weight for unweighted options
+      let implicitWeight = 0;
+      if (unweightedOptions.length > 0) {
+        const remainingWeight = Math.max(0, 1 - totalExplicitWeight);
+        implicitWeight = remainingWeight / unweightedOptions.length;
+      }
+
+      // Total weight is explicit weights + implicit weights for unweighted options
+      const totalWeight = totalExplicitWeight + implicitWeight * unweightedOptions.length;
       let r = random() * totalWeight;
 
       for (const option of options) {
-        r -= option.weight ?? 0;
+        const optionWeight = option.weight ?? implicitWeight;
+        r -= optionWeight;
         if (r <= 0) {
           result = this.evaluateExpression(option.value);
           break;
