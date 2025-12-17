@@ -1,6 +1,6 @@
 {
   "name": "vague-lang",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "A declarative language for generating realistic test data",
   "type": "module",
   "main": "dist/index.js",
