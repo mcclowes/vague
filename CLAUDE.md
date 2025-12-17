@@ -148,6 +148,10 @@ schema Invoice {
   avg_price: = avg(line_items.unit_price),
   min_price: = min(line_items.unit_price),
   max_price: = max(line_items.unit_price),
+  median_price: = median(line_items.unit_price),
+  first_item_price: = first(line_items.unit_price),
+  last_item_price: = last(line_items.unit_price),
+  price_product: = product(line_items.unit_price),
   // Arithmetic expressions
   tax: = round(sum(line_items.amount) * 0.2, 2),
   grand_total: = round(sum(line_items.amount) * 1.2, 2)
@@ -803,7 +807,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` 
 - [x] Conditional constraints (`assume if`)
 - [x] Cross-record references (`any of`, `where`)
 - [x] Parent references (`^field`)
-- [x] Computed fields with aggregates
+- [x] Computed fields with aggregates (`sum`, `count`, `min`, `max`, `avg`, `first`, `last`, `median`, `product`)
 - [x] Markov chain strings
 - [x] OpenAPI import with format-aware generation (`uuid`, `email`, `date-time`, etc.)
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)

@@ -94,7 +94,7 @@ Codebase Analysis Summary
 
 ## Inspired by Lea
 
-- [ ] **Richer builtins** - Expand beyond 5 aggregate functions (Lea has 60+)
+- [ ] **Richer builtins** - Expand beyond 9 aggregate functions (Lea has 60+)
 - [ ] **REPL** - Interactive mode for experimenting with schemas
 - [ ] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
 
