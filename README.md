@@ -401,8 +401,11 @@ src/
 ├── interpreter/ # JSON generator
 ├── validator/   # Schema validation (Ajv)
 ├── openapi/     # OpenAPI import support
-├── csv/         # CSV input/output formatting
 ├── infer/       # Schema inference from data
+├── csv/         # CSV input/output formatting
+├── config/      # Configuration file loading
+├── logging/     # Debug logging utilities
+├── plugins/     # Built-in plugins (faker, issuer, date, regex)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 ```

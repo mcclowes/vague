@@ -85,11 +85,11 @@ value: [1+1, 2+2, 3+3]            # Cycles: 2, 4, 6, 2, 4, 6...
 ## Collections (Cardinality)
 
 ```vague
-items: 5 * LineItem           # Exactly 5
-items: 1..5 * LineItem        # 1 to 5 (random)
+items: 5 of LineItem           # Exactly 5
+items: 1..5 of LineItem        # 1 to 5 (random)
 
 # Dynamic cardinality
-items: (size == "large" ? 5..10 : 1..3) * LineItem
+items: (size == "large" ? 5..10 : 1..3) of LineItem
 ```
 
 ---
@@ -148,7 +148,7 @@ schema LineItem {
 
 schema Invoice {
   base_currency: "USD" | "EUR",
-  items: 1..5 * LineItem        # LineItem inherits currency
+  items: 1..5 of LineItem        # LineItem inherits currency
 }
 ```
 
@@ -334,8 +334,8 @@ Supported operations: `=` (assign), `+=` (add)
 
 ```vague
 dataset TestData {
-  customers: 100 * Customer,
-  invoices: 500 * Invoice
+  customers: 100 of Customer,
+  invoices: 500 of Invoice
 }
 ```
 
@@ -345,8 +345,8 @@ dataset TestData {
 
 ```vague
 dataset TestData {
-  invoices: 100 * Invoice,
-  payments: 50 * Payment,
+  invoices: 100 of Invoice,
+  payments: 50 of Payment,
 
   validate {
     sum(invoices.total) >= 100000,
@@ -368,12 +368,12 @@ dataset TestData {
 ```vague
 # Normal dataset - satisfies constraints
 dataset Valid {
-  invoices: 100 * Invoice
+  invoices: 100 of Invoice
 }
 
 # Violating dataset - intentionally breaks constraints
 dataset Invalid violating {
-  bad_invoices: 100 * Invoice
+  bad_invoices: 100 of Invoice
 }
 ```
 
@@ -430,7 +430,7 @@ schema Invoice {
   id: sequence("INV-", 1001),
   customer: any of customers where .status == "active",
   base_currency: "USD" | "EUR" | "GBP",
-  line_items: 1..5 * LineItem,
+  line_items: 1..5 of LineItem,
   subtotal: sum(line_items.amount),
   tax: round(subtotal * 0.2, 2),
   total: subtotal + tax,
@@ -449,9 +449,9 @@ schema Payment {
 }
 
 dataset TestData {
-  customers: 50 * Customer,
-  invoices: 200 * Invoice,
-  payments: 100 * Payment,
+  customers: 50 of Customer,
+  invoices: 200 of Invoice,
+  payments: 100 of Payment,
 
   validate {
     all(invoices, .amount_paid <= .total),
