@@ -17,6 +17,7 @@ src/
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
 ├── plugins/     # Built-in plugins (faker, issuer, date, regex)
+├── reporting/   # Enterprise reporting, audit trails, compliance
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -885,7 +886,7 @@ const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 663 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, and examples.
+Currently 826 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, enterprise reporting, and examples.
 
 ## Architecture Notes
 
@@ -1281,6 +1282,119 @@ Shorthand generators:
 
 See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and `src/plugins/regex.ts` for complete examples of plugin implementation.
 
+## Enterprise Reporting
+
+Vague includes enterprise reporting features for audit trails, compliance documentation, and organizational risk management.
+
+### CLI Options
+
+```bash
+# Generate enterprise report (format auto-detected from extension)
+vague schema.vague -o data.json --report report.html    # HTML report
+vague schema.vague -o data.json --report report.md      # Markdown report
+vague schema.vague -o data.json --report report.json    # JSON report
+
+# Explicit format override
+vague schema.vague --report report.txt --report-format markdown
+
+# Audit trail logging (JSONL format)
+vague schema.vague --audit-log audit.jsonl
+
+# Compare against baseline for distribution drift detection
+vague schema.vague --report current.json --baseline baseline.json
+```
+
+### Report Contents
+
+Reports include:
+
+| Section | Description |
+|---------|-------------|
+| **Synthetic Data Attestation** | Legal-defensible statement that data is synthetic, not real PII |
+| **Summary** | Total records, collections, constraint satisfaction rate, seed |
+| **Collection Statistics** | Per-field type, null %, unique count, cardinality |
+| **Numeric Statistics** | Min, max, mean, median, standard deviation |
+| **Value Distributions** | Top N values with frequencies |
+| **Warnings** | Any generation warnings (constraint retries, unique exhaustion) |
+| **Performance Metrics** | Duration, records/second |
+| **Distribution Comparisons** | Drift detection from baseline (if --baseline provided) |
+
+### Programmatic API
+
+```typescript
+import {
+  generateReport,
+  formatReportAsHTML,
+  formatReportAsMarkdown,
+  formatReportAsJSON,
+  compareReports,
+  createAuditLogEntry,
+  type GenerationReport,
+} from 'vague';
+
+// Generate report after compilation
+const data = await compile(source);
+const report = generateReport(data, source, warningCollector.getWarnings(), {
+  seed: 42,
+  schemaFile: 'schema.vague',
+  startTime,
+  endTime,
+});
+
+// Format for output
+const html = formatReportAsHTML(report);
+const markdown = formatReportAsMarkdown(report);
+const json = formatReportAsJSON(report);
+
+// Compare two reports for distribution drift
+const comparisons = compareReports(baselineReport, currentReport);
+comparisons.forEach(c => {
+  console.log(`${c.field}: ${c.divergence * 100}% drift, significant: ${c.significant}`);
+});
+
+// Create audit log entry
+const entry = createAuditLogEntry('generate', 'success', 'schema.vague', schemaHash, data, warnings, durationMs, seed);
+```
+
+### Audit Log Format
+
+Audit logs are written in JSONL (JSON Lines) format, one entry per line:
+
+```json
+{
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "operation": "generate",
+  "status": "success",
+  "source": "schema.vague",
+  "schemaHash": "abc123def456",
+  "seed": 42,
+  "recordCounts": {"invoices": 100, "payments": 50},
+  "constraints": {"satisfied": 150, "total": 150},
+  "warningCounts": {},
+  "durationMs": 150
+}
+```
+
+### Distribution Comparison
+
+When a baseline report is provided with `--baseline`, the current report includes a `comparisons` array showing statistical drift:
+
+```json
+{
+  "comparisons": [
+    {
+      "field": "invoices.status",
+      "divergence": 0.15,
+      "significant": false,
+      "baseline": {"distribution": [{"value": "paid", "percentage": 45}]},
+      "current": {"distribution": [{"value": "paid", "percentage": 50}]}
+    }
+  ]
+}
+```
+
+Divergence is measured using Jensen-Shannon divergence (0 = identical, 1 = completely different). Changes are flagged as significant when divergence exceeds 15%.
+
 ## What's Implemented
 
 - [x] Lexer, parser, AST, generator
@@ -1334,6 +1448,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and 
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 - [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
 - [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
+- [x] Enterprise reporting (`--report`, `--audit-log`, `--baseline` for HTML/Markdown/JSON reports, audit trails, distribution drift detection)
 
 See TODO.md for planned features.
 
