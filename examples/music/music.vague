@@ -1,0 +1,219 @@
+// Music Generation with Vague
+// Demonstrates how Vague's features map to musical concepts
+
+// =============================================================================
+// MUSICAL PRIMITIVES
+// =============================================================================
+
+// A single note with MIDI properties
+schema Note {
+  // C major scale (MIDI numbers: C4=60 to C5=72)
+  // Weighted to favor tonic (C), dominant (G), and third (E)
+  pitch: 0.20: 60 |  // C4 - tonic (most common)
+         0.08: 62 |  // D4
+         0.15: 64 |  // E4 - third
+         0.10: 65 |  // F4
+         0.18: 67 |  // G4 - dominant
+         0.10: 69 |  // A4
+         0.07: 71 |  // B4 - leading tone
+         0.12: 72,   // C5 - octave
+
+  // Duration in beats (quarter=1, eighth=0.5, half=2)
+  duration: 0.35: 1 | 0.30: 0.5 | 0.15: 2 | 0.10: 0.25 | 0.10: 1.5,
+
+  // Velocity (volume) with natural variation around mezzo-forte
+  velocity: = round(gaussian(80, 12, 45, 120), 0),
+
+  // Humanization: slight timing offset in milliseconds
+  timing_offset_ms: = round(gaussian(0, 8, 0, 15), 1),
+
+  // Start time will be computed by the converter
+  beat: int in 0..0  // Placeholder, set by parent
+}
+
+// A note with melodic continuity (stepwise motion tendency)
+schema MelodicNote {
+  pitch: int in 60..72,
+  prev_pitch: = previous("pitch"),
+
+  // Favor stepwise motion (intervals of 1-2 semitones)
+  assume prev_pitch == null or
+         (pitch >= prev_pitch - 3 and pitch <= prev_pitch + 3),
+
+  duration: 0.40: 1 | 0.35: 0.5 | 0.15: 2 | 0.10: 0.25,
+  velocity: = round(gaussian(75, 10, 50, 110), 0),
+  timing_offset_ms: = round(gaussian(0, 6, 0, 12), 1)
+}
+
+// =============================================================================
+// CHORDS
+// =============================================================================
+
+// Common chord types in C major
+schema Chord {
+  // I, IV, V, vi progression weights (pop music)
+  root: 0.30: 60 |   // C (I)
+        0.20: 65 |   // F (IV)
+        0.25: 67 |   // G (V)
+        0.15: 69 |   // Am (vi)
+        0.05: 62 |   // Dm (ii)
+        0.05: 64,    // Em (iii)
+
+  // Chord quality determines intervals
+  quality: 0.70: "major" | 0.25: "minor" | 0.05: "seventh",
+
+  // Duration in beats
+  duration: 0.50: 4 | 0.30: 2 | 0.20: 8,
+
+  // Velocity for chord (slightly softer than melody)
+  velocity: = round(gaussian(65, 10, 40, 90), 0)
+}
+
+// =============================================================================
+// RHYTHM PATTERNS
+// =============================================================================
+
+schema DrumHit {
+  // Common drum sounds (General MIDI drum map)
+  sound: 0.35: 36 |  // Kick
+         0.30: 38 |  // Snare
+         0.20: 42 |  // Closed hi-hat
+         0.10: 46 |  // Open hi-hat
+         0.05: 49,   // Crash
+
+  velocity: = round(gaussian(90, 15, 60, 127), 0),
+  timing_offset_ms: = round(gaussian(0, 5, 0, 10), 1)
+}
+
+schema DrumPattern {
+  // 16 steps for one bar (16th notes)
+  steps: 16 * DrumStep
+}
+
+schema DrumStep {
+  // Whether this step has a hit
+  active: 0.6: true | 0.4: false,
+  sound: 0.40: 36 | 0.30: 38 | 0.30: 42,
+  velocity: = active ? round(gaussian(85, 12, 50, 120), 0) : 0
+}
+
+// =============================================================================
+// BASS LINE
+// =============================================================================
+
+schema BassNote {
+  // Bass typically follows root notes, one octave down
+  pitch: 0.30: 36 |  // C2
+         0.20: 41 |  // F2
+         0.25: 43 |  // G2
+         0.15: 45 |  // A2
+         0.10: 38,   // D2
+
+  // Bass often plays on the beat with some syncopation
+  duration: 0.45: 1 | 0.30: 0.5 | 0.15: 2 | 0.10: 0.75,
+  velocity: = round(gaussian(85, 10, 60, 110), 0),
+  timing_offset_ms: = round(gaussian(0, 4, 0, 8), 1)
+}
+
+// =============================================================================
+// MUSICAL PHRASES
+// =============================================================================
+
+schema MelodicPhrase {
+  notes: 4..8 * MelodicNote
+}
+
+schema ChordProgression {
+  chords: 4..8 * Chord
+}
+
+schema BassLine {
+  notes: 4..8 * BassNote
+}
+
+// =============================================================================
+// SONG SECTIONS
+// =============================================================================
+
+schema Verse {
+  name: "verse",
+  bars: 8,
+  melody: 2 * MelodicPhrase,
+  chords: 1 * ChordProgression,
+  bass: 2 * BassLine,
+  intensity: 0.6  // Moderate intensity
+}
+
+schema Chorus {
+  name: "chorus",
+  bars: 8,
+  melody: 2 * MelodicPhrase,
+  chords: 1 * ChordProgression,
+  bass: 2 * BassLine,
+  intensity: 0.9  // High intensity
+}
+
+schema Bridge {
+  name: "bridge",
+  bars: 4,
+  melody: 1 * MelodicPhrase,
+  chords: 1 * ChordProgression,
+  bass: 1 * BassLine,
+  intensity: 0.5  // Lower intensity
+}
+
+// =============================================================================
+// COMPLETE SONG STRUCTURE
+// =============================================================================
+
+schema Song {
+  title: "Generated Song",
+  tempo: int in 90..140,  // BPM
+  key: "C",
+  time_signature: "4/4",
+
+  // Standard pop song structure
+  sections: 6 * Section
+}
+
+schema Section {
+  type: 0.40: "verse" | 0.35: "chorus" | 0.15: "bridge" | 0.10: "intro",
+  bars: = type == "bridge" ? 4 : 8,
+  melody: (type == "intro" ? 1 : 2) * MelodicPhrase,
+  chords: 1 * ChordProgression,
+  bass: (type == "intro" ? 1 : 2) * BassLine,
+
+  // Intensity affects dynamics
+  intensity: = type == "chorus" ? 0.9 :
+               type == "verse" ? 0.6 :
+               type == "bridge" ? 0.5 : 0.3
+}
+
+// =============================================================================
+// DATASETS
+// =============================================================================
+
+// Simple melody generation
+dataset SimpleMelody {
+  phrases: 4 * MelodicPhrase
+}
+
+// Full song generation
+dataset FullSong {
+  songs: 1 * Song
+}
+
+// Just chord progressions (useful for jamming)
+dataset ChordProgressions {
+  progressions: 4 * ChordProgression
+}
+
+// Drum patterns
+dataset DrumPatterns {
+  patterns: 4 * DrumPattern
+}
+
+// Ambient/textural (more variation)
+dataset Ambient {
+  notes: 32 * Note
+}
