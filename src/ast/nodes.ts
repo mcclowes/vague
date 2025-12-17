@@ -6,6 +6,7 @@ export type ASTNode =
   | ContextDefinition
   | DistributionDefinition
   | DatasetDefinition
+  | ContractDefinition
   | FieldDefinition
   | Expression;
 
@@ -20,7 +21,8 @@ export type Statement =
   | SchemaDefinition
   | ContextDefinition
   | DistributionDefinition
-  | DatasetDefinition;
+  | DatasetDefinition
+  | ContractDefinition;
 
 // import codat from "codat-openapi.json"
 export interface ImportStatement {
@@ -37,14 +39,17 @@ export interface LetStatement {
 }
 
 // schema Invoice from codat.Invoice { ... }
+// schema Invoice with InvoiceContract { ... }
 export interface SchemaDefinition {
   type: 'SchemaDefinition';
   name: string;
   base?: QualifiedName; // from codat.Invoice
+  contracts?: string[]; // applied contracts: with InvoiceContract, PaymentContract
   contexts?: ContextApplication[];
   fields: FieldDefinition[];
   constraints?: ConstraintBlock;
   assumes?: AssumeClause[];
+  invariants?: InvariantClause[]; // inline invariants
   thenBlock?: ThenBlock; // then { invoice.status = "paid" }
 }
 
@@ -67,6 +72,25 @@ export interface AssumeClause {
   type: 'AssumeClause';
   condition?: Expression; // if condition (for assume if)
   constraints: Expression[]; // the constraints to enforce
+}
+
+// contract InvoiceContract { invariant amount > 0 "must be positive" }
+export interface ContractDefinition {
+  type: 'ContractDefinition';
+  name: string;
+  invariants: InvariantClause[];
+}
+
+// invariant amount > 0 "Amount must be positive"
+// Unlike assume, invariants:
+// - Cannot be violated even in "violating" mode
+// - Have optional error messages for better diagnostics
+// - Are exported as part of the schema's contract for external validation
+export interface InvariantClause {
+  type: 'InvariantClause';
+  condition?: Expression; // if condition (for invariant if)
+  constraints: Expression[]; // the constraints that must hold
+  message?: string; // optional error message for violations
 }
 
 // context Geography { ... }

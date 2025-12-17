@@ -7,6 +7,7 @@ import {
   ContextDefinition,
   DistributionDefinition,
   DatasetDefinition,
+  ContractDefinition,
   FieldDefinition,
   FieldType,
   Expression,
@@ -18,6 +19,7 @@ import {
   ConstraintBlock,
   ValidationBlock,
   AssumeClause,
+  InvariantClause,
   ThenBlock,
   Mutation,
 } from '../ast/index.js';
@@ -31,6 +33,7 @@ import { TypeParser } from './types.js';
  * - context definitions
  * - distribution definitions
  * - dataset definitions
+ * - contract definitions
  */
 export class StatementParser extends TypeParser {
   // ============================================
@@ -44,6 +47,7 @@ export class StatementParser extends TypeParser {
     if (this.check(TokenType.CONTEXT)) return this.parseContext();
     if (this.check(TokenType.DISTRIBUTION)) return this.parseDistribution();
     if (this.check(TokenType.DATASET)) return this.parseDataset();
+    if (this.check(TokenType.CONTRACT)) return this.parseContract();
 
     throw this.error(`Unexpected token: ${this.peek().value}`);
   }
@@ -83,10 +87,14 @@ export class StatementParser extends TypeParser {
       base = this.parseQualifiedName();
     }
 
+    // Parse contract applications: implements ContractA, ContractB
+    const contracts = this.parseContractApplications();
+
+    // Parse context applications: with Context1, Context2("arg")
     const contexts = this.parseContextApplications();
 
     this.consume(TokenType.LBRACE, "Expected '{'");
-    const { fields, constraints, assumes } = this.parseSchemaBody();
+    const { fields, constraints, assumes, invariants } = this.parseSchemaBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
     // Optional then block
@@ -99,21 +107,49 @@ export class StatementParser extends TypeParser {
       type: 'SchemaDefinition',
       name,
       base,
+      contracts: contracts && contracts.length > 0 ? contracts : undefined,
       contexts,
       fields,
       constraints,
       assumes,
+      invariants: invariants && invariants.length > 0 ? invariants : undefined,
       thenBlock,
     };
+  }
+
+  /**
+   * Parse contract applications: implements ContractA, ContractB
+   * Uses 'implements' keyword (not 'with') to avoid confusion with contexts
+   */
+  private parseContractApplications(): string[] | undefined {
+    if (!this.match(TokenType.IMPLEMENTS)) return undefined;
+
+    const contracts: string[] = [];
+
+    // Parse first contract name
+    contracts.push(this.consume(TokenType.IDENTIFIER, 'Expected contract name').value);
+
+    // Parse additional contracts: , ContractB, ContractC
+    while (this.match(TokenType.COMMA)) {
+      // Stop if we hit 'with' (start of context applications)
+      if (this.check(TokenType.WITH)) {
+        break;
+      }
+      contracts.push(this.consume(TokenType.IDENTIFIER, 'Expected contract name').value);
+    }
+
+    return contracts;
   }
 
   private parseSchemaBody(): {
     fields: FieldDefinition[];
     constraints?: ConstraintBlock;
     assumes?: AssumeClause[];
+    invariants?: InvariantClause[];
   } {
     const fields: FieldDefinition[] = [];
     const assumes: AssumeClause[] = [];
+    const invariants: InvariantClause[] = [];
     let constraints: ConstraintBlock | undefined;
 
     while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
@@ -121,13 +157,20 @@ export class StatementParser extends TypeParser {
         constraints = this.parseConstraintBlock();
       } else if (this.check(TokenType.ASSUME)) {
         assumes.push(this.parseAssumeClause());
+      } else if (this.check(TokenType.INVARIANT)) {
+        invariants.push(this.parseInvariantClause());
       } else {
         fields.push(this.parseFieldDefinition());
       }
       this.match(TokenType.COMMA);
     }
 
-    return { fields, constraints, assumes: assumes.length > 0 ? assumes : undefined };
+    return {
+      fields,
+      constraints,
+      assumes: assumes.length > 0 ? assumes : undefined,
+      invariants: invariants.length > 0 ? invariants : undefined,
+    };
   }
 
   parseFieldDefinition(): FieldDefinition {
@@ -342,6 +385,81 @@ export class StatementParser extends TypeParser {
     // Simple: assume expr
     const constraint = this.parseLogicalExpression();
     return { type: 'AssumeClause', constraints: [constraint] };
+  }
+
+  // ============================================
+  // Contract definitions and invariants
+  // ============================================
+
+  /**
+   * Parse a contract definition:
+   * contract InvoiceContract {
+   *   invariant amount > 0 "Amount must be positive"
+   *   invariant if status == "paid" { amount_paid >= total }
+   * }
+   */
+  private parseContract(): ContractDefinition {
+    this.consume(TokenType.CONTRACT, "Expected 'contract'");
+    const name = this.consume(TokenType.IDENTIFIER, 'Expected contract name').value;
+
+    this.consume(TokenType.LBRACE, "Expected '{'");
+
+    const invariants: InvariantClause[] = [];
+    while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+      invariants.push(this.parseInvariantClause());
+      this.match(TokenType.COMMA);
+    }
+
+    this.consume(TokenType.RBRACE, "Expected '}'");
+
+    return { type: 'ContractDefinition', name, invariants };
+  }
+
+  /**
+   * Parse an invariant clause:
+   * - invariant expr "optional message"
+   * - invariant if condition { expr1, expr2 }
+   *
+   * Unlike assume, invariants:
+   * - Cannot be violated even in "violating" mode
+   * - Have optional error messages for diagnostics
+   * - Are exported as part of the contract for external validation
+   */
+  private parseInvariantClause(): InvariantClause {
+    this.consume(TokenType.INVARIANT, "Expected 'invariant'");
+
+    // Conditional: invariant if condition { ... }
+    if (this.match(TokenType.IF)) {
+      const condition = this.parseLogicalExpression();
+      this.consume(TokenType.LBRACE, "Expected '{'");
+
+      const constraints: Expression[] = [];
+      while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+        constraints.push(this.parseLogicalExpression());
+        this.match(TokenType.COMMA);
+      }
+
+      this.consume(TokenType.RBRACE, "Expected '}'");
+
+      // Optional message after the block
+      let message: string | undefined;
+      if (this.check(TokenType.STRING)) {
+        message = this.advance().value;
+      }
+
+      return { type: 'InvariantClause', condition, constraints, message };
+    }
+
+    // Simple: invariant expr "optional message"
+    const constraint = this.parseLogicalExpression();
+
+    // Optional error message
+    let message: string | undefined;
+    if (this.check(TokenType.STRING)) {
+      message = this.advance().value;
+    }
+
+    return { type: 'InvariantClause', constraints: [constraint], message };
   }
 
   // ============================================

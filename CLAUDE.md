@@ -16,6 +16,7 @@ src/
 ├── csv/         # CSV input/output formatting
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
+├── compare/     # Golden dataset comparison and schema diff
 ├── plugins/     # Built-in plugins (faker, issuer, date, regex)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
@@ -200,6 +201,38 @@ schema Invoice {
 ```
 
 Logical operators: `and`, `or`, `not`
+
+### Contracts and Invariants
+Contracts define hard invariants that can never be violated, even in `violating` mode:
+
+```vague
+// Define a reusable contract
+contract PositiveAmount {
+  invariant amount > 0 "Amount must be positive"
+  invariant if status == "paid" {
+    amount_paid >= total
+  }
+}
+
+// Apply contract to schema with 'implements'
+schema Invoice implements PositiveAmount {
+  amount: decimal in 1..1000,
+  status: "draft" | "paid",
+  total: decimal in 100..500,
+  amount_paid: decimal in 0..600
+}
+
+// Or use inline invariants
+schema Payment {
+  amount: decimal in 1..1000,
+  invariant amount > 0 "Payment must be positive"
+}
+```
+
+**Key difference from `assume`:**
+- `assume` constraints can be violated in `violating` mode (for negative testing)
+- `invariant` constraints are always enforced (true contracts that define valid data)
+- Invariants support optional error messages for better diagnostics
 
 ### Cross-Record References
 ```vague
@@ -881,11 +914,103 @@ const result = validator.validateCollection('Invoice', invoices);
 const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 ```
 
+### Dataset Comparison (Golden Datasets)
+
+Compare generated data against reference "golden" datasets to detect behavioral drift:
+
+```typescript
+import { compareDatasets, formatComparisonResult, datasetsEqual } from 'vague';
+
+// Generate reference data with a seed
+const golden = await fromFile('schema.vague', { seed: 42 });
+// Save as JSON for future comparison
+
+// Later, compare new generation against golden
+const actual = await fromFile('schema.vague', { seed: 42 });
+const result = compareDatasets(golden, actual);
+
+if (!result.identical) {
+  console.log(formatComparisonResult(result));
+  // Shows:
+  // ✗ Datasets differ
+  // Summary:
+  //   Collections: 1/2 matching
+  //   Records: 95/100 matching
+  //   Total differences: 5
+  // Collection: invoices
+  //   Record 3:
+  //     amount: 150.50 → 200.00 (value_mismatch)
+}
+
+// Quick equality check
+if (datasetsEqual(golden, actual)) {
+  console.log('No changes detected');
+}
+
+// Options for comparison
+const result = compareDatasets(golden, actual, {
+  numericTolerance: 0.01,        // Allow small float differences
+  ignoreFields: ['timestamp'],   // Skip certain fields
+  orderSensitive: true,          // Record order matters (default: true)
+  maxDiffsPerCollection: 10      // Limit reported differences
+});
+```
+
+### Schema Diff (Breaking Change Detection)
+
+Detect behavioral changes between schema versions:
+
+```typescript
+import { diffSchemas, formatDiffResult } from 'vague';
+
+const oldSchema = `
+  schema Invoice {
+    amount: decimal in 0..1000,
+    assume amount >= 0
+  }
+`;
+
+const newSchema = `
+  schema Invoice {
+    amount: decimal in 0..1000,
+    assume amount > 0
+  }
+`;
+
+const diff = diffSchemas(oldSchema, newSchema);
+
+if (diff.hasBreakingChanges) {
+  console.log(formatDiffResult(diff));
+  // ⚠ BREAKING CHANGES DETECTED
+  //
+  // Summary:
+  //   ~ Schemas modified: Invoice
+  //
+  // Schema: Invoice [BREAKING]
+  //   ! Constraint added (validation tightened): amount > 0
+  //   + Constraint removed (validation loosened): amount >= 0
+}
+```
+
+**Change Types:**
+| Change | Type | Impact |
+|--------|------|--------|
+| Schema removed | Breaking | Existing code may fail |
+| Field removed | Breaking | Data may be missing fields |
+| Constraint added | Breaking | Existing data may fail validation |
+| Invariant added | Breaking | Data generation may fail |
+| Contract applied | Breaking | New restrictions enforced |
+| Schema added | Compatible | No impact on existing data |
+| Field added | Compatible | Additional data available |
+| Constraint removed | Compatible | Validation loosened |
+| Field made optional | Compatible | More flexible |
+| Field made required | Breaking | May cause null errors |
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 663 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, and examples.
+Currently 823+ tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, contracts, dataset comparison, schema diff, CLI, and examples.
 
 ## Architecture Notes
 
@@ -1334,6 +1459,9 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and 
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 - [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
 - [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
+- [x] Contracts and invariants (`contract`, `invariant`, `implements` - hard constraints that cannot be violated)
+- [x] Golden dataset comparison (`compareDatasets()`, `datasetsEqual()` for detecting behavioral drift)
+- [x] Schema diff (`diffSchemas()` for detecting breaking changes between schema versions)
 
 See TODO.md for planned features.
 

@@ -15,6 +15,7 @@ import {
   LogicalExpression,
   NotExpression,
   AssumeClause,
+  InvariantClause,
   FieldType,
   Cardinality,
   DynamicCardinality,
@@ -98,7 +99,7 @@ export class Generator {
   async generate(program: Program): Promise<Record<string, unknown[]>> {
     generatorLog.debug('Starting generation', { statements: program.statements.length });
 
-    // First pass: collect schemas and process imports
+    // First pass: collect schemas, contracts, and process imports
     for (const stmt of program.statements) {
       if (stmt.type === 'ImportStatement') {
         generatorLog.debug('Loading OpenAPI import', { name: stmt.name, path: stmt.path });
@@ -111,12 +112,21 @@ export class Generator {
           name: stmt.name,
           fields: stmt.fields.length,
           constraints: stmt.assumes?.length ?? 0,
+          invariants: stmt.invariants?.length ?? 0,
+          contracts: stmt.contracts?.length ?? 0,
+        });
+      } else if (stmt.type === 'ContractDefinition') {
+        this.ctx.contracts.set(stmt.name, stmt);
+        generatorLog.debug('Registered contract', {
+          name: stmt.name,
+          invariants: stmt.invariants.length,
         });
       }
     }
 
     generatorLog.info('Schema registration complete', {
       schemas: this.ctx.schemas.size,
+      contracts: this.ctx.contracts.size,
       imports: this.ctx.importedSchemas.size,
     });
 
@@ -264,18 +274,40 @@ export class Generator {
     // Collect private field names for filtering
     const privateFields = this.getPrivateFieldNames(schema, overrides);
 
+    // Collect all invariants (inline + from applied contracts)
+    const allInvariants = this.collectInvariants(schema);
+
+    // Check if we have any constraints to validate
+    const hasAssumes = schema.assumes && schema.assumes.length > 0;
+    const hasInvariants = allInvariants.length > 0;
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const instance = this.generateInstanceAttempt(schema, overrides);
 
-      // If no constraints, execute then block and return
-      if (!schema.assumes || schema.assumes.length === 0) {
+      // INVARIANTS: Must ALWAYS pass (even in violating mode)
+      // These are hard contracts that can never be broken
+      if (hasInvariants) {
+        const invariantResult = this.validateInvariants(allInvariants, instance);
+        if (!invariantResult.valid) {
+          // Invariant failed - must retry
+          constraintLog.debug('Invariant failed, retrying', {
+            schema: schema.name,
+            attempt: attempt + 1,
+            message: invariantResult.failedMessage,
+          });
+          continue;
+        }
+      }
+
+      // ASSUMES: Respect violating mode
+      // In violating mode, we want constraints to FAIL (inverted logic)
+      if (!hasAssumes) {
+        // No assumes, but invariants passed - success
         this.executeThenBlock(schema.thenBlock, instance);
         return this.stripPrivateFields(instance, privateFields);
       }
 
-      // Check all constraints
-      // In violating mode, we want constraints to FAIL (inverted logic)
-      const constraintsPass = this.validateConstraints(schema.assumes, instance);
+      const constraintsPass = this.validateConstraints(schema.assumes!, instance);
       if (this.ctx.violating ? !constraintsPass : constraintsPass) {
         this.executeThenBlock(schema.thenBlock, instance);
         return this.stripPrivateFields(instance, privateFields);
@@ -288,6 +320,75 @@ export class Generator {
     const instance = this.generateInstanceAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
     return this.stripPrivateFields(instance, privateFields);
+  }
+
+  /**
+   * Collect all invariants for a schema:
+   * - Inline invariants from schema definition
+   * - Invariants from applied contracts
+   */
+  private collectInvariants(schema: SchemaDefinition): InvariantClause[] {
+    const invariants: InvariantClause[] = [];
+
+    // Add inline invariants
+    if (schema.invariants) {
+      invariants.push(...schema.invariants);
+    }
+
+    // Add invariants from applied contracts
+    if (schema.contracts) {
+      for (const contractName of schema.contracts) {
+        const contract = this.ctx.contracts.get(contractName);
+        if (contract) {
+          invariants.push(...contract.invariants);
+        } else {
+          constraintLog.warn(`Contract "${contractName}" not found`, {
+            schema: schema.name,
+          });
+        }
+      }
+    }
+
+    return invariants;
+  }
+
+  /**
+   * Validate invariants - these MUST always pass, regardless of violating mode.
+   * Returns validation result with optional failure message.
+   */
+  private validateInvariants(
+    invariants: InvariantClause[],
+    instance: Record<string, unknown>
+  ): { valid: boolean; failedMessage?: string } {
+    const oldCurrent = this.ctx.current;
+    this.ctx.current = instance;
+
+    try {
+      for (const invariant of invariants) {
+        // Check if conditional invariant applies
+        if (invariant.condition) {
+          const conditionMet = Boolean(this.evaluateExpression(invariant.condition));
+          if (!conditionMet) {
+            // Condition not met, skip these constraints
+            continue;
+          }
+        }
+
+        // All constraints in the clause must be true
+        for (const constraint of invariant.constraints) {
+          const result = this.evaluateExpression(constraint);
+          if (!result) {
+            return {
+              valid: false,
+              failedMessage: invariant.message || 'Invariant violated',
+            };
+          }
+        }
+      }
+      return { valid: true };
+    } finally {
+      this.ctx.current = oldCurrent;
+    }
   }
 
   private getPrivateFieldNames(

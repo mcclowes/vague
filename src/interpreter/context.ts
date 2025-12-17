@@ -1,12 +1,13 @@
-import type { SchemaDefinition } from '../ast/index.js';
+import type { SchemaDefinition, ContractDefinition } from '../ast/index.js';
 import type { ImportedSchema } from '../openapi/index.js';
 
 /**
  * Context maintained during generation.
- * Tracks schemas, collections, and state for sequential generation.
+ * Tracks schemas, contracts, collections, and state for sequential generation.
  */
 export interface GeneratorContext {
   schemas: Map<string, SchemaDefinition>;
+  contracts: Map<string, ContractDefinition>; // Named contracts that can be applied to schemas
   importedSchemas: Map<string, Map<string, ImportedSchema>>;
   collections: Map<string, unknown[]>;
   parent?: Record<string, unknown>;
@@ -25,6 +26,7 @@ export interface GeneratorContext {
 export function createContext(): GeneratorContext {
   return {
     schemas: new Map(),
+    contracts: new Map(),
     importedSchemas: new Map(),
     collections: new Map(),
     uniqueValues: new Map(),
