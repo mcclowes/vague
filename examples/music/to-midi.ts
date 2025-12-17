@@ -282,6 +282,66 @@ function processAmbient(
   return new MidiWriter.Writer([track]);
 }
 
+// Process PopArpeggios dataset (I-V-vi-IV progression)
+interface ArpChord {
+  notes: MelodicNote[];
+}
+
+function processPopArpeggios(
+  data: { c_arps: ArpChord[]; g_arps: ArpChord[]; am_arps: ArpChord[]; f_arps: ArpChord[] },
+  tempo: number = 100
+): MidiWriter.Writer {
+  const track = new MidiWriter.Track();
+  track.setTempo(tempo);
+  track.addTrackName('Arpeggios');
+
+  // Play in order: C -> G -> Am -> F (I-V-vi-IV)
+  const progression = [
+    ...data.c_arps,
+    ...data.g_arps,
+    ...data.am_arps,
+    ...data.f_arps,
+  ];
+
+  for (const arp of progression) {
+    for (const note of arp.notes) {
+      track.addEvent(
+        new MidiWriter.NoteEvent({
+          pitch: [midiToNoteName(note.pitch)],
+          duration: beatsToDuration(note.duration),
+          velocity: Math.round(note.velocity),
+        })
+      );
+    }
+  }
+
+  return new MidiWriter.Writer([track]);
+}
+
+// Process SimpleArpeggio dataset
+function processSimpleArpeggio(
+  data: { phrases: ArpChord[] },
+  tempo: number = 100
+): MidiWriter.Writer {
+  const track = new MidiWriter.Track();
+  track.setTempo(tempo);
+  track.addTrackName('Arpeggios');
+
+  for (const phrase of data.phrases) {
+    for (const note of phrase.notes) {
+      track.addEvent(
+        new MidiWriter.NoteEvent({
+          pitch: [midiToNoteName(note.pitch)],
+          duration: beatsToDuration(note.duration),
+          velocity: Math.round(note.velocity),
+        })
+      );
+    }
+  }
+
+  return new MidiWriter.Writer([track]);
+}
+
 // Process ChordProgressions dataset
 function processChordProgressions(
   data: { progressions: ChordProgression[] },
@@ -334,6 +394,13 @@ async function main() {
   if (data.songs) {
     console.log('Detected: FullSong dataset');
     writer = processFullSong(data);
+  } else if (data.c_arps && data.g_arps && data.am_arps && data.f_arps) {
+    console.log('Detected: PopArpeggios dataset');
+    writer = processPopArpeggios(data);
+  } else if (data.phrases && data.phrases[0]?.notes) {
+    // Check if it's arpeggio style (has notes array) vs melodic phrases
+    console.log('Detected: SimpleArpeggio dataset');
+    writer = processSimpleArpeggio(data);
   } else if (data.phrases) {
     console.log('Detected: SimpleMelody dataset');
     writer = processSimpleMelody(data);
