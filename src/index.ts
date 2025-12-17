@@ -92,6 +92,32 @@ export {
   setColors,
 } from './logging/index.js';
 
+// Dataset comparison utilities
+export {
+  compareDatasets,
+  formatComparisonResult,
+  datasetsEqual,
+  type DatasetComparisonResult,
+  type CollectionDiff,
+  type RecordDiff,
+  type FieldDiff,
+  type CompareOptions,
+} from './compare/index.js';
+
+// Schema diff utilities
+export {
+  diffSchemas,
+  diffPrograms,
+  formatDiffResult,
+  type DiffResult,
+  type SchemaDiff,
+  type FieldChange,
+  type ConstraintChange,
+  type InvariantChange,
+  type ContractChange,
+  type ChangeType,
+} from './compare/schema-diff.js';
+
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Lexer } from './lexer/index.js';
