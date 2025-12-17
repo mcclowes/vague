@@ -959,8 +959,78 @@ schema Example {
 ### Built-in Plugins
 
 **Faker Plugin** (`src/plugins/faker.ts`):
-- Full namespace: `faker.person.firstName()`, `faker.internet.email()`
-- Shorthand: `uuid()`, `email()`, `fullName()`, `companyName()`
+
+Provides realistic data generation via [@faker-js/faker](https://fakerjs.dev/). Use either the full namespace (`faker.person.firstName()`) or shorthand (`firstName()`).
+
+**Shorthand Generators** (most common):
+```vague
+schema User {
+  id: uuid(),
+  email: email(),
+  phone: phone(),
+  firstName: firstName(),
+  lastName: lastName(),
+  fullName: fullName(),
+  company: companyName(),
+  street: streetAddress(),
+  city: city(),
+  country: country(),
+  countryCode: countryCode(),
+  zipCode: zipCode(),
+  website: url(),
+  avatar: avatar(),
+  bankAccount: iban(),
+  currency: currencyCode(),
+  created: pastDate(),
+  expires: futureDate(),
+  updated: recentDate(),
+  bio: sentence(),
+  description: paragraph()
+}
+```
+
+**Full Faker Namespace Reference**:
+
+| Category | Generators |
+|----------|------------|
+| **String** | `faker.string.uuid()`, `faker.string.alphanumeric(length?)`, `faker.string.nanoid(length?)` |
+| **Person** | `faker.person.firstName(sex?)`, `faker.person.lastName(sex?)`, `faker.person.fullName()`, `faker.person.jobTitle()`, `faker.person.jobType()`, `faker.person.gender()`, `faker.person.prefix()`, `faker.person.suffix()` |
+| **Internet** | `faker.internet.email()`, `faker.internet.userName()`, `faker.internet.url()`, `faker.internet.domainName()`, `faker.internet.ip()`, `faker.internet.ipv6()`, `faker.internet.mac()`, `faker.internet.password(length?)` |
+| **Phone** | `faker.phone.number(style?)` (style: "human", "national", "international"), `faker.phone.imei()` |
+| **Company** | `faker.company.name()`, `faker.company.catchPhrase()`, `faker.company.buzzPhrase()` |
+| **Location** | `faker.location.streetAddress(useFullAddress?)`, `faker.location.city()`, `faker.location.state()`, `faker.location.zipCode(format?)`, `faker.location.country()`, `faker.location.countryCode()`, `faker.location.latitude()`, `faker.location.longitude()` |
+| **Date** | `faker.date.past()`, `faker.date.future()`, `faker.date.recent()`, `faker.date.birthdate()` |
+| **Finance** | `faker.finance.accountNumber(length?)`, `faker.finance.iban()`, `faker.finance.bic()`, `faker.finance.creditCardNumber(issuer?)`, `faker.finance.creditCardCVV()`, `faker.finance.currency()`, `faker.finance.currencyCode()`, `faker.finance.amount(min?, max?, dec?)`, `faker.finance.transactionType()` |
+| **Commerce** | `faker.commerce.department()`, `faker.commerce.productName()`, `faker.commerce.price()`, `faker.commerce.productDescription()` |
+| **Lorem** | `faker.lorem.word()`, `faker.lorem.words(count?)`, `faker.lorem.sentence(wordCount?)`, `faker.lorem.sentences(count?)`, `faker.lorem.paragraph(sentenceCount?)`, `faker.lorem.paragraphs(count?)` |
+| **Image** | `faker.image.avatar()`, `faker.image.url()` |
+| **Database** | `faker.database.column()`, `faker.database.type()`, `faker.database.collation()`, `faker.database.engine()`, `faker.database.mongodbObjectId()` |
+| **Git** | `faker.git.branch()`, `faker.git.commitSha()`, `faker.git.commitMessage()` |
+| **Hacker** | `faker.hacker.abbreviation()`, `faker.hacker.adjective()`, `faker.hacker.noun()`, `faker.hacker.verb()`, `faker.hacker.phrase()` |
+| **Color** | `faker.color.rgb()`, `faker.color.human()` |
+| **Number** | `faker.number.int()`, `faker.number.float()` |
+| **Datatype** | `faker.datatype.boolean()` |
+| **Airline** | `faker.airline.airline()`, `faker.airline.airport()`, `faker.airline.flightNumber()` |
+| **Vehicle** | `faker.vehicle.vehicle()`, `faker.vehicle.manufacturer()`, `faker.vehicle.model()`, `faker.vehicle.vin()`, `faker.vehicle.vrm()` |
+
+```vague
+// Example: Full namespace usage
+schema Employee {
+  id: faker.string.uuid(),
+  name: faker.person.fullName(),
+  title: faker.person.jobTitle(),
+  email: faker.internet.email(),
+  phone: faker.phone.number("international"),
+  department: faker.commerce.department(),
+  office: faker.location.city(),
+  lat: faker.location.latitude(),
+  lng: faker.location.longitude(),
+  bio: faker.lorem.paragraph(),
+  github: faker.git.branch(),
+  vehicle: faker.vehicle.vehicle(),
+  vin: faker.vehicle.vin()
+}
+```
 
 **Issuer Plugin** (`src/plugins/issuer.ts`):
 Generates problematic but technically valid values for edge case and security testing.
