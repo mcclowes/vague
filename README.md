@@ -133,7 +133,11 @@ schema Invoice {
   item_count: = count(line_items),
   avg_price: = avg(line_items.unit_price),
   min_price: = min(line_items.unit_price),
-  max_price: = max(line_items.unit_price)
+  max_price: = max(line_items.unit_price),
+  median_price: = median(line_items.unit_price),
+  first_item: = first(line_items.unit_price),
+  last_item: = last(line_items.unit_price),
+  price_product: = product(line_items.unit_price)
 }
 ```
 

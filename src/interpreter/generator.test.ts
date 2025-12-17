@@ -867,6 +867,114 @@ describe('Generator', () => {
         expect(o.avg_price).toBeCloseTo(expectedAvg);
       }
     });
+
+    it('computes first and last of collection field', async () => {
+      const source = `
+        schema Item {
+          value: int in 1..100
+        }
+
+        schema Container {
+          items: 5 * Item,
+          first_val: = first(items.value),
+          last_val: = last(items.value)
+        }
+
+        dataset TestData {
+          containers: 10 * Container
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const container of result.containers) {
+        const c = container as Record<string, unknown>;
+        const items = c.items as Record<string, unknown>[];
+        const values = items.map((i) => i.value as number);
+        expect(c.first_val).toBe(values[0]);
+        expect(c.last_val).toBe(values[values.length - 1]);
+      }
+    });
+
+    it('computes median of collection field', async () => {
+      const source = `
+        schema Score {
+          value: int in 1..100
+        }
+
+        schema Analysis {
+          scores: 5 * Score,
+          median_score: = median(scores.value)
+        }
+
+        dataset TestData {
+          analyses: 10 * Analysis
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const analysis of result.analyses) {
+        const a = analysis as Record<string, unknown>;
+        const scores = a.scores as Record<string, unknown>[];
+        const values = scores.map((s) => s.value as number);
+        const sorted = [...values].sort((x, y) => x - y);
+        const mid = Math.floor(sorted.length / 2);
+        const expectedMedian =
+          sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+        expect(a.median_score).toBeCloseTo(expectedMedian);
+      }
+    });
+
+    it('computes product of collection field', async () => {
+      const source = `
+        schema Factor {
+          value: int in 1..5
+        }
+
+        schema Calculation {
+          factors: 3 * Factor,
+          result: = product(factors.value)
+        }
+
+        dataset TestData {
+          calculations: 10 * Calculation
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const calc of result.calculations) {
+        const c = calc as Record<string, unknown>;
+        const factors = c.factors as Record<string, unknown>[];
+        const values = factors.map((f) => f.value as number);
+        const expectedProduct = values.reduce((p, v) => p * v, 1);
+        expect(c.result).toBe(expectedProduct);
+      }
+    });
+
+    it('handles empty collections for first and last', async () => {
+      const source = `
+        schema Item {
+          value: int
+        }
+
+        schema Container {
+          items: 0 * Item,
+          first_val: = first(items.value),
+          last_val: = last(items.value)
+        }
+
+        dataset TestData {
+          containers: 1 * Container
+        }
+      `;
+
+      const result = await compile(source);
+      const container = result.containers[0] as Record<string, unknown>;
+      expect(container.first_val).toBeNull();
+      expect(container.last_val).toBeNull();
+    });
   });
 
   describe('OpenAPI schema import', () => {
