@@ -71,6 +71,12 @@
 ## Ideas to explore
 
 - [ ] Additional keywords like then - so, especially, etc.
+- [ ] **Annotations (`#`)** - User metadata attached to schemas/fields, stored in AST but ignored by generator
+  - `#name` - boolean flag (implicitly true)
+  - `#name: "string"` - string value
+  - `#name: 123` - integer value
+  - `#name: true/false` - explicit boolean
+  - Reserve `@decorator` syntax for future system-level features
 
 ## OAS parsing
 

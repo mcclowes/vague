@@ -2692,4 +2692,137 @@ describe('Generator', () => {
       expect(items[3].b).toBe('y');
     });
   });
+
+  describe('private fields', () => {
+    it('excludes private fields from output', async () => {
+      const source = `
+        schema Person {
+          age: private int in 0..105,
+          age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+        }
+
+        dataset TestData {
+          people: 10 * Person
+        }
+      `;
+
+      const result = await compile(source);
+      const people = result.people as Record<string, unknown>[];
+
+      for (const person of people) {
+        // age should NOT be in output
+        expect(person).not.toHaveProperty('age');
+        // age_bracket should be computed and present
+        expect(person).toHaveProperty('age_bracket');
+        expect(['minor', 'adult', 'senior']).toContain(person.age_bracket);
+      }
+    });
+
+    it('private fields can be used in constraints', async () => {
+      const source = `
+        schema Item {
+          internal_score: private int in 1..100,
+          visible_grade: = internal_score >= 50 ? "pass" : "fail",
+          assume internal_score >= 30
+        }
+
+        dataset TestData {
+          items: 20 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as Record<string, unknown>[];
+
+      for (const item of items) {
+        // internal_score should NOT be in output
+        expect(item).not.toHaveProperty('internal_score');
+        // visible_grade should be computed
+        expect(item).toHaveProperty('visible_grade');
+        expect(['pass', 'fail']).toContain(item.visible_grade);
+      }
+    });
+
+    it('private and unique can be combined', async () => {
+      const source = `
+        schema Order {
+          internal_id: unique private int in 1..1000,
+          public_ref: = concat("ORD-", internal_id)
+        }
+
+        dataset TestData {
+          orders: 5 * Order
+        }
+      `;
+
+      const result = await compile(source);
+      const orders = result.orders as Record<string, unknown>[];
+
+      for (const order of orders) {
+        // internal_id should NOT be in output
+        expect(order).not.toHaveProperty('internal_id');
+        // public_ref should be present
+        expect(order).toHaveProperty('public_ref');
+        expect(String(order.public_ref)).toMatch(/^ORD-\d+$/);
+      }
+
+      // All public_refs should be unique (since internal_id was unique)
+      const refs = orders.map((o) => o.public_ref);
+      const uniqueRefs = new Set(refs);
+      expect(uniqueRefs.size).toBe(refs.length);
+    });
+
+    it('multiple private fields in same schema', async () => {
+      const source = `
+        schema Product {
+          base_cost: private decimal in 10..50,
+          markup: private decimal in 1.1..1.5,
+          price: = round(base_cost * markup, 2)
+        }
+
+        dataset TestData {
+          products: 10 * Product
+        }
+      `;
+
+      const result = await compile(source);
+      const products = result.products as Record<string, unknown>[];
+
+      for (const product of products) {
+        // Private fields should be excluded
+        expect(product).not.toHaveProperty('base_cost');
+        expect(product).not.toHaveProperty('markup');
+        // Computed field should be present
+        expect(product).toHaveProperty('price');
+        expect(typeof product.price).toBe('number');
+      }
+    });
+
+    it('private fields work with collection overrides', async () => {
+      const source = `
+        schema Item {
+          value: int in 1..100
+        }
+
+        dataset TestData {
+          items: 5 * Item {
+            internal: private int in 1..10,
+            label: = concat("Item-", internal)
+          }
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as Record<string, unknown>[];
+
+      for (const item of items) {
+        // internal from override should be excluded
+        expect(item).not.toHaveProperty('internal');
+        // label computed from internal should be present
+        expect(item).toHaveProperty('label');
+        // value from base schema should be present
+        expect(item).toHaveProperty('value');
+      }
+    });
+  });
 });

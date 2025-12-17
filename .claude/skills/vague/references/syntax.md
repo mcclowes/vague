@@ -59,6 +59,23 @@ id: unique int in 1000..9999,       // Ensures no duplicate IDs
 code: unique "A" | "B" | "C" | "D"  // Works with superposition too
 ```
 
+## Private Fields
+
+```vague
+schema Person {
+  // Private fields are generated and usable in logic, but excluded from output
+  age: private int in 0..105,
+  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+}
+// Output: { "age_bracket": "adult" }  -- no "age" field
+
+schema Product {
+  // Can combine with unique
+  internal_id: unique private int in 1..10000,
+  public_ref: = concat("PROD-", internal_id)
+}
+```
+
 ## Constraints
 
 ```vague

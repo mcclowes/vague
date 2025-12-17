@@ -150,6 +150,7 @@ export class StatementParser extends TypeParser {
     }
 
     const unique = this.match(TokenType.UNIQUE);
+    const isPrivate = this.match(TokenType.PRIVATE);
     const fieldType = this.parseFieldType();
     const optional = this.match(TokenType.QUESTION);
 
@@ -175,6 +176,7 @@ export class StatementParser extends TypeParser {
       optional,
       computed,
       unique: unique || undefined,
+      private: isPrivate || undefined,
       condition,
       distribution,
       constraints,

@@ -198,13 +198,16 @@ export class Generator {
   ): Record<string, unknown> {
     const maxAttempts = 100;
 
+    // Collect private field names for filtering
+    const privateFields = this.getPrivateFieldNames(schema, overrides);
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const instance = this.generateInstanceAttempt(schema, overrides);
 
       // If no constraints, execute then block and return
       if (!schema.assumes || schema.assumes.length === 0) {
         this.executeThenBlock(schema.thenBlock, instance);
-        return instance;
+        return this.stripPrivateFields(instance, privateFields);
       }
 
       // Check all constraints
@@ -212,7 +215,7 @@ export class Generator {
       const constraintsPass = this.validateConstraints(schema.assumes, instance);
       if (this.ctx.violating ? !constraintsPass : constraintsPass) {
         this.executeThenBlock(schema.thenBlock, instance);
-        return instance;
+        return this.stripPrivateFields(instance, privateFields);
       }
     }
 
@@ -223,7 +226,47 @@ export class Generator {
     );
     const instance = this.generateInstanceAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
-    return instance;
+    return this.stripPrivateFields(instance, privateFields);
+  }
+
+  private getPrivateFieldNames(
+    schema: SchemaDefinition,
+    overrides?: FieldDefinition[]
+  ): Set<string> {
+    const privateFields = new Set<string>();
+
+    for (const field of schema.fields) {
+      if (field.private) {
+        privateFields.add(field.name);
+      }
+    }
+
+    if (overrides) {
+      for (const field of overrides) {
+        if (field.private) {
+          privateFields.add(field.name);
+        }
+      }
+    }
+
+    return privateFields;
+  }
+
+  private stripPrivateFields(
+    instance: Record<string, unknown>,
+    privateFields: Set<string>
+  ): Record<string, unknown> {
+    if (privateFields.size === 0) {
+      return instance;
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(instance)) {
+      if (!privateFields.has(key)) {
+        result[key] = value;
+      }
+    }
+    return result;
   }
 
   private executeThenBlock(

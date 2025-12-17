@@ -81,7 +81,7 @@
         {
           "comment": "Other keywords",
           "name": "keyword.other.vague",
-          "match": "\\b(let|with|where|in|per|any|of|affects|unique)\\b"
+          "match": "\\b(let|with|where|in|per|any|of|affects|unique|private)\\b"
         }
       ]
     },

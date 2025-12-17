@@ -1,11 +1,27 @@
 {
   "name": "vague-lang",
   "version": "2.0.1",
+  "description": "A declarative language for generating realistic test data",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "vague": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcclowes/vague.git"
+  },
+  "homepage": "https://github.com/mcclowes/vague#readme",
+  "bugs": {
+    "url": "https://github.com/mcclowes/vague/issues"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "build": "tsc",
@@ -28,18 +44,24 @@
   },
   "keywords": [
     "test-data",
+    "mock-data",
+    "fixture",
+    "faker",
     "generator",
-    "dsl"
+    "dsl",
+    "openapi",
+    "json-schema",
+    "testing"
   ],
   "author": "Max Clayton Clowes <max@mcclowes.com>",
   "license": "ISC",
-  "description": "A declarative language for generating realistic test data",
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.2",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
+    "midi-writer-js": "^3.1.1",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",
@@ -49,7 +71,6 @@
     "@faker-js/faker": "^10.1.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "midi-writer-js": "^3.1.1",
     "swagger-parser": "^10.0.3"
   }
 }

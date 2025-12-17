@@ -160,6 +160,27 @@ schema Invoice {
 }
 ```
 
+### Private Fields
+```vague
+schema Person {
+  // Private fields are generated and usable in logic, but excluded from output
+  age: private int in 0..105,
+  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+}
+// Output: { "age_bracket": "adult" }  -- no "age" field
+
+schema Product {
+  // Can combine with unique
+  internal_id: unique private int in 1..10000,
+  public_ref: = concat("PROD-", internal_id),
+
+  // Multiple private fields for intermediate calculations
+  base_cost: private decimal in 10..50,
+  markup: private decimal in 1.2..1.8,
+  price: = round(base_cost * markup, 2)
+}
+```
+
 ### Date Functions
 ```vague
 schema Event {
@@ -803,6 +824,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` 
 - [x] Schema inference from JSON data (`inferSchema()`, `--infer` CLI option)
 - [x] Ordered sequences (`[a, b, c, d]` cycles through values in order)
 - [x] Watch mode (`-w/--watch` for regenerating output on file change)
+- [x] Private fields (`age: private int` - generated but excluded from output)
 
 See TODO.md for planned features.
 

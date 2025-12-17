@@ -104,6 +104,7 @@ export interface FieldDefinition {
   optional?: boolean; // ?
   computed?: boolean; // = prefix
   unique?: boolean; // unique - ensure no duplicates
+  private?: boolean; // private - generated but not output
   condition?: Expression; // when clause
   distribution?: Expression; // ~ clause
   constraints?: Expression; // where clause
