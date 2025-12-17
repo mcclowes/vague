@@ -27,7 +27,19 @@ import {
   OrderedSequenceType,
 } from '../ast/index.js';
 import { OpenAPILoader } from '../openapi/index.js';
-import { warningCollector, createUniqueExhaustionWarning } from '../warnings.js';
+import {
+  warningCollector,
+  createUniqueExhaustionWarning,
+  createConstraintRetryWarning,
+  createConstraintEvaluationErrorWarning,
+  createMutationTargetNotFoundWarning,
+} from '../warnings.js';
+import {
+  isDuration,
+  addDurationToDate,
+  subtractDurationFromDate,
+  type Duration,
+} from '../plugins/date.js';
 import {
   generateCompanyName,
   generatePersonName,
@@ -134,7 +146,7 @@ export class Generator {
 
     // Fallback: return last attempt with warning
     const mode = dataset.violating ? 'violating' : 'satisfying';
-    console.warn(`Warning: Could not generate ${mode} data after ${maxAttempts} attempts`);
+    warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, undefined, dataset.name));
     const result: Record<string, unknown[]> = {};
     for (const collection of dataset.collections) {
       const items = this.generateCollection(collection);
@@ -163,7 +175,7 @@ export class Generator {
       } catch (error) {
         // Log constraint evaluation failures for debugging
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Constraint evaluation failed: ${message}`);
+        warningCollector.add(createConstraintEvaluationErrorWarning(message));
         return false;
       }
     }
@@ -222,9 +234,7 @@ export class Generator {
 
     // If we couldn't generate desired data, return last attempt with warning
     const mode = this.ctx.violating ? 'violating' : 'satisfying';
-    console.warn(
-      `Warning: Could not generate ${mode} data for ${schema.name} after ${maxAttempts} attempts`
-    );
+    warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, schema.name));
     const instance = this.generateInstanceAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
     return this.stripPrivateFields(instance, privateFields);
@@ -296,7 +306,9 @@ export class Generator {
     );
 
     if (!targetObj || !fieldName) {
-      console.warn('Could not resolve mutation target');
+      warningCollector.add(
+        createMutationTargetNotFoundWarning(this.ctx.currentSchemaName || 'unknown')
+      );
       return;
     }
 
@@ -1101,8 +1113,20 @@ export class Generator {
 
     switch (expr.operator) {
       case '+':
+        // Date arithmetic: date string + Duration = new date string
+        if (typeof left === 'string' && isDuration(right)) {
+          return addDurationToDate(left, right as Duration);
+        }
+        // Duration + date string (commutative)
+        if (isDuration(left) && typeof right === 'string') {
+          return addDurationToDate(right, left as Duration);
+        }
         return (left as number) + (right as number);
       case '-':
+        // Date arithmetic: date string - Duration = new date string
+        if (typeof left === 'string' && isDuration(right)) {
+          return subtractDurationFromDate(left, right as Duration);
+        }
         return (left as number) - (right as number);
       case '*':
         return (left as number) * (right as number);

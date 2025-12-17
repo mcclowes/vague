@@ -9,14 +9,14 @@ Codebase Analysis Summary
   | Issue                            | Location                                              | Impact                                              |
   |----------------------------------|-------------------------------------------------------|-----------------------------------------------------|
   | Excessive type assertions        | generator.ts:307-310, 876, 897, predicate.ts:27,50,73 | Silent type coercion defeats TypeScript safety      |
-  | Silent failures via console.warn | generator.ts:136, 165, 224, 298, 643                  | Errors hidden from users, no programmatic detection |
+  | ~~Silent failures via console.warn~~ | ~~generator.ts~~                                 | ✅ All warnings use warningCollector |
   | any types in validator           | validator.ts:1, 36, 100                               | Lost type info for OpenAPI handling                 |
 
   Architectural Issues (Medium Priority)
 
   | Issue                           | Location                                   | Recommendation                                                      |
   |---------------------------------|--------------------------------------------|---------------------------------------------------------------------|
-  | Generator.ts is 1215 lines      | src/interpreter/generator.ts               | Extract: ExpressionEvaluator, FieldTypeGenerator, ReferenceResolver |
+  | ~~Generator.ts is 1215 lines~~  | ~~src/interpreter/generator.ts~~           | ✅ Extracted builtins/ modules                                       |
   | Context lifecycle unclear       | context.ts                                 | Add explicit reset() method, clarify when state clears              |
   | Collection iteration duplicated | generator.ts:872-901, predicate.ts:26-78   | Extract shared mapCollectionItems() utility                         |
   | Format detection in 3 places    | generator.ts, faker.ts, format-detector.ts | Unify into format registry                                          |
@@ -33,7 +33,7 @@ Codebase Analysis Summary
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
-- [ ] **Date arithmetic** - `due_date <= issued_date + 90.days`, relative dates: `createdAt in now - 30.days .. now`
+- [x] **Date arithmetic** - `due_date <= issued_date + date.days(90)`, duration functions: `date.days()`, `date.weeks()`, `date.months()`, `date.years()`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 - [ ] Explore other keywords for fields, like unique
@@ -78,7 +78,7 @@ Codebase Analysis Summary
 
 ## Code quality and organisation
 
-- [ ] Break up the generator
+- [x] Break up the generator (extracted builtins: aggregate, date, distribution, math, predicate, sequence, string)
 
 ## Output & Tooling
 
@@ -176,5 +176,6 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Watch mode** - `-w/--watch` flag to regenerate output on file change
 - [x] **Ordered sequences** - `[a, b, c, d]` cycles through values in order
 - [x] **Private fields** - `age: private int` generated but excluded from output
-- [x] **Dates plugin** - `dates.weekday()`, `dates.weekend()`, `dates.dayOfWeek()` for day-of-week filtering
+- [x] **Date plugin** - `date.weekday()`, `date.weekend()`, `date.dayOfWeek()` for day-of-week filtering
 - [x] **Schema inference** - `inferSchema()` and `--infer` CLI option to reverse-engineer schemas from JSON
+- [x] **Date arithmetic** - `date.days()`, `date.weeks()`, `date.months()`, `date.years()` duration functions with `+`/`-` operators

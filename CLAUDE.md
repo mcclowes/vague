@@ -224,6 +224,25 @@ schema Event {
 }
 ```
 
+### Date Arithmetic
+```vague
+schema Invoice {
+  issued_date: date in 2024..2024,
+
+  // Add duration to a date
+  due_date: = issued_date + date.days(30),
+  reminder_date: = due_date - date.weeks(1),
+
+  // Duration functions: days, weeks, months, years, hours, minutes
+  quarterly_review: = issued_date + date.months(3),
+  annual_renewal: = issued_date + date.years(1),
+
+  // Works in constraints
+  assume due_date >= issued_date,
+  assume due_date <= issued_date + date.days(90)
+}
+```
+
 ### String Transformations
 ```vague
 schema Product {
@@ -767,28 +786,28 @@ Shorthand generators (most commonly used):
 - `sqlLike()`, `htmlSpecial()`, `weirdEmail()`, `weirdUrl()`
 - `maxInt()`, `leapDay()`
 
-**Dates Plugin** (`src/plugins/dates.ts`):
+**Dates Plugin** (`src/plugins/date.ts`):
 Generates dates filtered by day of week - useful for business scenarios.
 
 ```vague
 schema Meeting {
   // Weekday dates only (Monday-Friday)
-  meeting_date: dates.weekday(2024, 2025)
+  meeting_date: date.weekday(2024, 2025)
 
   // Weekend dates only (Saturday-Sunday)
-  party_date: dates.weekend(2024, 2025)
+  party_date: date.weekend(2024, 2025)
 
   // Specific day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
-  monday_standup: dates.dayOfWeek(1, 2024, 2025)
+  monday_standup: date.dayOfWeek(1, 2024, 2025)
 
   // ISO string ranges also supported
-  q1_meeting: dates.weekday("2024-01-01", "2024-03-31")
+  q1_meeting: date.weekday("2024-01-01", "2024-03-31")
 }
 
 // Weighted weekday/weekend distribution using superposition
 schema Event {
   // 80% weekdays, 20% weekends
-  event_date: 0.8: dates.weekday(2024, 2025) | 0.2: dates.weekend(2024, 2025)
+  event_date: 0.8: date.weekday(2024, 2025) | 0.2: date.weekend(2024, 2025)
 }
 ```
 
@@ -796,7 +815,7 @@ Shorthand generators:
 - `weekday(startYear, endYear)` or `weekday("start-date", "end-date")`
 - `weekend(startYear, endYear)` or `weekend("start-date", "end-date")`
 
-See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` for complete examples of plugin implementation.
+See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` for complete examples of plugin implementation.
 
 ## What's Implemented
 
@@ -813,7 +832,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` 
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 - [x] Faker plugin for semantic types
 - [x] Issuer plugin for edge case testing (Unicode, encoding, boundary values)
-- [x] Dates plugin for weekday/weekend date generation (`dates.weekday()`, `dates.weekend()`)
+- [x] Dates plugin for weekday/weekend date generation (`date.weekday()`, `date.weekend()`)
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
 - [x] Collection predicates (`all()`, `some()`, `none()` for validation)
@@ -841,6 +860,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` 
 - [x] Ordered sequences (`[a, b, c, d]` cycles through values in order)
 - [x] Watch mode (`-w/--watch` for regenerating output on file change)
 - [x] Private fields (`age: private int` - generated but excluded from output)
+- [x] Date arithmetic (`date.days()`, `date.weeks()`, `date.months()`, `date.years()` with `+`/`-` operators)
 
 See TODO.md for planned features.
 

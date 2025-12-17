@@ -7,8 +7,8 @@ import { SchemaValidator } from './validator/index.js';
 import {
   fakerPlugin,
   fakerShorthandPlugin,
-  datesPlugin,
-  datesShorthandPlugin,
+  datePlugin,
+  dateShorthandPlugin,
   issuerPlugin,
   issuerShorthandPlugin,
 } from './plugins/index.js';
@@ -18,8 +18,8 @@ import { inferSchema } from './infer/index.js';
 // Register plugins automatically
 registerPlugin(fakerPlugin);
 registerPlugin(fakerShorthandPlugin);
-registerPlugin(datesPlugin);
-registerPlugin(datesShorthandPlugin);
+registerPlugin(datePlugin);
+registerPlugin(dateShorthandPlugin);
 registerPlugin(issuerPlugin);
 registerPlugin(issuerShorthandPlugin);
 

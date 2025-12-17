@@ -16,6 +16,9 @@ export {
   type VagueWarning,
   type WarningType,
   type UniqueValueExhaustionWarning,
+  type ConstraintRetryLimitWarning,
+  type ConstraintEvaluationErrorWarning,
+  type MutationTargetNotFoundWarning,
 } from './warnings.js';
 export { OpenAPILoader, ImportedSchema } from './openapi/index.js';
 export {
@@ -25,8 +28,16 @@ export {
   setFakerSeed,
   issuerPlugin,
   issuerShorthandPlugin,
+  datePlugin,
+  dateShorthandPlugin,
+  // Legacy aliases
   datesPlugin,
   datesShorthandPlugin,
+  // Duration utilities
+  isDuration,
+  addDurationToDate,
+  subtractDurationFromDate,
+  type Duration,
 } from './plugins/index.js';
 export {
   inferSchema,

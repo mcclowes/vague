@@ -1,5 +1,6 @@
 import type { GeneratorContext } from '../context.js';
 import type { CallExpression, Expression } from '../../ast/index.js';
+import { warningCollector, createUniqueExhaustionWarning } from '../../warnings.js';
 
 /**
  * Type for expression evaluator function passed from generator
@@ -73,8 +74,9 @@ export function createUniqueFn(evaluateExpression: ExpressionEvaluator) {
       }
     }
     // Fallback: return last generated value with warning
-    console.warn(
-      `Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`
+    const [schemaName, fieldName] = key.split('.');
+    warningCollector.add(
+      createUniqueExhaustionWarning(schemaName || 'unknown', fieldName || key, maxAttempts)
     );
     return evaluateExpression(generatorExpr);
   };

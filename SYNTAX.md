@@ -243,16 +243,16 @@ url: faker.internet.url()
 ### Dates Plugin
 ```vague
 # Weekday dates only (Monday-Friday)
-meeting_date: dates.weekday(2024, 2025)
+meeting_date: date.weekday(2024, 2025)
 
 # Weekend dates only
-party_date: dates.weekend(2024, 2025)
+party_date: date.weekend(2024, 2025)
 
 # Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
-monday: dates.dayOfWeek(1, 2024, 2025)
+monday: date.dayOfWeek(1, 2024, 2025)
 
 # ISO string ranges also work
-q1: dates.weekday("2024-01-01", "2024-03-31")
+q1: date.weekday("2024-01-01", "2024-03-31")
 
 # Shorthand (no namespace)
 meeting: weekday(2024, 2025)

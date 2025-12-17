@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { compile, registerPlugin } from '../index.js';
-import { datesPlugin, datesShorthandPlugin } from './dates.js';
+import { datePlugin, dateShorthandPlugin } from './date.js';
 
-describe('Dates Plugin', () => {
+describe('Date Plugin', () => {
   beforeAll(() => {
-    registerPlugin(datesPlugin);
-    registerPlugin(datesShorthandPlugin);
+    registerPlugin(datePlugin);
+    registerPlugin(dateShorthandPlugin);
   });
 
   describe('Weekday generation', () => {
-    it('generates weekday dates with dates.weekday()', async () => {
+    it('generates weekday dates with date.weekday()', async () => {
       const source = `
         schema Event {
-          meeting_date: dates.weekday(2024, 2025)
+          meeting_date: date.weekday(2024, 2025)
         }
 
         dataset TestData {
@@ -38,7 +38,7 @@ describe('Dates Plugin', () => {
     it('generates weekday dates with ISO string range', async () => {
       const source = `
         schema Event {
-          meeting_date: dates.weekday("2024-06-01", "2024-06-30")
+          meeting_date: date.weekday("2024-06-01", "2024-06-30")
         }
 
         dataset TestData {
@@ -88,10 +88,10 @@ describe('Dates Plugin', () => {
   });
 
   describe('Weekend generation', () => {
-    it('generates weekend dates with dates.weekend()', async () => {
+    it('generates weekend dates with date.weekend()', async () => {
       const source = `
         schema Event {
-          party_date: dates.weekend(2024, 2025)
+          party_date: date.weekend(2024, 2025)
         }
 
         dataset TestData {
@@ -116,7 +116,7 @@ describe('Dates Plugin', () => {
     it('generates weekend dates with ISO string range', async () => {
       const source = `
         schema Event {
-          party_date: dates.weekend("2024-03-01", "2024-03-31")
+          party_date: date.weekend("2024-03-01", "2024-03-31")
         }
 
         dataset TestData {
@@ -164,11 +164,11 @@ describe('Dates Plugin', () => {
   });
 
   describe('Day of week generation', () => {
-    it('generates specific day of week with dates.dayOfWeek()', async () => {
+    it('generates specific day of week with date.dayOfWeek()', async () => {
       // Generate only Mondays (day 1)
       const source = `
         schema Event {
-          monday_meeting: dates.dayOfWeek(1, 2024, 2025)
+          monday_meeting: date.dayOfWeek(1, 2024, 2025)
         }
 
         dataset TestData {
@@ -186,10 +186,10 @@ describe('Dates Plugin', () => {
       }
     });
 
-    it('generates Sundays with dates.dayOfWeek(0)', async () => {
+    it('generates Sundays with date.dayOfWeek(0)', async () => {
       const source = `
         schema Event {
-          sunday_brunch: dates.dayOfWeek(0, 2024, 2025)
+          sunday_brunch: date.dayOfWeek(0, 2024, 2025)
         }
 
         dataset TestData {
@@ -206,10 +206,10 @@ describe('Dates Plugin', () => {
       }
     });
 
-    it('generates Saturdays with dates.dayOfWeek(6)', async () => {
+    it('generates Saturdays with date.dayOfWeek(6)', async () => {
       const source = `
         schema Event {
-          saturday_event: dates.dayOfWeek(6, 2024, 2025)
+          saturday_event: date.dayOfWeek(6, 2024, 2025)
         }
 
         dataset TestData {
@@ -231,7 +231,7 @@ describe('Dates Plugin', () => {
     it('supports superposition for weighted distribution', async () => {
       const source = `
         schema Event {
-          event_date: 0.5: dates.weekday(2024, 2025) | 0.5: dates.weekend(2024, 2025)
+          event_date: 0.5: date.weekday(2024, 2025) | 0.5: date.weekend(2024, 2025)
         }
 
         dataset TestData {
@@ -271,7 +271,7 @@ describe('Dates Plugin', () => {
         schema Meeting {
           id: int in 1..1000,
           title: string,
-          scheduled_date: dates.weekday(2024, 2025),
+          scheduled_date: date.weekday(2024, 2025),
           is_recurring: boolean,
           priority: "low" | "medium" | "high"
         }
@@ -305,7 +305,7 @@ describe('Dates Plugin', () => {
     it('handles single year argument', async () => {
       const source = `
         schema Event {
-          event_date: dates.weekday(2024)
+          event_date: date.weekday(2024)
         }
 
         dataset TestData {
@@ -330,7 +330,7 @@ describe('Dates Plugin', () => {
     it('handles no arguments (defaults to current year)', async () => {
       const source = `
         schema Event {
-          event_date: dates.weekday()
+          event_date: date.weekday()
         }
 
         dataset TestData {
@@ -350,6 +350,161 @@ describe('Dates Plugin', () => {
         const dayOfWeek = date.getUTCDay();
         expect(dayOfWeek).toBeGreaterThanOrEqual(1);
         expect(dayOfWeek).toBeLessThanOrEqual(5);
+      }
+    });
+  });
+
+  describe('Date arithmetic', () => {
+    it('adds days to a date with date.days()', async () => {
+      const source = `
+        schema Invoice {
+          issued_date: "2024-01-15",
+          due_date: = issued_date + date.days(30)
+        }
+
+        dataset TestData {
+          invoices: 1 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+      const invoice = result.invoices[0] as Record<string, unknown>;
+
+      expect(invoice.issued_date).toBe('2024-01-15');
+      expect(invoice.due_date).toBe('2024-02-14');
+    });
+
+    it('subtracts days from a date with date.days()', async () => {
+      const source = `
+        schema Event {
+          event_date: "2024-03-15",
+          reminder_date: = event_date - date.days(7)
+        }
+
+        dataset TestData {
+          events: 1 * Event
+        }
+      `;
+
+      const result = await compile(source);
+      const event = result.events[0] as Record<string, unknown>;
+
+      expect(event.event_date).toBe('2024-03-15');
+      expect(event.reminder_date).toBe('2024-03-08');
+    });
+
+    it('adds weeks to a date with date.weeks()', async () => {
+      const source = `
+        schema Project {
+          start_date: "2024-01-01",
+          milestone_date: = start_date + date.weeks(2)
+        }
+
+        dataset TestData {
+          projects: 1 * Project
+        }
+      `;
+
+      const result = await compile(source);
+      const project = result.projects[0] as Record<string, unknown>;
+
+      expect(project.start_date).toBe('2024-01-01');
+      expect(project.milestone_date).toBe('2024-01-15');
+    });
+
+    it('adds months to a date with date.months()', async () => {
+      const source = `
+        schema Subscription {
+          start_date: "2024-01-15",
+          renewal_date: = start_date + date.months(3)
+        }
+
+        dataset TestData {
+          subscriptions: 1 * Subscription
+        }
+      `;
+
+      const result = await compile(source);
+      const sub = result.subscriptions[0] as Record<string, unknown>;
+
+      expect(sub.start_date).toBe('2024-01-15');
+      // 3 months = 90 days (approximate)
+      expect(sub.renewal_date).toBe('2024-04-14');
+    });
+
+    it('adds years to a date with date.years()', async () => {
+      const source = `
+        schema Contract {
+          signed_date: "2024-06-15",
+          expiry_date: = signed_date + date.years(1)
+        }
+
+        dataset TestData {
+          contracts: 1 * Contract
+        }
+      `;
+
+      const result = await compile(source);
+      const contract = result.contracts[0] as Record<string, unknown>;
+
+      expect(contract.signed_date).toBe('2024-06-15');
+      // 1 year = 365 days (approximate)
+      expect(contract.expiry_date).toBe('2025-06-15');
+    });
+
+    it('works with generated dates', async () => {
+      const source = `
+        schema Invoice {
+          issued_date: date in 2024..2024,
+          due_date: = issued_date + date.days(30)
+        }
+
+        dataset TestData {
+          invoices: 10 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const invoice of result.invoices) {
+        const inv = invoice as Record<string, unknown>;
+        const issued = new Date(inv.issued_date as string);
+        const due = new Date(inv.due_date as string);
+
+        // Due date should be 30 days after issued date
+        const diffMs = due.getTime() - issued.getTime();
+        const diffDays = diffMs / (24 * 60 * 60 * 1000);
+        expect(diffDays).toBe(30);
+      }
+    });
+
+    it('works in constraints', async () => {
+      const source = `
+        schema Invoice {
+          issued_date: date in 2024..2024,
+          due_date: date in 2024..2024,
+          assume due_date >= issued_date,
+          assume due_date <= issued_date + date.days(90)
+        }
+
+        dataset TestData {
+          invoices: 20 * Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const invoice of result.invoices) {
+        const inv = invoice as Record<string, unknown>;
+        const issued = new Date(inv.issued_date as string);
+        const due = new Date(inv.due_date as string);
+
+        // Due date should be >= issued date
+        expect(due >= issued).toBe(true);
+
+        // Due date should be <= issued date + 90 days
+        const maxDue = new Date(issued.getTime() + 90 * 24 * 60 * 60 * 1000);
+        expect(due <= maxDue).toBe(true);
       }
     });
   });

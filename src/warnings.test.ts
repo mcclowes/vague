@@ -118,4 +118,69 @@ describe('Warnings', () => {
       expect(codeWarnings.length).toBeGreaterThan(0);
     });
   });
+
+  describe('ConstraintRetryLimitWarning', () => {
+    it('warns when schema constraint cannot be satisfied', async () => {
+      // Create an impossible constraint
+      const source = `
+        schema X {
+          value: int in 1..10,
+          assume value > 100
+        }
+        dataset Test {
+          items: 1 * X
+        }
+      `;
+
+      await compile(source);
+
+      const warnings = warningCollector.getWarnings();
+      const retryWarning = warnings.find((w) => w.type === 'ConstraintRetryLimit');
+      expect(retryWarning).toBeDefined();
+      expect(retryWarning!.message).toContain('satisfying');
+      expect(retryWarning!.message).toContain('X');
+    });
+
+    it('warns when violating mode cannot find violations', async () => {
+      // Create a constraint that's always satisfied (hard to violate)
+      const source = `
+        schema X {
+          value: 5,
+          assume value == 5
+        }
+        dataset Test violating {
+          items: 1 * X
+        }
+      `;
+
+      await compile(source);
+
+      const warnings = warningCollector.getWarnings();
+      const retryWarning = warnings.find((w) => w.type === 'ConstraintRetryLimit');
+      expect(retryWarning).toBeDefined();
+      expect(retryWarning!.message).toContain('violating');
+    });
+  });
+
+  describe('getWarningsByType', () => {
+    it('filters warnings by type', async () => {
+      const source = `
+        schema X {
+          id: unique int in 1..2
+        }
+        dataset Test {
+          items: 10 * X
+        }
+      `;
+
+      await compile(source);
+
+      const uniqueWarnings = warningCollector.getWarningsByType('UniqueValueExhaustion');
+      expect(uniqueWarnings.length).toBeGreaterThan(0);
+      expect(uniqueWarnings.every((w) => w.type === 'UniqueValueExhaustion')).toBe(true);
+
+      const constraintWarnings = warningCollector.getWarningsByType('ConstraintRetryLimit');
+      expect(constraintWarnings).toEqual([]);
+    });
+  });
 });

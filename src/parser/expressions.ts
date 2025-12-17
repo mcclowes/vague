@@ -341,6 +341,15 @@ export class ExpressionParser extends ParserBase {
       return { type: 'Identifier', name };
     }
 
+    // DATE token followed by '.' is a namespace (date.weekday), not the primitive type
+    if (this.check(TokenType.DATE)) {
+      const nextToken = this.tokens[this.pos + 1];
+      if (nextToken?.type === TokenType.DOT) {
+        this.advance(); // consume DATE
+        return { type: 'Identifier', name: 'date' };
+      }
+    }
+
     // .field shorthand for current scope field access
     if (this.match(TokenType.DOT)) {
       const name = this.consume(TokenType.IDENTIFIER, "Expected field name after '.'").value;

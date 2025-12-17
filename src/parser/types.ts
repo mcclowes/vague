@@ -116,7 +116,35 @@ export class TypeParser extends ExpressionParser {
     // Built-in primitive keywords
     if (this.match(TokenType.INT)) return { type: 'PrimitiveType', name: 'int' };
     if (this.match(TokenType.DECIMAL)) return { type: 'PrimitiveType', name: 'decimal' };
-    if (this.match(TokenType.DATE)) return { type: 'PrimitiveType', name: 'date' };
+
+    // DATE can be a primitive type OR a generator namespace (date.weekday)
+    // Check if followed by '.' to distinguish
+    if (this.check(TokenType.DATE)) {
+      const nextToken = this.tokens[this.pos + 1];
+      if (nextToken?.type === TokenType.DOT) {
+        // It's a generator like date.weekday() - fall through to generator handling
+        this.advance(); // consume DATE
+        let name = 'date';
+        while (this.match(TokenType.DOT)) {
+          const part = this.consume(TokenType.IDENTIFIER, "Expected identifier after '.'").value;
+          name += '.' + part;
+        }
+        const args: Expression[] = [];
+        if (this.check(TokenType.LPAREN)) {
+          this.advance();
+          if (!this.check(TokenType.RPAREN)) {
+            do {
+              args.push(this.parseExpression());
+            } while (this.match(TokenType.COMMA));
+          }
+          this.consume(TokenType.RPAREN, "Expected ')' after arguments");
+        }
+        return { type: 'GeneratorType', name, arguments: args };
+      }
+      // It's the date primitive type
+      this.advance();
+      return { type: 'PrimitiveType', name: 'date' };
+    }
 
     // Identifier-based types (string, boolean, or generators)
     const id = this.consume(TokenType.IDENTIFIER, 'Expected type name').value;
