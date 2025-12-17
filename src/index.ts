@@ -17,6 +17,8 @@ export {
   fakerShorthandPlugin,
   setFakerLocale,
   setFakerSeed,
+  issuerPlugin,
+  issuerShorthandPlugin,
 } from './plugins/index.js';
 export {
   inferSchema,

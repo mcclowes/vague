@@ -652,7 +652,60 @@ schema Example {
 - Full namespace: `faker.person.firstName()`, `faker.internet.email()`
 - Shorthand: `uuid()`, `email()`, `fullName()`, `companyName()`
 
-See `src/plugins/faker.ts` for a complete example of plugin implementation.
+**Issuer Plugin** (`src/plugins/issuer.ts`):
+Generates problematic but technically valid values for edge case and security testing.
+
+```vague
+schema EdgeCaseTest {
+  // Unicode edge cases
+  zeroWidth: issuer.zeroWidth(),           // Strings with zero-width characters
+  rtlText: issuer.rtl(),                   // Right-to-left override characters
+  homoglyph: issuer.homoglyph("admin"),    // Lookalike characters (Cyrillic/Greek)
+  emoji: issuer.emoji(),                   // Multi-codepoint emoji (ZWJ sequences)
+  combining: issuer.combining(),           // Characters with combining marks (Zalgo-like)
+  fullWidth: issuer.fullWidth(),           // CJK full-width characters
+  mixedScript: issuer.mixedScript(),       // Brand names with Cyrillic substitutions
+
+  // String edge cases
+  empty: issuer.empty(),                   // Empty string
+  whitespace: issuer.whitespace(),         // Whitespace-only strings
+  long: issuer.long(10000),                // Very long strings
+  sqlLike: issuer.sqlLike(),               // SQL injection-like (but valid) text
+  htmlSpecial: issuer.htmlSpecial(),       // HTML/XSS special characters
+  jsonSpecial: issuer.jsonSpecial(),       // JSON special characters
+  newlines: issuer.newlines(),             // Embedded newlines/tabs
+  nullChar: issuer.nullChar(),             // Embedded null character
+  pathTraversal: issuer.pathTraversal(),   // Path traversal patterns
+  commandInjection: issuer.commandInjection(), // Command injection patterns
+
+  // Numeric edge cases
+  maxInt: issuer.maxInt(),                 // Number.MAX_SAFE_INTEGER
+  minInt: issuer.minInt(),                 // Number.MIN_SAFE_INTEGER
+  tinyDecimal: issuer.tinyDecimal(),       // Very small decimals (near zero)
+  floatPrecision: issuer.floatPrecision(), // Floating point precision issues (0.1+0.2)
+  negativeZero: issuer.negativeZero(),     // -0
+  boundaryInt: issuer.boundaryInt(),       // Boundary values (127, 255, 32767, etc.)
+
+  // Date edge cases
+  leapDay: issuer.leapDay(),               // Feb 29 dates
+  y2k: issuer.y2k(),                       // Year 2000 edge cases
+  epoch: issuer.epoch(),                   // Unix epoch boundaries (1970, 2038)
+  farFuture: issuer.farFuture(),           // Very far future dates (9999)
+  farPast: issuer.farPast(),               // Very far past dates (0001)
+
+  // Format edge cases
+  weirdEmail: issuer.weirdEmail(),         // Valid but unusual emails
+  weirdUrl: issuer.weirdUrl(),             // Valid but unusual URLs
+  specialUuid: issuer.specialUuid()        // Edge case UUIDs (nil, max)
+}
+```
+
+Shorthand generators (most commonly used):
+- `zeroWidth()`, `rtl()`, `homoglyph(text)`, `emoji()`
+- `sqlLike()`, `htmlSpecial()`, `weirdEmail()`, `weirdUrl()`
+- `maxInt()`, `leapDay()`
+
+See `src/plugins/faker.ts` and `src/plugins/issuer.ts` for complete examples of plugin implementation.
 
 ## What's Implemented
 
@@ -668,6 +721,7 @@ See `src/plugins/faker.ts` for a complete example of plugin implementation.
 - [x] OpenAPI import with format-aware generation (`uuid`, `email`, `date-time`, etc.)
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 - [x] Faker plugin for semantic types
+- [x] Issuer plugin for edge case testing (Unicode, encoding, boundary values)
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
 - [x] Collection predicates (`all()`, `some()`, `none()` for validation)
