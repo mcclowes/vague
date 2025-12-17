@@ -13,6 +13,55 @@ import type { VaguePlugin } from '../interpreter/plugin.js';
 export type PluginSpec = string | VaguePlugin;
 
 /**
+ * Log level for debug output
+ */
+export type LogLevel = 'none' | 'error' | 'warn' | 'info' | 'debug';
+
+/**
+ * Log component for filtering debug output
+ */
+export type LogComponent =
+  | 'lexer'
+  | 'parser'
+  | 'generator'
+  | 'constraint'
+  | 'validator'
+  | 'plugin'
+  | 'cli'
+  | 'openapi'
+  | 'infer'
+  | 'config';
+
+/**
+ * Logging configuration
+ */
+export interface LoggingConfig {
+  /**
+   * Log level: none, error, warn, info, debug
+   * Default: 'warn'
+   */
+  level?: LogLevel;
+
+  /**
+   * Filter logs to specific components.
+   * If not specified, all components are logged.
+   */
+  components?: LogComponent[];
+
+  /**
+   * Include timestamps in log output.
+   * Default: false (true when level is 'debug')
+   */
+  timestamps?: boolean;
+
+  /**
+   * Enable colored output.
+   * Default: true if stdout is a TTY
+   */
+  colors?: boolean;
+}
+
+/**
  * Vague configuration file schema
  */
 export interface VagueConfig {
@@ -41,6 +90,12 @@ export interface VagueConfig {
    * Can be overridden by CLI --pretty flag.
    */
   pretty?: boolean;
+
+  /**
+   * Logging/debug configuration.
+   * Can be overridden by CLI --debug or --log-level flags.
+   */
+  logging?: LoggingConfig;
 }
 
 /**
@@ -51,6 +106,7 @@ export interface ResolvedConfig {
   seed?: number;
   format?: 'json' | 'csv';
   pretty?: boolean;
+  logging?: LoggingConfig;
   configPath?: string;
 }
 

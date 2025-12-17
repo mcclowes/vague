@@ -10,9 +10,25 @@ import {
   type VagueConfig,
   type ResolvedConfig,
   type PluginSpec,
+  type LogLevel,
+  type LogComponent,
   ConfigError,
   PluginLoadError,
 } from './types.js';
+
+const VALID_LOG_LEVELS: LogLevel[] = ['none', 'error', 'warn', 'info', 'debug'];
+const VALID_LOG_COMPONENTS: LogComponent[] = [
+  'lexer',
+  'parser',
+  'generator',
+  'constraint',
+  'validator',
+  'plugin',
+  'cli',
+  'openapi',
+  'infer',
+  'config',
+];
 
 const CONFIG_FILENAMES = ['vague.config.js', 'vague.config.mjs', 'vague.config.cjs'];
 
@@ -196,6 +212,45 @@ export async function loadConfigFile(configPath: string): Promise<VagueConfig> {
       throw new ConfigError(`'pretty' must be a boolean`, configPath);
     }
 
+    // Validate logging config if present
+    if (config.logging !== undefined) {
+      if (typeof config.logging !== 'object' || config.logging === null) {
+        throw new ConfigError(`'logging' must be an object`, configPath);
+      }
+
+      if (config.logging.level !== undefined && !VALID_LOG_LEVELS.includes(config.logging.level)) {
+        throw new ConfigError(
+          `'logging.level' must be one of: ${VALID_LOG_LEVELS.join(', ')}`,
+          configPath
+        );
+      }
+
+      if (config.logging.components !== undefined) {
+        if (!Array.isArray(config.logging.components)) {
+          throw new ConfigError(`'logging.components' must be an array`, configPath);
+        }
+        for (const comp of config.logging.components) {
+          if (!VALID_LOG_COMPONENTS.includes(comp)) {
+            throw new ConfigError(
+              `Invalid logging component '${comp}'. Must be one of: ${VALID_LOG_COMPONENTS.join(', ')}`,
+              configPath
+            );
+          }
+        }
+      }
+
+      if (
+        config.logging.timestamps !== undefined &&
+        typeof config.logging.timestamps !== 'boolean'
+      ) {
+        throw new ConfigError(`'logging.timestamps' must be a boolean`, configPath);
+      }
+
+      if (config.logging.colors !== undefined && typeof config.logging.colors !== 'boolean') {
+        throw new ConfigError(`'logging.colors' must be a boolean`, configPath);
+      }
+    }
+
     return config;
   } catch (err) {
     if (err instanceof ConfigError) {
@@ -241,6 +296,7 @@ export async function loadConfig(configPath?: string): Promise<ResolvedConfig | 
     seed: config.seed,
     format: config.format,
     pretty: config.pretty,
+    logging: config.logging,
     configPath: resolvedConfigPath,
   };
 }
@@ -270,6 +326,7 @@ export async function loadConfigFrom(configPath: string): Promise<ResolvedConfig
     seed: config.seed,
     format: config.format,
     pretty: config.pretty,
+    logging: config.logging,
     configPath,
   };
 }
