@@ -1,4 +1,4 @@
-import type { SchemaDefinition } from '../ast/index.js';
+import type { SchemaDefinition, Expression } from '../ast/index.js';
 import type { ImportedSchema } from '../openapi/index.js';
 
 /**
@@ -9,6 +9,7 @@ export interface GeneratorContext {
   schemas: Map<string, SchemaDefinition>;
   importedSchemas: Map<string, Map<string, ImportedSchema>>;
   collections: Map<string, unknown[]>;
+  bindings: Map<string, Expression>; // let bindings (name -> expression)
   parent?: Record<string, unknown>;
   current?: Record<string, unknown>;
   previous?: Record<string, unknown>; // Previous record in collection for sequential coherence
@@ -27,6 +28,7 @@ export function createContext(): GeneratorContext {
     schemas: new Map(),
     importedSchemas: new Map(),
     collections: new Map(),
+    bindings: new Map(),
     uniqueValues: new Map(),
     sequences: new Map(),
     orderedSequenceIndices: new Map(),

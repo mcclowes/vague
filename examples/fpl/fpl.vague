@@ -1,11 +1,21 @@
 // Fantasy Premier League data generator
 // Based on real FPL API data structure
 
+// Team names and short codes as reusable let bindings
+let teamNames = "Arsenal" | "Aston Villa" | "Brighton" | "Burnley" | "Chelsea"
+              | "Crystal Palace" | "Everton" | "Fulham" | "Leeds" | "Leicester"
+              | "Liverpool" | "Man City" | "Man Utd" | "Newcastle" | "Sheffield Utd"
+              | "Southampton" | "Spurs" | "West Brom" | "West Ham" | "Wolves"
+
+let shortNames = "ARS" | "AVL" | "BHA" | "BUR" | "CHE" | "CRY" | "EVE" | "FUL"
+               | "LEE" | "LEI" | "LIV" | "MCI" | "MUN" | "NEW" | "SHU" | "SOU"
+               | "TOT" | "WBA" | "WHU" | "WOL"
+
 schema Team {
   id: unique int in 1..20,
   code: unique int in 1..100,
-  name: unique "Arsenal" | "Aston Villa" | "Brighton" | "Burnley" | "Chelsea" | "Crystal Palace" | "Everton" | "Fulham" | "Leeds" | "Leicester" | "Liverpool" | "Man City" | "Man Utd" | "Newcastle" | "Sheffield Utd" | "Southampton" | "Spurs" | "West Brom" | "West Ham" | "Wolves",
-  short_name: unique "ARS" | "AVL" | "BHA" | "BUR" | "CHE" | "CRY" | "EVE" | "FUL" | "LEE" | "LEI" | "LIV" | "MCI" | "MUN" | "NEW" | "SHU" | "SOU" | "TOT" | "WBA" | "WHU" | "WOL",
+  name: unique teamNames,
+  short_name: unique shortNames,
   strength: int in 2..5,
   played: int in 8..38,
   win: int in 0..20,

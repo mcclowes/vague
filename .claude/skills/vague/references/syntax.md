@@ -12,6 +12,23 @@ schema Person {
 }
 ```
 
+## Let Bindings (Reusable Values)
+
+```vague
+// Define reusable superpositions at the top of the file
+let teamNames = "Arsenal" | "Chelsea" | "Liverpool" | "Man City"
+let statuses = 0.8: "active" | 0.15: "pending" | 0.05: "inactive"
+
+schema Team {
+  name: unique teamNames,
+  status: statuses
+}
+```
+
+- Improves readability for long enum lists
+- Works with `unique` modifier
+- Supports weighted superpositions
+
 ## Superposition (Random Choice)
 
 ```vague

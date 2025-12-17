@@ -99,7 +99,7 @@ export class Generator {
   async generate(program: Program): Promise<Record<string, unknown[]>> {
     generatorLog.debug('Starting generation', { statements: program.statements.length });
 
-    // First pass: collect schemas and process imports
+    // First pass: collect schemas, imports, and let bindings
     for (const stmt of program.statements) {
       if (stmt.type === 'ImportStatement') {
         generatorLog.debug('Loading OpenAPI import', { name: stmt.name, path: stmt.path });
@@ -113,12 +113,16 @@ export class Generator {
           fields: stmt.fields.length,
           constraints: stmt.assumes?.length ?? 0,
         });
+      } else if (stmt.type === 'LetStatement') {
+        this.ctx.bindings.set(stmt.name, stmt.value);
+        generatorLog.debug('Registered let binding', { name: stmt.name });
       }
     }
 
     generatorLog.info('Schema registration complete', {
       schemas: this.ctx.schemas.size,
       imports: this.ctx.importedSchemas.size,
+      bindings: this.ctx.bindings.size,
     });
 
     // Second pass: generate datasets
@@ -981,8 +985,13 @@ export class Generator {
     // When traversing into an array, map over it to extract values
     let value: unknown = this.ctx.current;
 
-    // First part might be a collection name (for dataset-level validation)
+    // First part might be a let binding (e.g., let teamNames = "A" | "B")
     const [first, ...rest] = parts;
+    if (this.ctx.bindings.has(first) && rest.length === 0) {
+      return this.evaluateExpression(this.ctx.bindings.get(first)!);
+    }
+
+    // First part might be a collection name (for dataset-level validation)
     if (this.ctx.collections.has(first)) {
       value = this.ctx.collections.get(first);
       // If no more parts, return the collection
@@ -1041,6 +1050,10 @@ export class Generator {
         // Check if it's a primitive type name (for superposition like "string | null")
         if (['string', 'int', 'decimal', 'boolean', 'date'].includes(name)) {
           return this.generatePrimitive(name as 'string' | 'int' | 'decimal' | 'boolean' | 'date');
+        }
+        // Check let bindings (e.g., let teamNames = "A" | "B" | "C")
+        if (this.ctx.bindings.has(name)) {
+          return this.evaluateExpression(this.ctx.bindings.get(name)!);
         }
         // Check collections first (for dataset-level validation)
         if (this.ctx.collections.has(name)) {

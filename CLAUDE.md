@@ -126,6 +126,22 @@ schema Person {
 }
 ```
 
+### Let Bindings (Reusable Values)
+```vague
+// Define reusable superpositions at the top of the file
+let teamNames = "Arsenal" | "Chelsea" | "Liverpool" | "Man City" | "Man Utd"
+let statuses = 0.8: "active" | 0.15: "pending" | 0.05: "inactive"
+
+schema Team {
+  name: unique teamNames,   // Use the binding
+  status: statuses
+}
+```
+
+- Improves readability for long enum lists
+- Works with `unique` modifier
+- Supports weighted superpositions
+
 ### Superposition (Random Choice)
 ```vague
 status: "draft" | "sent" | "paid"           // Equal weight
@@ -1365,6 +1381,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and 
 - [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 - [x] Refine blocks (`} refine { if condition { field: newType } }` - conditional field overrides)
+- [x] Let bindings (`let x = "a" | "b"` - reusable values for cleaner schemas)
 - [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
 - [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
 

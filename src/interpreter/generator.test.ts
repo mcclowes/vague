@@ -3316,4 +3316,97 @@ describe('Generator', () => {
       }
     });
   });
+
+  describe('let bindings', () => {
+    it('uses let binding for superposition field', async () => {
+      const source = `
+        let teamNames = "Arsenal" | "Chelsea" | "Liverpool"
+
+        schema Team {
+          name: teamNames
+        }
+
+        dataset TestData {
+          teams: 20 of Team
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const team of result.teams as Record<string, unknown>[]) {
+        expect(['Arsenal', 'Chelsea', 'Liverpool']).toContain(team.name);
+      }
+    });
+
+    it('uses let binding with unique modifier', async () => {
+      const source = `
+        let colors = "red" | "green" | "blue" | "yellow" | "purple"
+
+        schema Item {
+          color: unique colors
+        }
+
+        dataset TestData {
+          items: 5 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const usedColors = new Set<string>();
+      for (const item of result.items as Record<string, unknown>[]) {
+        expect(['red', 'green', 'blue', 'yellow', 'purple']).toContain(item.color);
+        expect(usedColors.has(item.color as string)).toBe(false);
+        usedColors.add(item.color as string);
+      }
+      expect(usedColors.size).toBe(5);
+    });
+
+    it('uses let binding with weighted superposition', async () => {
+      const source = `
+        let statuses = 0.9: "active" | 0.1: "inactive"
+
+        schema User {
+          status: statuses
+        }
+
+        dataset TestData {
+          users: 100 of User
+        }
+      `;
+
+      const result = await compile(source);
+
+      let activeCount = 0;
+      for (const user of result.users as Record<string, unknown>[]) {
+        expect(['active', 'inactive']).toContain(user.status);
+        if (user.status === 'active') activeCount++;
+      }
+      // With 90% weight, expect majority to be active
+      expect(activeCount).toBeGreaterThan(70);
+    });
+
+    it('uses multiple let bindings', async () => {
+      const source = `
+        let sizes = "S" | "M" | "L"
+        let colors = "red" | "blue"
+
+        schema Product {
+          size: sizes,
+          color: colors
+        }
+
+        dataset TestData {
+          products: 20 of Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const product of result.products as Record<string, unknown>[]) {
+        expect(['S', 'M', 'L']).toContain(product.size);
+        expect(['red', 'blue']).toContain(product.color);
+      }
+    });
+  });
 });
