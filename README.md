@@ -359,6 +359,9 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--oas-output <file>` | Output path for populated OpenAPI spec |
 | `--oas-example-count <n>` | Number of examples per schema (default: 1) |
 | `--oas-external` | Use external file references instead of inline |
+| `--plugins <dir>` | Load plugins from directory (can be used multiple times) |
+| `--no-auto-plugins` | Disable automatic plugin discovery |
+| `--verbose` | Show verbose output (e.g., discovered plugins) |
 | `-h, --help` | Show help |
 
 ## Development

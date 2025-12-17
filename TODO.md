@@ -63,7 +63,6 @@ Codebase Analysis Summary
 ## Plugin System
 
 - [ ] **Custom generators** - Pattern-based generators beyond faker
-- [ ] **Plugin discovery** - Auto-load plugins from node_modules or directory
 
 ## Context System
 
@@ -183,3 +182,4 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Correlation detection** - Automatically infer derived fields (`= qty * price`), ordering constraints (`assume end >= start`), and conditional constraints from data patterns
 - [x] **CSV inference** - `--infer data.csv` with `--infer-delimiter` and `--collection-name` options
 - [x] **Date arithmetic** - `date.days()`, `date.weeks()`, `date.months()`, `date.years()` duration functions with `+`/`-` operators
+- [x] **Plugin discovery** - Auto-load plugins from `./plugins/`, `./vague-plugins/`, and `node_modules/vague-plugin-*`

@@ -933,7 +933,7 @@ const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 663 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, CLI, and examples.
+Currently 793 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, config loader, plugin discovery, CLI, and examples.
 
 ## Architecture Notes
 
@@ -1329,6 +1329,58 @@ Shorthand generators:
 
 See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and `src/plugins/regex.ts` for complete examples of plugin implementation.
 
+### Plugin Discovery
+
+Vague automatically discovers and loads plugins from the following locations:
+
+1. **`./vague-plugins/`** - Custom plugins directory
+2. **`./plugins/`** - Alternative plugins directory
+3. **`node_modules/vague-plugin-*`** - npm packages following the naming convention
+
+**CLI Flags:**
+```bash
+# Load plugins from a custom directory
+node dist/cli.js schema.vague --plugins ./my-plugins
+
+# Use multiple plugin directories
+node dist/cli.js schema.vague --plugins ./plugins-a --plugins ./plugins-b
+
+# Disable automatic plugin discovery
+node dist/cli.js schema.vague --no-auto-plugins
+
+# Show verbose output (includes discovered plugins)
+node dist/cli.js schema.vague --verbose
+```
+
+**Creating a Discoverable Plugin:**
+
+```javascript
+// vague-plugins/my-plugin.mjs
+export default {
+  name: 'my-plugin',
+  generators: {
+    'greet': (args) => `Hello, ${args[0] || 'World'}!`,
+    'random.color': () => ['red', 'green', 'blue'][Math.floor(Math.random() * 3)]
+  }
+};
+```
+
+**Programmatic Plugin Discovery:**
+```typescript
+import { discoverPlugins, registerPlugin } from 'vague';
+
+// Discover and register plugins
+const discovered = await discoverPlugins({
+  pluginDirs: ['./custom-plugins'],
+  searchNodeModules: true,
+  verbose: true
+});
+
+for (const { plugin } of discovered) {
+  registerPlugin(plugin);
+}
+```
+
 ## What's Implemented
 
 - [x] Lexer, parser, AST, generator
@@ -1384,6 +1436,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, `src/plugins/date.ts`, and 
 - [x] Let bindings (`let x = "a" | "b"` - reusable values for cleaner schemas)
 - [x] Config file support (`vague.config.js` for loading plugins and setting defaults)
 - [x] Debug logging (`--debug`, `--log-level`, `VAGUE_DEBUG` env var, component filtering, vague.config.js support)
+- [x] Plugin discovery (`--plugins`, `--no-auto-plugins`, auto-load from `vague-plugins/`, `plugins/`, `node_modules/vague-plugin-*`)
 
 See TODO.md for planned features.
 

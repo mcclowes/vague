@@ -41,6 +41,10 @@ export {
   // Regex plugin
   regexPlugin,
   regexShorthandPlugin,
+  // Plugin discovery
+  discoverPlugins,
+  type DiscoverOptions,
+  type DiscoveredPlugin,
 } from './plugins/index.js';
 export {
   inferSchema,
