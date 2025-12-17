@@ -165,11 +165,12 @@ export function generateSchema(schema: InferredSchema): string {
 
   for (let i = 0; i < schema.fields.length; i++) {
     const field = schema.fields[i];
+    const fieldName = toValidIdentifier(field.name);
     const typeExpr = generateFieldType(field);
     const nullableSuffix = field.nullable && !field.isSuperposition ? '?' : '';
     const comma = i < schema.fields.length - 1 ? ',' : '';
 
-    lines.push(`  ${field.name}: ${typeExpr}${nullableSuffix}${comma}`);
+    lines.push(`  ${fieldName}: ${typeExpr}${nullableSuffix}${comma}`);
   }
 
   lines.push('}');
@@ -217,6 +218,28 @@ function toSnakeCase(str: string): string {
     .replace(/([A-Z])/g, '_$1')
     .toLowerCase()
     .replace(/^_/, '');
+}
+
+/**
+ * Convert a string to a valid Vague identifier (snake_case)
+ * Handles spaces, special characters, and ensures it starts with a letter
+ */
+function toValidIdentifier(str: string): string {
+  return (
+    str
+      // Replace spaces and hyphens with underscores
+      .replace(/[\s-]+/g, '_')
+      // Remove any characters that aren't alphanumeric or underscore
+      .replace(/[^a-zA-Z0-9_]/g, '')
+      // Convert to lowercase
+      .toLowerCase()
+      // Ensure it doesn't start with a number
+      .replace(/^(\d)/, '_$1')
+      // Collapse multiple underscores
+      .replace(/_+/g, '_')
+      // Remove leading/trailing underscores
+      .replace(/^_|_$/g, '')
+  );
 }
 
 /**
