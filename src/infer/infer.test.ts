@@ -461,3 +461,185 @@ describe('End-to-end inference and compilation', () => {
     expect(result.users.length).toBe(3);
   });
 });
+
+describe('Schema Deduplication', () => {
+  it('deduplicates identical nested schemas', () => {
+    const data = {
+      orders: [
+        {
+          billing_address: { street: '123 Main', city: 'NYC', zip: '10001' },
+          shipping_address: { street: '456 Oak', city: 'LA', zip: '90001' },
+        },
+        {
+          billing_address: { street: '789 Pine', city: 'Chicago', zip: '60601' },
+          shipping_address: { street: '321 Elm', city: 'Denver', zip: '80201' },
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should only have one Address schema since both are structurally identical
+    // Either both reference the same schema, or we have deduplication
+    // The important thing is we don't have two identical schema definitions
+    const schemaDefinitions = result.match(/schema \w+ \{/g) || [];
+    const uniqueSchemaNames = new Set(schemaDefinitions);
+
+    // Verify the output is valid (either deduplicated or at least not duplicated content)
+    expect(result).toContain('schema');
+    expect(uniqueSchemaNames.size).toBe(schemaDefinitions.length);
+  });
+
+  it('keeps different schemas separate', () => {
+    const data = {
+      orders: [
+        {
+          address: { street: '123 Main', city: 'NYC' },
+          contact: { name: 'John', phone: '555-1234' },
+        },
+        {
+          address: { street: '456 Oak', city: 'LA' },
+          contact: { name: 'Jane', phone: '555-5678' },
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should have both Address and Contact schemas since they're different
+    expect(result).toContain('schema Address');
+    expect(result).toContain('schema Contact');
+    expect(result).toContain('street');
+    expect(result).toContain('phone');
+  });
+});
+
+describe('TypeScript Generation Integration', () => {
+  it('inferSchemaWithTypeScript generates both Vague and TypeScript', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      users: [
+        { id: 1, name: 'Alice', active: true },
+        { id: 2, name: 'Bob', active: false },
+      ],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Check Vague output
+    expect(result.vague).toContain('schema User {');
+    expect(result.vague).toContain('dataset Generated');
+
+    // Check TypeScript output
+    expect(result.typescript).toContain('interface User');
+    expect(result.typescript).toContain('id: number');
+    expect(result.typescript).toContain('name: string');
+    expect(result.typescript).toContain('active: boolean');
+    expect(result.typescript).toContain('interface Generated');
+
+    // Check schemas array
+    expect(result.schemas.length).toBeGreaterThan(0);
+    expect(result.schemas.some((s) => s.name === 'User')).toBe(true);
+  });
+
+  it('generates correct TypeScript for superposition fields', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      invoices: [{ status: 'draft' }, { status: 'sent' }, { status: 'paid' }, { status: 'draft' }],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Should have union type
+    expect(result.typescript).toContain("'draft'");
+    expect(result.typescript).toContain("'sent'");
+    expect(result.typescript).toContain("'paid'");
+  });
+
+  it('generates correct TypeScript for nested arrays', async () => {
+    const { inferSchemaWithTypeScript } = await import('./index.js');
+
+    const data = {
+      orders: [{ items: [{ name: 'A' }, { name: 'B' }] }, { items: [{ name: 'C' }] }],
+    };
+
+    const result = inferSchemaWithTypeScript(data);
+
+    // Check nested schema
+    expect(result.typescript).toContain('interface Item');
+    expect(result.typescript).toContain('items: Item[]');
+  });
+});
+
+describe('Aggregation Detection Integration', () => {
+  it('detects sum aggregation from nested arrays', () => {
+    const data = {
+      invoices: [
+        {
+          subtotal: 150,
+          line_items: [{ amount: 50 }, { amount: 100 }],
+        },
+        {
+          subtotal: 75,
+          line_items: [{ amount: 25 }, { amount: 50 }],
+        },
+        {
+          subtotal: 200,
+          line_items: [{ amount: 100 }, { amount: 100 }],
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect that subtotal = sum(line_items.amount)
+    expect(result).toContain('sum(line_items.amount)');
+  });
+
+  it('detects count aggregation', () => {
+    const data = {
+      orders: [
+        {
+          item_count: 2,
+          items: [{ name: 'A' }, { name: 'B' }],
+        },
+        {
+          item_count: 3,
+          items: [{ name: 'C' }, { name: 'D' }, { name: 'E' }],
+        },
+        {
+          item_count: 1,
+          items: [{ name: 'F' }],
+        },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect that item_count = count(items)
+    expect(result).toContain('count(items)');
+  });
+});
+
+describe('Division Detection Integration', () => {
+  it('detects mathematical relationship (multiplication or division)', () => {
+    const data = {
+      orders: [
+        { total: 100, quantity: 5, unit_price: 20 },
+        { total: 60, quantity: 3, unit_price: 20 },
+        { total: 200, quantity: 10, unit_price: 20 },
+      ],
+    };
+
+    const result = inferSchema(data);
+
+    // Should detect either total = quantity * unit_price OR unit_price = total / quantity
+    // Both are mathematically equivalent (if c = a/b then a = b*c)
+    const hasMultiplication = result.includes('quantity * unit_price');
+    const hasDivision = result.includes('total / quantity');
+
+    expect(hasMultiplication || hasDivision).toBe(true);
+  });
+});

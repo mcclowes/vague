@@ -33,15 +33,25 @@ export {
 } from './codegen.js';
 export type { InferredField, InferredSchema } from './codegen.js';
 
-export { detectCorrelations, constraintsToVague } from './correlation-detector.js';
+export {
+  detectCorrelations,
+  constraintsToVague,
+  detectAggregations,
+} from './correlation-detector.js';
 export type {
   InferredConstraint,
   OrderingConstraint,
   DerivedConstraint,
   ConditionalConstraint,
   CorrelationOptions,
+  AggregationType,
+  AggregationConstraint,
 } from './correlation-detector.js';
 
+export { generateTypeScript } from './typescript-generator.js';
+export type { TypeScriptGeneratorOptions } from './typescript-generator.js';
+
+import { generateTypeScript } from './typescript-generator.js';
 import { detectFieldType } from './type-detector.js';
 import {
   detectNumericRange,
@@ -61,6 +71,7 @@ import {
 } from './codegen.js';
 import {
   detectCorrelations,
+  detectAggregations,
   InferredConstraint,
   DerivedConstraint,
   OrderingConstraint,
@@ -73,6 +84,125 @@ import {
  */
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Check if two schemas have equivalent structure (same fields with same types)
+ * Used for deduplicating identical nested schemas
+ */
+function schemasAreEquivalent(a: InferredSchema, b: InferredSchema): boolean {
+  // Must have same number of fields
+  if (a.fields.length !== b.fields.length) {
+    return false;
+  }
+
+  // Sort fields by name for comparison
+  const sortedA = [...a.fields].sort((x, y) => x.name.localeCompare(y.name));
+  const sortedB = [...b.fields].sort((x, y) => x.name.localeCompare(y.name));
+
+  for (let i = 0; i < sortedA.length; i++) {
+    const fieldA = sortedA[i];
+    const fieldB = sortedB[i];
+
+    // Check field names match
+    if (fieldA.name !== fieldB.name) {
+      return false;
+    }
+
+    // Check types match
+    if (fieldA.type !== fieldB.type) {
+      return false;
+    }
+
+    // Check nullable
+    if (fieldA.nullable !== fieldB.nullable) {
+      return false;
+    }
+
+    // Check array status
+    if (fieldA.isArray !== fieldB.isArray) {
+      return false;
+    }
+
+    // Check superposition
+    if (fieldA.isSuperposition !== fieldB.isSuperposition) {
+      return false;
+    }
+
+    // For superpositions, check if options are equivalent
+    if (fieldA.isSuperposition && fieldB.isSuperposition) {
+      const optsA = fieldA.superpositionOptions || [];
+      const optsB = fieldB.superpositionOptions || [];
+      if (optsA.length !== optsB.length) {
+        return false;
+      }
+      const sortedOptsA = [...optsA].sort((x, y) => String(x.value).localeCompare(String(y.value)));
+      const sortedOptsB = [...optsB].sort((x, y) => String(x.value).localeCompare(String(y.value)));
+      for (let j = 0; j < sortedOptsA.length; j++) {
+        if (sortedOptsA[j].value !== sortedOptsB[j].value) {
+          return false;
+        }
+      }
+    }
+
+    // Check generators
+    if (fieldA.generator !== fieldB.generator) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Deduplicate nested schemas and update references
+ * Returns the deduplicated schemas and a mapping of old names to new names
+ */
+function deduplicateSchemas(
+  nestedSchemas: Map<string, InferredSchema>,
+  mainSchemas: InferredSchema[]
+): { schemas: InferredSchema[]; nameMapping: Map<string, string> } {
+  const uniqueSchemas: InferredSchema[] = [];
+  const nameMapping = new Map<string, string>(); // old name -> canonical name
+
+  // Process nested schemas first
+  for (const [name, schema] of nestedSchemas) {
+    // Check if we already have an equivalent schema
+    let foundEquivalent = false;
+    for (const existing of uniqueSchemas) {
+      if (schemasAreEquivalent(schema, existing)) {
+        // Map this schema name to the existing one
+        nameMapping.set(name, existing.name);
+        foundEquivalent = true;
+        break;
+      }
+    }
+
+    if (!foundEquivalent) {
+      uniqueSchemas.push(schema);
+      nameMapping.set(name, name); // Maps to itself
+    }
+  }
+
+  // Update field references in nested schemas to use canonical names
+  for (const schema of uniqueSchemas) {
+    for (const field of schema.fields) {
+      if (field.nestedSchemaName && nameMapping.has(field.nestedSchemaName)) {
+        field.nestedSchemaName = nameMapping.get(field.nestedSchemaName)!;
+      }
+    }
+  }
+
+  // Update field references in main schemas
+  for (const schema of mainSchemas) {
+    for (const field of schema.fields) {
+      if (field.nestedSchemaName && nameMapping.has(field.nestedSchemaName)) {
+        field.nestedSchemaName = nameMapping.get(field.nestedSchemaName)!;
+      }
+    }
+  }
+
+  return { schemas: uniqueSchemas, nameMapping };
 }
 
 /**
@@ -182,8 +312,11 @@ export function inferSchema(data: Record<string, unknown[]>, options: InferOptio
     schemas.push(schema);
   }
 
+  // Deduplicate nested schemas (merge structurally identical schemas)
+  const { schemas: uniqueNestedSchemas } = deduplicateSchemas(nestedSchemas, schemas);
+
   // Add nested schemas first (they need to be defined before being referenced)
-  const allSchemas = [...nestedSchemas.values(), ...schemas];
+  const allSchemas = [...uniqueNestedSchemas, ...schemas];
 
   return generateDataset(allSchemas, opts.datasetName);
 }
@@ -275,6 +408,36 @@ function inferSchemaFromRecords(
           // Sanitize ordering and conditional constraints
           const sanitized = sanitizeConstraint(corr);
           otherConstraints.push(sanitized);
+        }
+      }
+
+      // Detect aggregations (sum, count, min, max, avg of nested arrays)
+      const aggregations = detectAggregations(typedRecords, {
+        minConfidence: options.correlationConfidence,
+      });
+
+      // Add aggregation-based derived fields
+      for (const agg of aggregations) {
+        const sanitizedTarget = toValidIdentifier(agg.targetField);
+        // Don't override if already detected by regular correlation
+        if (!derivedFields.has(sanitizedTarget)) {
+          // Sanitize the expression
+          const sanitizedArrayField = toValidIdentifier(agg.arrayField);
+          let sanitizedExpr = agg.expression;
+          sanitizedExpr = sanitizedExpr.replace(agg.arrayField, sanitizedArrayField);
+
+          // Check if target field has decimal precision - wrap in round() if so
+          const targetField = fields.find((f) => toValidIdentifier(f.name) === sanitizedTarget);
+          if (
+            targetField?.numericRange &&
+            !targetField.numericRange.allInteger &&
+            targetField.numericRange.decimalPlaces > 0 &&
+            targetField.numericRange.decimalPlaces <= 4
+          ) {
+            sanitizedExpr = `round(${sanitizedExpr}, ${targetField.numericRange.decimalPlaces})`;
+          }
+
+          derivedFields.set(sanitizedTarget, sanitizedExpr);
         }
       }
 
@@ -579,4 +742,65 @@ function valueToVagueStr(value: unknown): string {
     return 'null';
   }
   return JSON.stringify(value);
+}
+
+/**
+ * Result from inferSchemaWithTypeScript containing both outputs
+ */
+export interface InferResult {
+  /** Generated Vague schema source code */
+  vague: string;
+  /** Generated TypeScript definitions */
+  typescript: string;
+  /** Raw inferred schemas (for programmatic use) */
+  schemas: InferredSchema[];
+}
+
+/**
+ * Infer schema and generate both Vague code and TypeScript definitions
+ *
+ * @param data - Object with collection names as keys and arrays of records as values
+ * @param options - Inference options
+ * @returns Object containing vague code, typescript definitions, and raw schemas
+ *
+ * @example
+ * ```typescript
+ * const result = inferSchemaWithTypeScript(data);
+ * fs.writeFileSync('schema.vague', result.vague);
+ * fs.writeFileSync('schema.d.ts', result.typescript);
+ * ```
+ */
+export function inferSchemaWithTypeScript(
+  data: Record<string, unknown[]>,
+  options: InferOptions = {}
+): InferResult {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const schemas: InferredSchema[] = [];
+  const nestedSchemas: Map<string, InferredSchema> = new Map();
+
+  // Process each collection
+  for (const [collectionName, records] of Object.entries(data)) {
+    if (!Array.isArray(records) || records.length === 0) {
+      continue;
+    }
+
+    // Derive schema name from collection name
+    const schemaName = toPascalCase(singularize(collectionName));
+
+    const schema = inferSchemaFromRecords(schemaName, records, opts, nestedSchemas);
+
+    schemas.push(schema);
+  }
+
+  // Deduplicate nested schemas (merge structurally identical schemas)
+  const { schemas: uniqueNestedSchemas } = deduplicateSchemas(nestedSchemas, schemas);
+
+  // All schemas (nested first)
+  const allSchemas = [...uniqueNestedSchemas, ...schemas];
+
+  return {
+    vague: generateDataset(allSchemas, opts.datasetName),
+    typescript: generateTypeScript(allSchemas, opts.datasetName),
+    schemas: allSchemas,
+  };
 }

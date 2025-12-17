@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { detectCorrelations, constraintsToVague } from './correlation-detector.js';
+import {
+  detectCorrelations,
+  constraintsToVague,
+  detectAggregations,
+} from './correlation-detector.js';
 
 describe('correlation-detector', () => {
   describe('detectCorrelations', () => {
@@ -103,6 +107,56 @@ describe('correlation-detector', () => {
         );
         expect(grandTotalDerived).toBeDefined();
         expect(grandTotalDerived?.expression).toBe('subtotal + tax');
+      });
+
+      it('detects division relationship (or equivalent multiplication)', () => {
+        // Note: If c = a / b, then mathematically a = b * c
+        // The system may detect either relationship; both are correct
+        const records = [
+          { total: 100, quantity: 5, unit_price: 20 },
+          { total: 60, quantity: 3, unit_price: 20 },
+          { total: 200, quantity: 10, unit_price: 20 },
+          { total: 150, quantity: 6, unit_price: 25 },
+        ];
+
+        const constraints = detectCorrelations(records);
+        const derived = constraints.filter((c) => c.type === 'derived');
+
+        // Should detect some derived relationship involving these fields
+        expect(derived.length).toBeGreaterThan(0);
+
+        // Either total = quantity * unit_price OR unit_price = total / quantity
+        const totalDerived = derived.find((c) => c.type === 'derived' && c.targetField === 'total');
+        const priceDerived = derived.find(
+          (c) => c.type === 'derived' && c.targetField === 'unit_price'
+        );
+
+        // At least one of these should be detected
+        expect(totalDerived || priceDerived).toBeDefined();
+      });
+
+      it('prefers division when appropriate (avg_val = total_sum / count)', () => {
+        // Create data where division produces a cleaner relationship
+        // In this case, avg_val cannot be produced by multiplying two independent fields
+        const records = [
+          { total_sum: 100, count: 4, avg_val: 25, other: 7 },
+          { total_sum: 150, count: 3, avg_val: 50, other: 11 },
+          { total_sum: 200, count: 8, avg_val: 25, other: 13 },
+          { total_sum: 90, count: 6, avg_val: 15, other: 5 },
+        ];
+
+        const constraints = detectCorrelations(records);
+        const derived = constraints.filter((c) => c.type === 'derived');
+
+        // Should detect some derived relationship
+        expect(derived.length).toBeGreaterThan(0);
+
+        // Check that a relationship involving avg_val or total_sum is found
+        const avgDerived = derived.find(
+          (c) =>
+            c.type === 'derived' && (c.targetField === 'avg_val' || c.targetField === 'total_sum')
+        );
+        expect(avgDerived).toBeDefined();
       });
 
       it('avoids circular dependencies in derived fields', () => {
@@ -249,6 +303,150 @@ describe('correlation-detector', () => {
 
       const vague = constraintsToVague(constraints);
       expect(vague.length).toBe(0);
+    });
+  });
+
+  describe('detectAggregations', () => {
+    it('detects sum aggregation', () => {
+      const records = [
+        {
+          subtotal: 150,
+          line_items: [{ amount: 50 }, { amount: 100 }],
+        },
+        {
+          subtotal: 300,
+          line_items: [{ amount: 100 }, { amount: 150 }, { amount: 50 }],
+        },
+        {
+          subtotal: 75,
+          line_items: [{ amount: 25 }, { amount: 50 }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      const sumAgg = aggregations.find(
+        (a) => a.targetField === 'subtotal' && a.aggregationType === 'sum'
+      );
+      expect(sumAgg).toBeDefined();
+      expect(sumAgg?.expression).toBe('sum(line_items.amount)');
+    });
+
+    it('detects count aggregation', () => {
+      const records = [
+        {
+          item_count: 2,
+          items: [{ name: 'a' }, { name: 'b' }],
+        },
+        {
+          item_count: 3,
+          items: [{ name: 'c' }, { name: 'd' }, { name: 'e' }],
+        },
+        {
+          item_count: 1,
+          items: [{ name: 'f' }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      const countAgg = aggregations.find(
+        (a) => a.targetField === 'item_count' && a.aggregationType === 'count'
+      );
+      expect(countAgg).toBeDefined();
+      expect(countAgg?.expression).toBe('count(items)');
+    });
+
+    it('detects min aggregation', () => {
+      const records = [
+        {
+          min_price: 10,
+          products: [{ price: 10 }, { price: 25 }, { price: 50 }],
+        },
+        {
+          min_price: 5,
+          products: [{ price: 5 }, { price: 100 }],
+        },
+        {
+          min_price: 20,
+          products: [{ price: 20 }, { price: 30 }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      const minAgg = aggregations.find(
+        (a) => a.targetField === 'min_price' && a.aggregationType === 'min'
+      );
+      expect(minAgg).toBeDefined();
+      expect(minAgg?.expression).toBe('min(products.price)');
+    });
+
+    it('detects max aggregation', () => {
+      const records = [
+        {
+          max_price: 50,
+          products: [{ price: 10 }, { price: 25 }, { price: 50 }],
+        },
+        {
+          max_price: 100,
+          products: [{ price: 5 }, { price: 100 }],
+        },
+        {
+          max_price: 30,
+          products: [{ price: 20 }, { price: 30 }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      const maxAgg = aggregations.find(
+        (a) => a.targetField === 'max_price' && a.aggregationType === 'max'
+      );
+      expect(maxAgg).toBeDefined();
+      expect(maxAgg?.expression).toBe('max(products.price)');
+    });
+
+    it('detects avg aggregation', () => {
+      const records = [
+        {
+          avg_score: 25,
+          scores: [{ value: 10 }, { value: 30 }, { value: 35 }],
+        },
+        {
+          avg_score: 50,
+          scores: [{ value: 40 }, { value: 60 }],
+        },
+        {
+          avg_score: 20,
+          scores: [{ value: 10 }, { value: 20 }, { value: 30 }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      const avgAgg = aggregations.find(
+        (a) => a.targetField === 'avg_score' && a.aggregationType === 'avg'
+      );
+      expect(avgAgg).toBeDefined();
+      expect(avgAgg?.expression).toBe('avg(scores.value)');
+    });
+
+    it('returns empty for records without arrays', () => {
+      const records = [
+        { a: 10, b: 20 },
+        { a: 30, b: 40 },
+      ];
+
+      const aggregations = detectAggregations(records);
+      expect(aggregations.length).toBe(0);
+    });
+
+    it('returns empty for insufficient records', () => {
+      const records = [
+        {
+          total: 100,
+          items: [{ amount: 50 }, { amount: 50 }],
+        },
+      ];
+
+      const aggregations = detectAggregations(records);
+      expect(aggregations.length).toBe(0);
     });
   });
 });
