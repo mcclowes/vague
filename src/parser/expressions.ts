@@ -241,6 +241,13 @@ export class ExpressionParser extends ParserBase {
       return { type: 'ParentReference', path };
     }
 
+    // Handle unary minus and plus
+    if (this.check(TokenType.MINUS) || this.check(TokenType.PLUS)) {
+      const operator = this.advance().value;
+      const operand = this.parseUnary();
+      return { type: 'UnaryExpression', operator, operand };
+    }
+
     return this.parseCall();
   }
 

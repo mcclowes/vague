@@ -850,5 +850,86 @@ describe('Parser', () => {
         expect(schema.fields[0].computed).toBe(true);
       }
     });
+
+    it('parses negative number in range', () => {
+      const ast = parse(`
+        schema Temperature {
+          celsius: int in -40..50
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        const field = schema.fields[0];
+        expect(field.fieldType).toMatchObject({
+          type: 'RangeType',
+          baseType: { type: 'PrimitiveType', name: 'int' },
+        });
+        // min should be a UnaryExpression with operator '-'
+        if (field.fieldType.type === 'RangeType') {
+          expect(field.fieldType.min).toMatchObject({
+            type: 'UnaryExpression',
+            operator: '-',
+            operand: { type: 'Literal', value: 40 },
+          });
+          expect(field.fieldType.max).toMatchObject({
+            type: 'Literal',
+            value: 50,
+          });
+        }
+      }
+    });
+
+    it('parses negative range with both negative bounds', () => {
+      const ast = parse(`
+        schema Account {
+          balance: decimal in -1000.00..-0.01
+        }
+      `);
+
+      const schema = ast.statements[0];
+      if (schema.type === 'SchemaDefinition') {
+        const field = schema.fields[0];
+        expect(field.fieldType.type).toBe('RangeType');
+        if (field.fieldType.type === 'RangeType') {
+          expect(field.fieldType.min).toMatchObject({
+            type: 'UnaryExpression',
+            operator: '-',
+          });
+          expect(field.fieldType.max).toMatchObject({
+            type: 'UnaryExpression',
+            operator: '-',
+          });
+        }
+      }
+    });
+
+    it('parses unary plus in expression', () => {
+      const ast = parse('let x = +5');
+
+      expect(ast.statements[0]).toMatchObject({
+        type: 'LetStatement',
+        name: 'x',
+        value: {
+          type: 'UnaryExpression',
+          operator: '+',
+          operand: { type: 'Literal', value: 5 },
+        },
+      });
+    });
+
+    it('parses unary minus in expression', () => {
+      const ast = parse('let x = -10');
+
+      expect(ast.statements[0]).toMatchObject({
+        type: 'LetStatement',
+        name: 'x',
+        value: {
+          type: 'UnaryExpression',
+          operator: '-',
+          operand: { type: 'Literal', value: 10 },
+        },
+      });
+    });
   });
 });
