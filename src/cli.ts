@@ -4,13 +4,20 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { compile, registerPlugin, setSeed } from './index.js';
 import { SchemaValidator } from './validator/index.js';
-import { fakerPlugin, fakerShorthandPlugin } from './plugins/index.js';
+import {
+  fakerPlugin,
+  fakerShorthandPlugin,
+  datesPlugin,
+  datesShorthandPlugin,
+} from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema } from './infer/index.js';
 
-// Register faker plugins automatically
+// Register plugins automatically
 registerPlugin(fakerPlugin);
 registerPlugin(fakerShorthandPlugin);
+registerPlugin(datesPlugin);
+registerPlugin(datesShorthandPlugin);
 
 interface ValidationMapping {
   [collection: string]: string;
