@@ -178,6 +178,23 @@ schema Payment {
 id: unique int in 1000..9999    // No duplicates in collection
 ```
 
+### Private Fields
+
+```vague
+schema Person {
+  age: private int in 0..105,                    // Generated but excluded from output
+  age_bracket: = age < 18 ? "minor" : "adult"    // Computed from private field
+}
+// Output: { "age_bracket": "adult" } -- no "age" field
+```
+
+### Ordered Sequences
+
+```vague
+pitch: [48, 52, 55, 60]   // Cycles in order: 48, 52, 55, 60, 48...
+color: ["red", "green", "blue"]
+```
+
 ### Statistical Distributions
 
 ```vague

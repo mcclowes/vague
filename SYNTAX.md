@@ -55,6 +55,33 @@ notes: string | null     # Alternative: explicit null
 
 ---
 
+## Private Fields
+
+```vague
+schema Person {
+  # Generated but excluded from output
+  age: private int in 0..105,
+  age_bracket: = age < 18 ? "minor" : age < 65 ? "adult" : "senior"
+}
+# Output: { "age_bracket": "adult" } -- no "age" field
+
+# Can combine with unique
+internal_id: unique private int in 1..10000
+```
+
+---
+
+## Ordered Sequences (Cycling Lists)
+
+```vague
+# Cycles through values in order
+pitch: [48, 52, 55, 60]           # C-E-G-C arpeggio
+color: ["red", "green", "blue"]   # Cycles: red, green, blue, red...
+value: [1+1, 2+2, 3+3]            # Cycles: 2, 4, 6, 2, 4, 6...
+```
+
+---
+
 ## Collections (Cardinality)
 
 ```vague
@@ -166,6 +193,29 @@ discount: = (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 
 ---
 
+## String Transformations
+
+```vague
+# Case transformations
+upper: = uppercase(name)         # "HELLO WORLD"
+lower: = lowercase(name)         # "hello world"
+cap: = capitalize(name)          # "Hello World"
+
+# Case style conversions
+slug: = kebabCase(title)         # "hello-world"
+snake: = snakeCase(title)        # "hello_world"
+camel: = camelCase(title)        # "helloWorld"
+
+# String manipulation
+trimmed: = trim("  hello  ")     # "hello"
+combined: = concat(a, " ", b)    # "John Doe"
+part: = substring(name, 0, 5)    # First 5 chars
+replaced: = replace(s, "a", "b")
+len: = length(name)
+```
+
+---
+
 ## Generators (Semantic Data)
 
 ### Built-in Generators
@@ -188,6 +238,25 @@ avatar: faker.image.avatar()
 version: faker.system.semver()
 commit: faker.git.commitSha()
 url: faker.internet.url()
+```
+
+### Dates Plugin
+```vague
+# Weekday dates only (Monday-Friday)
+meeting_date: dates.weekday(2024, 2025)
+
+# Weekend dates only
+party_date: dates.weekend(2024, 2025)
+
+# Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
+monday: dates.dayOfWeek(1, 2024, 2025)
+
+# ISO string ranges also work
+q1: dates.weekday("2024-01-01", "2024-03-31")
+
+# Shorthand (no namespace)
+meeting: weekday(2024, 2025)
+party: weekend(2024, 2025)
 ```
 
 ---
@@ -407,6 +476,9 @@ node dist/cli.js file.vague -o output.json
 
 # Reproducible output (seeded)
 node dist/cli.js file.vague --seed 123
+
+# Watch mode (regenerate on file change)
+node dist/cli.js file.vague -o output.json -w
 
 # Validate against OpenAPI
 node dist/cli.js file.vague -v spec.json -m '{"invoices": "Invoice"}'

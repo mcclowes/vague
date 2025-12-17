@@ -11,6 +11,12 @@ export {
   type GeneratorFunction,
   type GeneratorContext,
 } from './interpreter/index.js';
+export {
+  warningCollector,
+  type VagueWarning,
+  type WarningType,
+  type UniqueValueExhaustionWarning,
+} from './warnings.js';
 export { OpenAPILoader, ImportedSchema } from './openapi/index.js';
 export {
   fakerPlugin,

@@ -13,6 +13,7 @@ src/
 ├── validator/   # Schema validation against OpenAPI/JSON Schema
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
+├── plugins/     # Built-in plugins (faker, issuer, dates)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -119,6 +120,17 @@ schema Invoice {
   supplier: any of companies where .active == true  // Filtered
 }
 ```
+
+**Generation Order**: Collections are generated in the order they appear in the dataset. References to collections that haven't been generated yet will resolve to `null`. To avoid this, define referenced collections before the schemas that reference them:
+
+```vague
+dataset Test {
+  companies: 10 * Company,    // Generated first
+  invoices: 50 * Invoice      // Can reference companies
+}
+```
+
+**Circular References**: Mutually recursive references (A references B, B references A) are not supported. The first collection will have `null` references since the second hasn't been generated yet.
 
 ### Parent References
 ```vague
@@ -621,7 +633,7 @@ inferSchema(data, {
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 262 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, and examples.
+Currently 534 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, CLI, and examples.
 
 ## Architecture Notes
 

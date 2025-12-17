@@ -1,5 +1,35 @@
 # Vague Language - TODO
 
+## Next
+
+Codebase Analysis Summary
+
+  Critical Issues (High Priority)
+
+  | Issue                            | Location                                              | Impact                                              |
+  |----------------------------------|-------------------------------------------------------|-----------------------------------------------------|
+  | Excessive type assertions        | generator.ts:307-310, 876, 897, predicate.ts:27,50,73 | Silent type coercion defeats TypeScript safety      |
+  | Silent failures via console.warn | generator.ts:136, 165, 224, 298, 643                  | Errors hidden from users, no programmatic detection |
+  | any types in validator           | validator.ts:1, 36, 100                               | Lost type info for OpenAPI handling                 |
+
+  Architectural Issues (Medium Priority)
+
+  | Issue                           | Location                                   | Recommendation                                                      |
+  |---------------------------------|--------------------------------------------|---------------------------------------------------------------------|
+  | Generator.ts is 1215 lines      | src/interpreter/generator.ts               | Extract: ExpressionEvaluator, FieldTypeGenerator, ReferenceResolver |
+  | Context lifecycle unclear       | context.ts                                 | Add explicit reset() method, clarify when state clears              |
+  | Collection iteration duplicated | generator.ts:872-901, predicate.ts:26-78   | Extract shared mapCollectionItems() utility                         |
+  | Format detection in 3 places    | generator.ts, faker.ts, format-detector.ts | Unify into format registry                                          |
+
+  Performance (Low Priority)
+
+  | Issue                       | Location                   | Note                                      |
+  |-----------------------------|----------------------------|-------------------------------------------|
+  | Hardcoded retry limits      | generator.ts:105, 199, 633 | 20/100/1000 attempts - not configurable   |
+  | Plugin lookup on every call | generator.ts:706-737       | Scans registry each time                  |
+  | No constraint caching       | generator.ts:440-467       | Re-evaluates all constraints per instance |
+
+
 ## Core Language
 - [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
@@ -144,3 +174,7 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **String transformations** - `uppercase()`, `lowercase()`, `capitalize()`, `kebabCase()`, `snakeCase()`, `camelCase()`, `trim()`, `concat()`, `substring()`, `replace()`, `length()`
 - [x] **Mixed weighted/unweighted superposition** - `0.85: "Active" | "Archived"` where unweighted options share remaining probability
 - [x] **Watch mode** - `-w/--watch` flag to regenerate output on file change
+- [x] **Ordered sequences** - `[a, b, c, d]` cycles through values in order
+- [x] **Private fields** - `age: private int` generated but excluded from output
+- [x] **Dates plugin** - `dates.weekday()`, `dates.weekend()`, `dates.dayOfWeek()` for day-of-week filtering
+- [x] **Schema inference** - `inferSchema()` and `--infer` CLI option to reverse-engineer schemas from JSON

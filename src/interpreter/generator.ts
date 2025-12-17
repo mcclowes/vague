@@ -27,6 +27,7 @@ import {
   OrderedSequenceType,
 } from '../ast/index.js';
 import { OpenAPILoader } from '../openapi/index.js';
+import { warningCollector, createUniqueExhaustionWarning } from '../warnings.js';
 import {
   generateCompanyName,
   generatePersonName,
@@ -640,9 +641,8 @@ export class Generator {
     }
 
     // Fallback: return last generated value with warning
-    console.warn(
-      `Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`
-    );
+    const [schemaName, fieldName] = key.split('.');
+    warningCollector.add(createUniqueExhaustionWarning(schemaName, fieldName, maxAttempts));
     return this.generateFromFieldType(field.fieldType, field.name);
   }
 

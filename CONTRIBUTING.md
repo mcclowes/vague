@@ -55,7 +55,7 @@ src/
 
 ## What to Work On
 
-Check [ROADMAP.md](ROADMAP.md) for planned features. Good first contributions:
+Check [TODO.md](TODO.md) for planned features. Good first contributions:
 
 - **Bug fixes** — If something doesn't work as expected
 - **Documentation** — Improve examples, clarify syntax
