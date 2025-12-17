@@ -26,81 +26,55 @@ import {
   TernaryExpression,
   OrderedSequenceType,
 } from '../ast/index.js';
-import { OpenAPILoader, ImportedSchema } from '../openapi/index.js';
+import { OpenAPILoader } from '../openapi/index.js';
 import {
   generateCompanyName,
   generatePersonName,
   generateProductName,
   generateText,
 } from './markov.js';
-import {
-  random,
-  randomInt,
-  randomFloat,
-  gaussian,
-  exponential,
-  lognormal,
-  poisson,
-  beta,
-} from './random.js';
+import { random, randomInt } from './random.js';
 import { randomUUID } from 'node:crypto';
 
-// Re-export seed functions for external use
+// Import refactored modules
+import { GeneratorContext, createContext } from './context.js';
+import {
+  registerPlugin,
+  getRegisteredPlugins,
+  getPluginRegistry,
+  tryPluginGenerator,
+  type VaguePlugin,
+  type GeneratorFunction,
+} from './plugin.js';
+import {
+  aggregateFunctions,
+  createPredicateFunctions,
+  mathFunctions,
+  createUniqueFn,
+  distributionFunctions,
+  dateFunctions,
+  stringFunctions,
+  sequenceFunctions,
+} from './builtins/index.js';
+
+// Re-export for external use
 export { setSeed, getSeed } from './random.js';
-
-// Plugin system types
-export type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
-
-export interface VaguePlugin {
-  name: string;
-  generators: Record<string, GeneratorFunction>;
-}
-
-// Global plugin registry
-const pluginRegistry: Map<string, VaguePlugin> = new Map();
-
-/**
- * Register a plugin with the generator
- */
-export function registerPlugin(plugin: VaguePlugin): void {
-  pluginRegistry.set(plugin.name, plugin);
-}
-
-/**
- * Get all registered plugins
- */
-export function getRegisteredPlugins(): string[] {
-  return Array.from(pluginRegistry.keys());
-}
-
-export interface GeneratorContext {
-  schemas: Map<string, SchemaDefinition>;
-  importedSchemas: Map<string, Map<string, ImportedSchema>>;
-  collections: Map<string, unknown[]>;
-  parent?: Record<string, unknown>;
-  current?: Record<string, unknown>;
-  previous?: Record<string, unknown>; // Previous record in collection for sequential coherence
-  currentSchemaName?: string;
-  violating?: boolean; // If true, generate data that violates constraints
-  uniqueValues: Map<string, Set<unknown>>; // Track unique values per field
-  sequences: Map<string, number>; // Track sequence counters
-  orderedSequenceIndices: Map<string, number>; // Track cycling index for ordered sequences
-}
+export { registerPlugin, getRegisteredPlugins };
+export type { VaguePlugin, GeneratorFunction };
+export type { GeneratorContext };
 
 export class Generator {
   private ctx: GeneratorContext;
   private openApiLoader: OpenAPILoader;
+  private predicateFunctions: ReturnType<typeof createPredicateFunctions>;
+  private uniqueFn: ReturnType<typeof createUniqueFn>;
 
   constructor() {
-    this.ctx = {
-      schemas: new Map(),
-      importedSchemas: new Map(),
-      collections: new Map(),
-      uniqueValues: new Map(),
-      sequences: new Map(),
-      orderedSequenceIndices: new Map(),
-    };
+    this.ctx = createContext();
     this.openApiLoader = new OpenAPILoader();
+    // Initialize functions that need expression evaluator
+    this.predicateFunctions = createPredicateFunctions(this.evaluateExpression.bind(this));
+    this.uniqueFn = createUniqueFn(this.evaluateExpression.bind(this));
   }
 
   async generate(program: Program): Promise<Record<string, unknown[]>> {
@@ -507,6 +481,7 @@ export class Generator {
   private generateStringFromFormat(format: string | undefined, fieldName?: string): unknown {
     // Try format-based generation first
     if (format) {
+      const pluginRegistry = getPluginRegistry();
       // Look for a plugin generator that matches the format
       for (const plugin of pluginRegistry.values()) {
         // Try direct format match (e.g., "uuid" -> uuid generator)
@@ -518,25 +493,25 @@ export class Generator {
       // Handle common OpenAPI/JSON Schema formats
       switch (format) {
         case 'uuid':
-          return this.tryPluginGenerator('uuid') ?? randomUUID();
+          return tryPluginGenerator('uuid', this.ctx) ?? randomUUID();
         case 'email':
-          return this.tryPluginGenerator('email') ?? `user${randomInt(1, 9999)}@example.com`;
+          return tryPluginGenerator('email', this.ctx) ?? `user${randomInt(1, 9999)}@example.com`;
         case 'phone':
         case 'phone-number':
           return (
-            this.tryPluginGenerator('phone') ??
+            tryPluginGenerator('phone', this.ctx) ??
             `+1${randomInt(200, 999)}${randomInt(100, 999)}${randomInt(1000, 9999)}`
           );
         case 'uri':
         case 'url':
-          return this.tryPluginGenerator('url') ?? `https://example.com/${randomInt(1, 9999)}`;
+          return tryPluginGenerator('url', this.ctx) ?? `https://example.com/${randomInt(1, 9999)}`;
         case 'hostname':
           return `host${randomInt(1, 999)}.example.com`;
         case 'ipv4':
           return `${randomInt(1, 255)}.${randomInt(0, 255)}.${randomInt(0, 255)}.${randomInt(1, 254)}`;
         case 'ipv6':
           return (
-            this.tryPluginGenerator('internet.ipv6') ??
+            tryPluginGenerator('internet.ipv6', this.ctx) ??
             Array.from({ length: 8 }, () => randomInt(0, 65535).toString(16).padStart(4, '0')).join(
               ':'
             )
@@ -560,10 +535,12 @@ export class Generator {
             randomInt(0, 255).toString(16).padStart(2, '0')
           ).join('');
         case 'password':
-          return this.tryPluginGenerator('internet.password') ?? `Pass${randomInt(1000, 9999)}!`;
+          return (
+            tryPluginGenerator('internet.password', this.ctx) ?? `Pass${randomInt(1000, 9999)}!`
+          );
         case 'iban':
           return (
-            this.tryPluginGenerator('iban') ??
+            tryPluginGenerator('iban', this.ctx) ??
             `GB${randomInt(10, 99)}MOCK${randomInt(10000000, 99999999)}`
           );
       }
@@ -571,36 +548,6 @@ export class Generator {
 
     // Fallback to context-aware string generation
     return this.randomString(fieldName);
-  }
-
-  /**
-   * Try to call a plugin generator, return undefined if not found
-   */
-  private tryPluginGenerator(name: string): unknown | undefined {
-    const parts = name.split('.');
-
-    if (parts.length > 1) {
-      // Qualified name like "internet.ipv6"
-      const pluginName = parts[0];
-      const generatorPath = parts.slice(1).join('.');
-      const plugin = pluginRegistry.get(pluginName);
-      if (plugin?.generators[generatorPath]) {
-        return plugin.generators[generatorPath]([], this.ctx);
-      }
-      // Also check faker plugin with full path
-      const fakerPlugin = pluginRegistry.get('faker');
-      if (fakerPlugin?.generators[name]) {
-        return fakerPlugin.generators[name]([], this.ctx);
-      }
-    }
-
-    // Simple name - search all plugins
-    for (const plugin of pluginRegistry.values()) {
-      if (plugin.generators[name]) {
-        return plugin.generators[name]([], this.ctx);
-      }
-    }
-    return undefined;
   }
 
   private generateRandomDate(): string {
@@ -713,6 +660,7 @@ export class Generator {
     // Try to find generator: "faker.person.firstName" -> plugin "faker", generator "person.firstName"
     // Or simple: "uuid" -> any plugin with generator "uuid"
     const parts = name.split('.');
+    const pluginRegistry = getPluginRegistry();
 
     if (parts.length > 1) {
       // Qualified name: faker.person.firstName
@@ -1029,466 +977,79 @@ export class Generator {
   private evaluateCall(call: CallExpression): unknown {
     const args = call.arguments.map((a) => this.evaluateExpression(a));
 
-    switch (call.callee) {
-      case 'sum': {
-        const arr = args[0];
-        if (Array.isArray(arr)) {
-          return arr.reduce((sum: number, item) => {
-            if (typeof item === 'number') return sum + item;
-            return sum;
-          }, 0);
+    // Check aggregate functions
+    if (call.callee in aggregateFunctions) {
+      return aggregateFunctions[call.callee as keyof typeof aggregateFunctions](args, this.ctx);
+    }
+
+    // Check math functions
+    if (call.callee in mathFunctions) {
+      return mathFunctions[call.callee as keyof typeof mathFunctions](args, this.ctx);
+    }
+
+    // Check distribution functions
+    if (call.callee in distributionFunctions) {
+      return distributionFunctions[call.callee as keyof typeof distributionFunctions](
+        args,
+        this.ctx
+      );
+    }
+
+    // Check date functions
+    if (call.callee in dateFunctions) {
+      return dateFunctions[call.callee as keyof typeof dateFunctions](args, this.ctx);
+    }
+
+    // Check string functions
+    if (call.callee in stringFunctions) {
+      return stringFunctions[call.callee as keyof typeof stringFunctions](args, this.ctx);
+    }
+
+    // Check sequence functions
+    if (call.callee in sequenceFunctions) {
+      return sequenceFunctions[call.callee as keyof typeof sequenceFunctions](args, this.ctx);
+    }
+
+    // Check predicate functions (need special handling with raw AST)
+    if (call.callee in this.predicateFunctions) {
+      return this.predicateFunctions[call.callee as keyof typeof this.predicateFunctions](
+        args,
+        this.ctx,
+        call
+      );
+    }
+
+    // Check unique function
+    if (call.callee === 'unique') {
+      return this.uniqueFn(args, this.ctx, call);
+    }
+
+    // Check plugin calls (callee contains a dot like "dates.weekday")
+    const parts = call.callee.split('.');
+    if (parts.length > 1) {
+      const pluginName = parts[0];
+      const generatorPath = parts.slice(1).join('.');
+      const pluginRegistry = getPluginRegistry();
+
+      const plugin = pluginRegistry.get(pluginName);
+      if (plugin) {
+        const generator = plugin.generators[generatorPath];
+        if (generator) {
+          return generator(args, this.ctx);
         }
-        return 0;
-      }
-      case 'count': {
-        const arr = args[0];
-        return Array.isArray(arr) ? arr.length : 0;
-      }
-      case 'min': {
-        const arr = args[0];
-        if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === 'number');
-          return nums.length > 0 ? Math.min(...nums) : 0;
-        }
-        // Fallback for direct number arguments
-        const nums = args.filter((x): x is number => typeof x === 'number');
-        return nums.length > 0 ? Math.min(...nums) : 0;
-      }
-      case 'max': {
-        const arr = args[0];
-        if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === 'number');
-          return nums.length > 0 ? Math.max(...nums) : 0;
-        }
-        // Fallback for direct number arguments
-        const nums = args.filter((x): x is number => typeof x === 'number');
-        return nums.length > 0 ? Math.max(...nums) : 0;
-      }
-      case 'avg': {
-        const arr = args[0];
-        if (Array.isArray(arr) && arr.length > 0) {
-          const nums = arr.filter((x): x is number => typeof x === 'number');
-          if (nums.length === 0) return 0;
-          const sum = nums.reduce((s, n) => s + n, 0);
-          return sum / nums.length;
-        }
-        return 0;
-      }
-      case 'all': {
-        // all(collection, predicate) - returns true if predicate holds for all items
-        // The predicate uses .field syntax to reference item fields
-        const arr = args[0];
-        const predicate = call.arguments[1]; // Get the raw AST node
-        if (!Array.isArray(arr) || !predicate) return true;
-
-        const oldCurrent = this.ctx.current;
-        try {
-          for (const item of arr) {
-            this.ctx.current = item as Record<string, unknown>;
-            const result = this.evaluateExpression(predicate);
-            if (!result) {
-              return false;
-            }
-          }
-          return true;
-        } finally {
-          this.ctx.current = oldCurrent;
-        }
-      }
-      case 'some': {
-        // some(collection, predicate) - returns true if predicate holds for at least one item
-        const arr = args[0];
-        const predicate = call.arguments[1];
-        if (!Array.isArray(arr) || !predicate) return false;
-
-        const oldCurrent = this.ctx.current;
-        try {
-          for (const item of arr) {
-            this.ctx.current = item as Record<string, unknown>;
-            const result = this.evaluateExpression(predicate);
-            if (result) {
-              return true;
-            }
-          }
-          return false;
-        } finally {
-          this.ctx.current = oldCurrent;
-        }
-      }
-      case 'none': {
-        // none(collection, predicate) - returns true if predicate holds for no items
-        const arr = args[0];
-        const predicate = call.arguments[1];
-        if (!Array.isArray(arr) || !predicate) return true;
-
-        const oldCurrent = this.ctx.current;
-        try {
-          for (const item of arr) {
-            this.ctx.current = item as Record<string, unknown>;
-            const result = this.evaluateExpression(predicate);
-            if (result) {
-              return false;
-            }
-          }
-          return true;
-        } finally {
-          this.ctx.current = oldCurrent;
-        }
-      }
-      case 'round': {
-        // round(value, decimals?) - round to specified decimal places (default 0)
-        const value = args[0] as number;
-        const decimals = (args[1] as number) ?? 0;
-        const factor = Math.pow(10, decimals);
-        return Math.round(value * factor) / factor;
-      }
-      case 'floor': {
-        // floor(value, decimals?) - floor to specified decimal places (default 0)
-        const value = args[0] as number;
-        const decimals = (args[1] as number) ?? 0;
-        const factor = Math.pow(10, decimals);
-        return Math.floor(value * factor) / factor;
-      }
-      case 'ceil': {
-        // ceil(value, decimals?) - ceil to specified decimal places (default 0)
-        const value = args[0] as number;
-        const decimals = (args[1] as number) ?? 0;
-        const factor = Math.pow(10, decimals);
-        return Math.ceil(value * factor) / factor;
-      }
-      case 'unique': {
-        // unique(key, generator_expr) - ensures generated value is unique within key namespace
-        // The key identifies the uniqueness scope (e.g., "invoices.id")
-        // Retries generation up to 100 times to find a unique value
-        const key = args[0] as string;
-        const generatorExpr = call.arguments[1];
-
-        if (!this.ctx.uniqueValues.has(key)) {
-          this.ctx.uniqueValues.set(key, new Set());
-        }
-        const usedValues = this.ctx.uniqueValues.get(key)!;
-
-        const maxAttempts = 100;
-        for (let i = 0; i < maxAttempts; i++) {
-          const value = this.evaluateExpression(generatorExpr);
-          if (!usedValues.has(value)) {
-            usedValues.add(value);
-            return value;
-          }
-        }
-        // Fallback: return last generated value with warning
-        console.warn(
-          `Warning: Could not generate unique value for '${key}' after ${maxAttempts} attempts`
-        );
-        return this.evaluateExpression(generatorExpr);
-      }
-
-      // ============================================
-      // Distribution functions
-      // ============================================
-      case 'gaussian':
-      case 'normal': {
-        // gaussian(mean, stddev, min?, max?) - normal distribution
-        const mean = (args[0] as number) ?? 0;
-        const stddev = (args[1] as number) ?? 1;
-        const min = args[2] as number | undefined;
-        const max = args[3] as number | undefined;
-        return gaussian(mean, stddev, min, max);
-      }
-      case 'exponential': {
-        // exponential(rate, min?, max?) - exponential distribution
-        const rate = (args[0] as number) ?? 1;
-        const min = (args[1] as number) ?? 0;
-        const max = args[2] as number | undefined;
-        return exponential(rate, min, max);
-      }
-      case 'lognormal': {
-        // lognormal(mu, sigma, min?, max?) - log-normal distribution
-        const mu = (args[0] as number) ?? 0;
-        const sigma = (args[1] as number) ?? 1;
-        const min = args[2] as number | undefined;
-        const max = args[3] as number | undefined;
-        return lognormal(mu, sigma, min, max);
-      }
-      case 'poisson': {
-        // poisson(lambda) - Poisson distribution for count data
-        const lambda = (args[0] as number) ?? 1;
-        return poisson(lambda);
-      }
-      case 'beta': {
-        // beta(alpha, beta) - beta distribution (0-1 range)
-        const alpha = (args[0] as number) ?? 1;
-        const betaParam = (args[1] as number) ?? 1;
-        return beta(alpha, betaParam);
-      }
-      case 'uniform': {
-        // uniform(min, max) - uniform distribution (explicit)
-        const min = (args[0] as number) ?? 0;
-        const max = (args[1] as number) ?? 1;
-        return randomFloat(min, max);
-      }
-
-      // ============================================
-      // Date functions
-      // ============================================
-      case 'now': {
-        // now() - current ISO 8601 datetime
-        return new Date().toISOString();
-      }
-      case 'today': {
-        // today() - current date in YYYY-MM-DD format
-        return new Date().toISOString().split('T')[0];
-      }
-      case 'datetime': {
-        // datetime(min?, max?) - random datetime, optionally within range
-        // min/max can be ISO strings or year numbers
-        const minArg = args[0];
-        const maxArg = args[1];
-
-        let minDate: Date;
-        let maxDate: Date;
-
-        if (minArg === undefined) {
-          minDate = new Date(2020, 0, 1);
-        } else if (typeof minArg === 'number') {
-          minDate = new Date(minArg, 0, 1);
-        } else {
-          minDate = new Date(minArg as string);
-        }
-
-        if (maxArg === undefined) {
-          maxDate = new Date();
-        } else if (typeof maxArg === 'number') {
-          maxDate = new Date(maxArg, 11, 31, 23, 59, 59);
-        } else {
-          maxDate = new Date(maxArg as string);
-        }
-
-        const date = new Date(
-          minDate.getTime() + random() * (maxDate.getTime() - minDate.getTime())
-        );
-        return date.toISOString();
-      }
-      case 'daysAgo': {
-        // daysAgo(n) - date n days in the past
-        const days = (args[0] as number) ?? 0;
-        const date = new Date();
-        date.setDate(date.getDate() - days);
-        return date.toISOString().split('T')[0];
-      }
-      case 'daysFromNow': {
-        // daysFromNow(n) - date n days in the future
-        const days = (args[0] as number) ?? 0;
-        const date = new Date();
-        date.setDate(date.getDate() + days);
-        return date.toISOString().split('T')[0];
-      }
-      case 'dateBetween': {
-        // dateBetween(start, end) - random date between two dates
-        // start/end can be ISO strings, "today", or year numbers
-        const startArg = args[0];
-        const endArg = args[1];
-
-        let startDate: Date;
-        let endDate: Date;
-
-        if (startArg === 'today') {
-          startDate = new Date();
-          startDate.setHours(0, 0, 0, 0);
-        } else if (typeof startArg === 'number') {
-          startDate = new Date(startArg, 0, 1);
-        } else {
-          startDate = new Date(startArg as string);
-        }
-
-        if (endArg === 'today') {
-          endDate = new Date();
-          endDate.setHours(23, 59, 59, 999);
-        } else if (typeof endArg === 'number') {
-          endDate = new Date(endArg, 11, 31);
-        } else {
-          endDate = new Date(endArg as string);
-        }
-
-        const date = new Date(
-          startDate.getTime() + random() * (endDate.getTime() - startDate.getTime())
-        );
-        return date.toISOString().split('T')[0];
-      }
-      case 'formatDate': {
-        // formatDate(date, format) - format a date string
-        // Supports: YYYY, MM, DD, HH, mm, ss
-        const dateStr = args[0] as string;
-        const format = (args[1] as string) ?? 'YYYY-MM-DD';
-        const date = new Date(dateStr);
-
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-
-        return format
-          .replace('YYYY', String(year))
-          .replace('MM', month)
-          .replace('DD', day)
-          .replace('HH', hours)
-          .replace('mm', minutes)
-          .replace('ss', seconds);
-      }
-
-      // ============================================
-      // String transformation functions
-      // ============================================
-      case 'uppercase': {
-        // uppercase(str) - convert string to uppercase
-        const str = args[0];
-        return str != null ? String(str).toUpperCase() : '';
-      }
-      case 'lowercase': {
-        // lowercase(str) - convert string to lowercase
-        const str = args[0];
-        return str != null ? String(str).toLowerCase() : '';
-      }
-      case 'capitalize': {
-        // capitalize(str) - capitalize first letter of each word
-        const str = args[0];
-        if (str == null) return '';
-        return String(str)
-          .split(' ')
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-      }
-      case 'kebabCase': {
-        // kebabCase(str) - convert to kebab-case (lowercase with hyphens)
-        const str = args[0];
-        if (str == null) return '';
-        return String(str)
-          .replace(/([a-z])([A-Z])/g, '$1-$2') // Handle camelCase
-          .replace(/[\s_]+/g, '-') // Replace spaces and underscores
-          .toLowerCase();
-      }
-      case 'snakeCase': {
-        // snakeCase(str) - convert to snake_case (lowercase with underscores)
-        const str = args[0];
-        if (str == null) return '';
-        return String(str)
-          .replace(/([a-z])([A-Z])/g, '$1_$2') // Handle camelCase
-          .replace(/[\s-]+/g, '_') // Replace spaces and hyphens
-          .toLowerCase();
-      }
-      case 'camelCase': {
-        // camelCase(str) - convert to camelCase
-        const str = args[0];
-        if (str == null) return '';
-        return String(str)
-          .replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
-          .replace(/^(.)/, (c) => c.toLowerCase());
-      }
-      case 'trim': {
-        // trim(str) - remove leading and trailing whitespace
-        const str = args[0];
-        return str != null ? String(str).trim() : '';
-      }
-      case 'concat': {
-        // concat(str1, str2, ...) - concatenate multiple strings
-        return args.map((arg) => (arg != null ? String(arg) : '')).join('');
-      }
-      case 'substring': {
-        // substring(str, start, end?) - extract a substring
-        const str = args[0];
-        const start = (args[1] as number) ?? 0;
-        const end = args[2] as number | undefined;
-        if (str == null) return '';
-        return end !== undefined ? String(str).substring(start, end) : String(str).substring(start);
-      }
-      case 'replace': {
-        // replace(str, search, replacement) - replace first occurrence
-        const str = args[0];
-        const search = String(args[1] ?? '');
-        const replacement = String(args[2] ?? '');
-        if (str == null) return '';
-        return String(str).replace(search, replacement);
-      }
-      case 'length': {
-        // length(str) - return the length of a string
-        const str = args[0];
-        return str != null ? String(str).length : 0;
-      }
-
-      // ============================================
-      // Sequential/stateful functions
-      // ============================================
-      case 'sequence': {
-        // sequence(prefix, start?) - auto-incrementing values
-        // e.g., sequence("INV-", 1001) returns "INV-1001", "INV-1002", etc.
-        const prefix = (args[0] as string) ?? '';
-        const start = (args[1] as number) ?? 1;
-
-        const key = `seq:${prefix}`;
-        if (!this.ctx.sequences.has(key)) {
-          this.ctx.sequences.set(key, start);
-        }
-
-        const current = this.ctx.sequences.get(key)!;
-        this.ctx.sequences.set(key, current + 1);
-
-        return `${prefix}${current}`;
-      }
-      case 'sequenceInt': {
-        // sequenceInt(name, start?) - auto-incrementing integer
-        // e.g., sequenceInt("order_id", 1000) returns 1000, 1001, 1002, etc.
-        const name = (args[0] as string) ?? 'default';
-        const start = (args[1] as number) ?? 1;
-
-        const key = `seqInt:${name}`;
-        if (!this.ctx.sequences.has(key)) {
-          this.ctx.sequences.set(key, start);
-        }
-
-        const current = this.ctx.sequences.get(key)!;
-        this.ctx.sequences.set(key, current + 1);
-
-        return current;
-      }
-      case 'previous': {
-        // previous(field) - get field from previous record in collection
-        // Returns null if no previous record exists
-        const fieldName = args[0] as string;
-        if (!this.ctx.previous) {
-          return null;
-        }
-        return (this.ctx.previous as Record<string, unknown>)[fieldName] ?? null;
-      }
-
-      default: {
-        // Check if this is a plugin call (callee contains a dot like "dates.weekday")
-        const parts = call.callee.split('.');
-        if (parts.length > 1) {
-          const pluginName = parts[0];
-          const generatorPath = parts.slice(1).join('.');
-
-          const plugin = pluginRegistry.get(pluginName);
-          if (plugin) {
-            const generator = plugin.generators[generatorPath];
-            if (generator) {
-              return generator(args, this.ctx);
-            }
-          }
-        }
-
-        // Try shorthand generators (no namespace prefix)
-        for (const plugin of pluginRegistry.values()) {
-          const generator = plugin.generators[call.callee];
-          if (generator) {
-            return generator(args, this.ctx);
-          }
-        }
-
-        return null;
       }
     }
+
+    // Try shorthand generators (no namespace prefix)
+    const pluginRegistry = getPluginRegistry();
+    for (const plugin of pluginRegistry.values()) {
+      const generator = plugin.generators[call.callee];
+      if (generator) {
+        return generator(args, this.ctx);
+      }
+    }
+
+    return null;
   }
 
   private evaluateBinary(expr: BinaryExpression): unknown {
