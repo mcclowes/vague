@@ -31,6 +31,7 @@ dataset TestData {
 - **Collections**: `1..5 of Item` or `100 of Item`
 - **Computed**: `total: sum(items.amount)`
 - **Constraints**: `assume due_date >= issued_date`
+- **Refine**: `} refine { if type == "A" { field: int in 1..10 } }`
 - **References**: `any of companies where .active == true`
 - **Parent ref**: `= ^parent_field`
 - **Nullable**: `string?` or `string | null`

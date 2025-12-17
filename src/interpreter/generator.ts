@@ -20,6 +20,7 @@ import {
   DynamicCardinality,
   GeneratorType,
   ValidationBlock,
+  RefineBlock,
   ThenBlock,
   Mutation,
   QualifiedName,
@@ -440,6 +441,11 @@ export class Generator {
       instance[name] = this.generateField(field, baseFields.get(name));
     }
 
+    // Apply refine block - regenerate fields based on conditions
+    if (schema.refineBlock) {
+      this.applyRefineBlock(schema.refineBlock, instance);
+    }
+
     // Fill in any base fields we haven't covered
     for (const [name, baseField] of baseFields) {
       if (!(name in instance)) {
@@ -448,6 +454,37 @@ export class Generator {
     }
 
     return instance;
+  }
+
+  private applyRefineBlock(refineBlock: RefineBlock, instance: Record<string, unknown>): void {
+    const oldCurrent = this.ctx.current;
+    this.ctx.current = instance;
+
+    try {
+      for (const refinement of refineBlock.refinements) {
+        // Check if the condition is met
+        const conditionMet = Boolean(this.evaluateExpression(refinement.condition));
+        if (!conditionMet) {
+          continue;
+        }
+
+        // Regenerate the fields specified in this refinement
+        for (const field of refinement.fields) {
+          // Handle unique fields - need to remove old value from used set first
+          if (field.unique) {
+            const key = `${this.ctx.currentSchemaName}.${field.name}`;
+            const usedValues = this.ctx.uniqueValues.get(key);
+            if (usedValues && field.name in instance) {
+              usedValues.delete(instance[field.name]);
+            }
+          }
+
+          instance[field.name] = this.generateField(field, undefined);
+        }
+      }
+    } finally {
+      this.ctx.current = oldCurrent;
+    }
   }
 
   private validateConstraints(assumes: AssumeClause[], instance: Record<string, unknown>): boolean {

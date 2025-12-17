@@ -450,6 +450,38 @@ then {
 - Supports `=` (assignment) and `+=` (compound assignment)
 - Can use ternary expressions for conditional values
 
+### Refine Blocks (Conditional Field Overrides)
+
+Override field definitions based on conditions - more efficient than constraints for conditional generation:
+
+```vague
+schema Player {
+  position: "GK" | "DEF" | "MID" | "FWD",
+  goals_scored: int in 0..30,
+  assists: int in 0..20,
+  clean_sheets: int in 0..20
+} refine {
+  if position == "GK" {
+    goals_scored: int in 0..3,
+    assists: int in 0..5
+  },
+  if position == "FWD" {
+    clean_sheets: int in 0..3
+  }
+}
+
+dataset TestData {
+  players: 100 of Player
+}
+```
+
+- `refine` blocks run after initial field generation
+- Fields are regenerated with new definitions when conditions match
+- Multiple conditions can apply to the same record
+- More efficient than `assume` constraints (generates correct values directly instead of rejection sampling)
+- Supports logical operators: `if position == "GK" or position == "DEF" { ... }`
+- Works with unique fields (old value is released before regeneration)
+
 ### OpenAPI Schema Import
 ```vague
 import petstore from "petstore.json"
@@ -1010,6 +1042,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Correlation detection in inference (derived fields, ordering constraints, conditional constraints)
 - [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
 - [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
+- [x] Refine blocks (`} refine { if condition { field: newType } }` - conditional field overrides)
 
 See TODO.md for planned features.
 

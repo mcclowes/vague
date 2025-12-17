@@ -18,6 +18,8 @@ import {
   ConstraintBlock,
   ValidationBlock,
   AssumeClause,
+  RefineBlock,
+  RefineCondition,
   ThenBlock,
   Mutation,
 } from '../ast/index.js';
@@ -89,7 +91,13 @@ export class StatementParser extends TypeParser {
     const { fields, constraints, assumes } = this.parseSchemaBody();
     this.consume(TokenType.RBRACE, "Expected '}'");
 
-    // Optional then block
+    // Optional refine block: } refine {
+    let refineBlock: RefineBlock | undefined;
+    if (this.match(TokenType.REFINE)) {
+      refineBlock = this.parseRefineBlock();
+    }
+
+    // Optional then block: } then {
     let thenBlock: ThenBlock | undefined;
     if (this.match(TokenType.THEN)) {
       thenBlock = this.parseThenBlock();
@@ -103,6 +111,7 @@ export class StatementParser extends TypeParser {
       fields,
       constraints,
       assumes,
+      refineBlock,
       thenBlock,
     };
   }
@@ -300,6 +309,39 @@ export class StatementParser extends TypeParser {
 
     this.consume(TokenType.RBRACE, "Expected '}'");
     return { type: 'ThenBlock', mutations };
+  }
+
+  // ============================================
+  // Refine blocks
+  // ============================================
+
+  private parseRefineBlock(): RefineBlock {
+    this.consume(TokenType.LBRACE, "Expected '{'");
+    const refinements: RefineCondition[] = [];
+
+    while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+      refinements.push(this.parseRefineCondition());
+      this.match(TokenType.COMMA);
+    }
+
+    this.consume(TokenType.RBRACE, "Expected '}'");
+    return { type: 'RefineBlock', refinements };
+  }
+
+  private parseRefineCondition(): RefineCondition {
+    this.consume(TokenType.IF, "Expected 'if' in refine block");
+    const condition = this.parseLogicalExpression();
+
+    this.consume(TokenType.LBRACE, "Expected '{'");
+    const fields: FieldDefinition[] = [];
+
+    while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+      fields.push(this.parseFieldDefinition());
+      this.match(TokenType.COMMA);
+    }
+
+    this.consume(TokenType.RBRACE, "Expected '}'");
+    return { type: 'RefineCondition', condition, fields };
   }
 
   private parseMutation(): Mutation {

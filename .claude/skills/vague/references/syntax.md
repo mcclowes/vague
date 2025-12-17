@@ -190,6 +190,32 @@ then {
 - Can only mutate upstream references
 - Supports `=` (assignment) and `+=` (compound assignment)
 
+## Refine Blocks (Conditional Field Overrides)
+
+Override field definitions based on conditions - more efficient than constraints:
+
+```vague
+schema Player {
+  position: "GK" | "DEF" | "MID" | "FWD",
+  goals_scored: int in 0..30,
+  assists: int in 0..20,
+  clean_sheets: int in 0..20
+} refine {
+  if position == "GK" {
+    goals_scored: int in 0..3,
+    assists: int in 0..5
+  },
+  if position == "FWD" {
+    clean_sheets: int in 0..3
+  }
+}
+```
+
+- Runs after initial field generation
+- Fields are regenerated with new definitions when conditions match
+- More efficient than `assume` constraints (generates correct values directly)
+- Supports logical operators: `if position == "GK" or position == "DEF" { ... }`
+
 ## Datasets
 
 ```vague

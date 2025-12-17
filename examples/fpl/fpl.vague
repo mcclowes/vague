@@ -1,0 +1,101 @@
+// Fantasy Premier League data generator
+// Based on real FPL API data structure
+
+schema Team {
+  id: unique int in 1..20,
+  code: unique int in 1..100,
+  name: unique "Arsenal" | "Aston Villa" | "Brighton" | "Burnley" | "Chelsea" | "Crystal Palace" | "Everton" | "Fulham" | "Leeds" | "Leicester" | "Liverpool" | "Man City" | "Man Utd" | "Newcastle" | "Sheffield Utd" | "Southampton" | "Spurs" | "West Brom" | "West Ham" | "Wolves",
+  short_name: unique "ARS" | "AVL" | "BHA" | "BUR" | "CHE" | "CRY" | "EVE" | "FUL" | "LEE" | "LEI" | "LIV" | "MCI" | "MUN" | "NEW" | "SHU" | "SOU" | "TOT" | "WBA" | "WHU" | "WOL",
+  strength: int in 2..5,
+  played: int in 8..38,
+  win: int in 0..20,
+  draw: int in 0..10,
+  loss: int in 0..20,
+  points: win * 3 + draw,
+  position: unique int in 1..20,
+  strength_overall_home: int in 1000..1350,
+  strength_overall_away: int in 1000..1350,
+  strength_attack_home: int in 1000..1300,
+  strength_attack_away: int in 1000..1300,
+  strength_defence_home: int in 1000..1350,
+  strength_defence_away: int in 1000..1350,
+  unavailable: boolean
+}
+
+schema Position {
+  id: unique int in 1..4,
+  singular_name: unique "Goalkeeper" | "Defender" | "Midfielder" | "Forward",
+  singular_name_short: unique "GKP" | "DEF" | "MID" | "FWD",
+  plural_name: unique "Goalkeepers" | "Defenders" | "Midfielders" | "Forwards",
+  plural_name_short: unique "GKP" | "DEF" | "MID" | "FWD",
+  squad_select: int in 2..5,
+  squad_min_play: int in 1..3,
+  squad_max_play: int in 1..5,
+  element_count: int in 60..250,
+
+  assume squad_max_play >= squad_min_play
+}
+
+schema Player {
+  id: unique int in 1..700,
+  first_name: faker.person.firstName(),
+  second_name: faker.person.lastName(),
+  web_name: faker.person.lastName(),
+  team: int in 1..20,
+  element_type: 0.35: 3 | 0.35: 2 | 0.15: 1 | 0.15: 4,
+  now_cost: int in 40..130,
+  total_points: int in 0..250,
+  minutes: int in 0..3420,
+  goals_scored: int in 0..30,
+  assists: int in 0..20,
+  clean_sheets: int in 0..20,
+  goals_conceded: int in 0..80,
+  yellow_cards: int in 0..15,
+  red_cards: int in 0..3,
+  bonus: int in 0..40,
+  bps: int in 0..800,
+  influence: decimal(1) in 0..1200,
+  creativity: decimal(1) in 0..1500,
+  threat: decimal(1) in 0..2000,
+  ict_index: decimal(1) in 0..400,
+  selected_by_percent: decimal(1) in 0..70,
+  form: decimal(1) in 0..15,
+  status: 0.7: "a" | 0.1: "i" | 0.1: "d" | 0.05: "n" | 0.05: "u"
+} refine {
+  // Goalkeepers don't score many goals
+  if element_type == 1 {
+    goals_scored: int in 0..3,
+    assists: int in 0..5
+  },
+  // Defenders have more clean sheets than goals
+  if element_type == 2 {
+    goals_scored: int in 0..8,
+    clean_sheets: int in 5..20
+  },
+  // Forwards don't get many clean sheets
+  if element_type == 4 {
+    clean_sheets: int in 0..5
+  }
+}
+
+schema Gameweek {
+  id: unique int in 1..38,
+  name: concat("Gameweek ", id),
+  deadline_time: datetime(2020, 2021),
+  average_entry_score: int in 30..80,
+  highest_score: int in 100..180,
+  finished: boolean,
+  is_current: boolean,
+  most_selected: int in 1..700,
+  most_captained: int in 1..700,
+  top_element: int in 1..700,
+
+  assume highest_score >= average_entry_score
+}
+
+dataset FPL {
+  teams: 20 of Team,
+  positions: 4 of Position,
+  players: 100 of Player,
+  gameweeks: 10 of Gameweek
+}

@@ -3195,4 +3195,125 @@ describe('Generator', () => {
       }
     });
   });
+
+  describe('refine blocks', () => {
+    it('applies refine block to regenerate fields based on condition', async () => {
+      const source = `
+        schema Player {
+          element_type: 1 | 2 | 3 | 4,
+          goals_scored: int in 0..30,
+          assists: int in 0..20
+        } refine {
+          if element_type == 1 {
+            goals_scored: int in 0..3,
+            assists: int in 0..5
+          }
+        }
+
+        dataset TestData {
+          players: 50 of Player
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const player of result.players as Record<string, unknown>[]) {
+        if (player.element_type === 1) {
+          // Goalkeepers should have refined values
+          expect(player.goals_scored).toBeGreaterThanOrEqual(0);
+          expect(player.goals_scored).toBeLessThanOrEqual(3);
+          expect(player.assists).toBeGreaterThanOrEqual(0);
+          expect(player.assists).toBeLessThanOrEqual(5);
+        }
+      }
+    });
+
+    it('applies multiple refine conditions', async () => {
+      const source = `
+        schema Player {
+          position: "GK" | "DEF" | "MID" | "FWD",
+          goals: int in 0..30,
+          clean_sheets: int in 0..20
+        } refine {
+          if position == "GK" {
+            goals: int in 0..2
+          },
+          if position == "FWD" {
+            clean_sheets: int in 0..3
+          }
+        }
+
+        dataset TestData {
+          players: 100 of Player
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const player of result.players as Record<string, unknown>[]) {
+        if (player.position === 'GK') {
+          expect(player.goals).toBeLessThanOrEqual(2);
+        }
+        if (player.position === 'FWD') {
+          expect(player.clean_sheets).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+
+    it('refine block works with unique fields', async () => {
+      const source = `
+        schema Item {
+          type: "A" | "B",
+          code: unique int in 1..1000
+        } refine {
+          if type == "A" {
+            code: unique int in 1..100
+          }
+        }
+
+        dataset TestData {
+          items: 20 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const typeACodes = new Set<number>();
+      for (const item of result.items as Record<string, unknown>[]) {
+        if (item.type === 'A') {
+          expect(item.code).toBeGreaterThanOrEqual(1);
+          expect(item.code).toBeLessThanOrEqual(100);
+          // Check uniqueness
+          expect(typeACodes.has(item.code as number)).toBe(false);
+          typeACodes.add(item.code as number);
+        }
+      }
+    });
+
+    it('refine block with complex conditions', async () => {
+      const source = `
+        schema Order {
+          priority: "low" | "high",
+          express: boolean,
+          processing_days: int in 1..30
+        } refine {
+          if priority == "high" or express == true {
+            processing_days: int in 1..3
+          }
+        }
+
+        dataset TestData {
+          orders: 50 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const order of result.orders as Record<string, unknown>[]) {
+        if (order.priority === 'high' || order.express === true) {
+          expect(order.processing_days).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+  });
 });

@@ -66,7 +66,7 @@
         {
           "comment": "Constraint keywords",
           "name": "keyword.control.constraint.vague",
-          "match": "\\b(assume|validate|constraints|then)\\b"
+          "match": "\\b(assume|validate|constraints|refine|then)\\b"
         },
         {
           "comment": "Control flow keywords",
