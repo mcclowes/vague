@@ -708,7 +708,36 @@ Shorthand generators (most commonly used):
 - `sqlLike()`, `htmlSpecial()`, `weirdEmail()`, `weirdUrl()`
 - `maxInt()`, `leapDay()`
 
-See `src/plugins/faker.ts` and `src/plugins/issuer.ts` for complete examples of plugin implementation.
+**Dates Plugin** (`src/plugins/dates.ts`):
+Generates dates filtered by day of week - useful for business scenarios.
+
+```vague
+schema Meeting {
+  // Weekday dates only (Monday-Friday)
+  meeting_date: dates.weekday(2024, 2025)
+
+  // Weekend dates only (Saturday-Sunday)
+  party_date: dates.weekend(2024, 2025)
+
+  // Specific day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+  monday_standup: dates.dayOfWeek(1, 2024, 2025)
+
+  // ISO string ranges also supported
+  q1_meeting: dates.weekday("2024-01-01", "2024-03-31")
+}
+
+// Weighted weekday/weekend distribution using superposition
+schema Event {
+  // 80% weekdays, 20% weekends
+  event_date: 0.8: dates.weekday(2024, 2025) | 0.2: dates.weekend(2024, 2025)
+}
+```
+
+Shorthand generators:
+- `weekday(startYear, endYear)` or `weekday("start-date", "end-date")`
+- `weekend(startYear, endYear)` or `weekend("start-date", "end-date")`
+
+See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/dates.ts` for complete examples of plugin implementation.
 
 ## What's Implemented
 
@@ -725,6 +754,7 @@ See `src/plugins/faker.ts` and `src/plugins/issuer.ts` for complete examples of 
 - [x] Schema validation (OpenAPI 3.0.x/3.1.x)
 - [x] Faker plugin for semantic types
 - [x] Issuer plugin for edge case testing (Unicode, encoding, boundary values)
+- [x] Dates plugin for weekday/weekend date generation (`dates.weekday()`, `dates.weekend()`)
 - [x] VSCode syntax highlighting (`vscode-vague/`)
 - [x] Dataset-level constraints (`validate { }` block)
 - [x] Collection predicates (`all()`, `some()`, `none()` for validation)
