@@ -258,6 +258,18 @@ function inferSchemaFromRecords(
               sanitizedSource
             );
           }
+
+          // Check if target field has decimal precision - wrap in round() if so
+          const targetField = fields.find((f) => toValidIdentifier(f.name) === sanitizedTarget);
+          if (
+            targetField?.numericRange &&
+            !targetField.numericRange.allInteger &&
+            targetField.numericRange.decimalPlaces > 0 &&
+            targetField.numericRange.decimalPlaces <= 4
+          ) {
+            sanitizedExpr = `round(${sanitizedExpr}, ${targetField.numericRange.decimalPlaces})`;
+          }
+
           derivedFields.set(sanitizedTarget, sanitizedExpr);
         } else {
           // Sanitize ordering and conditional constraints

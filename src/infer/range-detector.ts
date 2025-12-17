@@ -34,15 +34,29 @@ export function detectNumericRange(values: unknown[]): NumericRange | null {
   const max = Math.max(...numbers);
   const allInteger = numbers.every((n) => Number.isInteger(n));
 
-  // Determine max decimal places for decimal numbers
+  // Determine decimal places - prefer bounds, but cap at 4 to filter floating point noise
   let decimalPlaces = 0;
   if (!allInteger) {
-    for (const n of numbers) {
+    // First, check bounds precision
+    for (const n of [min, max]) {
       const str = n.toString();
       const dotIndex = str.indexOf('.');
       if (dotIndex !== -1) {
         const places = str.length - dotIndex - 1;
         decimalPlaces = Math.max(decimalPlaces, places);
+      }
+    }
+
+    // If bounds are integers (0 precision), scan values but cap at 4
+    // to filter floating point noise like 10.0333333333
+    if (decimalPlaces === 0) {
+      for (const n of numbers) {
+        const str = n.toString();
+        const dotIndex = str.indexOf('.');
+        if (dotIndex !== -1) {
+          const places = Math.min(str.length - dotIndex - 1, 4);
+          decimalPlaces = Math.max(decimalPlaces, places);
+        }
       }
     }
   }
