@@ -11,8 +11,18 @@ export {
   detectDateRange,
   detectArrayCardinality,
   detectUniqueness,
+  detectStringLengthRange,
+  detectPercentage,
+  detectDistribution,
 } from './range-detector.js';
-export type { NumericRange, DateRange } from './range-detector.js';
+export type {
+  NumericRange,
+  DateRange,
+  StringLengthRange,
+  PercentageInfo,
+  DistributionType,
+  DistributionInfo,
+} from './range-detector.js';
 
 export { detectSuperposition, formatWeight, shouldIncludeWeights } from './enum-detector.js';
 export type {
@@ -58,6 +68,9 @@ import {
   detectDateRange,
   detectArrayCardinality,
   detectUniqueness,
+  detectStringLengthRange,
+  detectPercentage,
+  detectDistribution,
 } from './range-detector.js';
 import { detectSuperposition } from './enum-detector.js';
 import { detectFormat, getGeneratorForFormat, detectFieldNamePattern } from './format-detector.js';
@@ -582,11 +595,30 @@ function inferFieldFromValues(
   // Detect ranges for numeric types
   if (typeInfo.type === 'int' || typeInfo.type === 'decimal') {
     field.numericRange = detectNumericRange(values) ?? undefined;
+    // Also check for percentage patterns
+    const percentageInfo = detectPercentage(values);
+    if (percentageInfo && percentageInfo.isPercentage && percentageInfo.confidence > 0.5) {
+      field.percentageInfo = percentageInfo;
+    }
+    // Detect statistical distribution
+    const distributionInfo = detectDistribution(values);
+    if (
+      distributionInfo &&
+      distributionInfo.confidence > 0.6 &&
+      distributionInfo.type !== 'unknown'
+    ) {
+      field.distributionInfo = distributionInfo;
+    }
   }
 
   // Detect ranges for date types
   if (typeInfo.type === 'date') {
     field.dateRange = detectDateRange(values) ?? undefined;
+  }
+
+  // Detect string length ranges (only for strings without generators)
+  if (typeInfo.type === 'string' && !field.generator) {
+    field.stringLengthRange = detectStringLengthRange(values) ?? undefined;
   }
 
   return field;

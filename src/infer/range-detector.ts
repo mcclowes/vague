@@ -142,6 +142,229 @@ export function detectUniqueness(values: unknown[], type: InferredType): boolean
 }
 
 /**
+ * String length range for constraint inference
+ */
+export interface StringLengthRange {
+  minLength: number;
+  maxLength: number;
+  avgLength: number;
+  isFixedLength: boolean;
+}
+
+/**
+ * Detect the length range of string values
+ * Useful for inferring string length constraints
+ */
+export function detectStringLengthRange(values: unknown[]): StringLengthRange | null {
+  const strings = values.filter((v): v is string => typeof v === 'string');
+
+  if (strings.length === 0) {
+    return null;
+  }
+
+  const lengths = strings.map((s) => s.length);
+  const minLength = Math.min(...lengths);
+  const maxLength = Math.max(...lengths);
+  const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+  const isFixedLength = minLength === maxLength;
+
+  return { minLength, maxLength, avgLength, isFixedLength };
+}
+
+/**
+ * Percentage/ratio detection result
+ */
+export interface PercentageInfo {
+  isPercentage: boolean;
+  scale: 'decimal' | 'percent'; // 0-1 vs 0-100
+  confidence: number;
+}
+
+/**
+ * Detect if numeric values represent percentages or ratios
+ * Looks for values in 0-1 range (decimal) or 0-100 range (percent)
+ */
+export function detectPercentage(values: unknown[]): PercentageInfo | null {
+  const numbers = values.filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+  if (numbers.length < 2) {
+    return null;
+  }
+
+  const min = Math.min(...numbers);
+  const max = Math.max(...numbers);
+
+  // Check for 0-1 decimal percentage (most common in programmatic data)
+  if (min >= 0 && max <= 1) {
+    // Additional check: values should have some distribution, not just 0 and 1
+    const hasMiddleValues = numbers.some((n) => n > 0.01 && n < 0.99);
+    const allZeroOrOne = numbers.every((n) => Math.abs(n) < 0.001 || Math.abs(n - 1) < 0.001);
+
+    if (hasMiddleValues && !allZeroOrOne) {
+      // High confidence: values span the 0-1 range
+      const range = max - min;
+      const confidence = Math.min(range * 2, 0.95); // More spread = higher confidence
+      return { isPercentage: true, scale: 'decimal', confidence };
+    }
+  }
+
+  // Check for 0-100 percentage (common in spreadsheets/reports)
+  if (min >= 0 && max <= 100) {
+    // Additional check: values should look like percentages, not just small integers
+    const hasDecimalValues = numbers.some((n) => !Number.isInteger(n));
+    const looksLikePercent =
+      max > 10 && // At least some values over 10%
+      (hasDecimalValues || numbers.some((n) => n % 10 !== 0)); // Not all multiples of 10
+
+    if (looksLikePercent) {
+      const range = max - min;
+      const confidence = Math.min(range / 100, 0.85); // More spread = higher confidence
+      return { isPercentage: true, scale: 'percent', confidence };
+    }
+  }
+
+  return { isPercentage: false, scale: 'decimal', confidence: 0 };
+}
+
+/**
+ * Distribution type for numeric values
+ */
+export type DistributionType = 'uniform' | 'gaussian' | 'exponential' | 'bimodal' | 'unknown';
+
+/**
+ * Distribution analysis result
+ */
+export interface DistributionInfo {
+  type: DistributionType;
+  confidence: number;
+  // Parameters for specific distributions
+  mean?: number;
+  stddev?: number;
+  skewness?: number;
+}
+
+/**
+ * Detect the statistical distribution of numeric values
+ * Uses simple heuristics to identify common distributions
+ */
+export function detectDistribution(values: unknown[]): DistributionInfo | null {
+  const numbers = values.filter((v): v is number => typeof v === 'number' && !isNaN(v));
+
+  if (numbers.length < 10) {
+    // Need at least 10 samples for meaningful distribution detection
+    return null;
+  }
+
+  // Calculate basic statistics
+  const n = numbers.length;
+  const mean = numbers.reduce((a, b) => a + b, 0) / n;
+  const variance = numbers.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / n;
+  const stddev = Math.sqrt(variance);
+  const min = Math.min(...numbers);
+  const max = Math.max(...numbers);
+  const range = max - min;
+
+  // Protect against zero range
+  if (range === 0 || stddev === 0) {
+    return { type: 'unknown', confidence: 0 };
+  }
+
+  // Calculate skewness (third moment)
+  const skewness = numbers.reduce((sum, x) => sum + Math.pow((x - mean) / stddev, 3), 0) / n;
+
+  // Calculate kurtosis (fourth moment) - excess kurtosis (normal = 0)
+  const kurtosis = numbers.reduce((sum, x) => sum + Math.pow((x - mean) / stddev, 4), 0) / n - 3;
+
+  // Analyze distribution using histogram approach
+  const numBins = Math.min(20, Math.ceil(Math.sqrt(n)));
+  const binWidth = range / numBins;
+  const histogram = new Array(numBins).fill(0);
+
+  for (const num of numbers) {
+    const binIndex = Math.min(numBins - 1, Math.floor((num - min) / binWidth));
+    histogram[binIndex]++;
+  }
+
+  // Normalize histogram
+  const normalizedHist = histogram.map((count) => count / n);
+
+  // Test for uniform distribution
+  // Uniform distribution should have roughly equal bin counts
+  const expectedUniform = 1 / numBins;
+  const uniformDeviation = normalizedHist.reduce(
+    (sum, p) => sum + Math.pow(p - expectedUniform, 2),
+    0
+  );
+  const uniformScore = 1 - Math.min(uniformDeviation * numBins * 4, 1);
+
+  // Test for Gaussian distribution
+  // Use Anderson-Darling-like test: compare histogram to expected normal
+  let gaussianScore = 0;
+  for (let i = 0; i < numBins; i++) {
+    const binCenter = min + (i + 0.5) * binWidth;
+    const z = (binCenter - mean) / stddev;
+    // Expected probability from normal distribution
+    const expectedNormal = ((binWidth / stddev) * Math.exp(-0.5 * z * z)) / Math.sqrt(2 * Math.PI);
+    const diff = Math.abs(normalizedHist[i] - expectedNormal);
+    gaussianScore += 1 - Math.min(diff * 5, 1);
+  }
+  gaussianScore /= numBins;
+
+  // Adjust Gaussian score based on skewness and kurtosis
+  // Normal distribution has skewness ≈ 0 and excess kurtosis ≈ 0
+  if (Math.abs(skewness) < 0.5 && Math.abs(kurtosis) < 1) {
+    gaussianScore *= 1.1; // Boost if moments look normal
+  } else if (Math.abs(skewness) > 1 || Math.abs(kurtosis) > 2) {
+    gaussianScore *= 0.8; // Penalize if moments look non-normal
+  }
+
+  // Test for exponential distribution (positive skewness, min near 0)
+  const exponentialScore =
+    min >= 0 && skewness > 0.8 && kurtosis > 1 ? 0.7 + Math.min(skewness / 5, 0.2) : 0;
+
+  // Test for bimodal distribution (look for two peaks in histogram)
+  let bimodalScore = 0;
+  const smoothedHist = normalizedHist.map((_, i) => {
+    const neighbors = [normalizedHist[i - 1] ?? 0, normalizedHist[i], normalizedHist[i + 1] ?? 0];
+    return neighbors.reduce((a, b) => a + b, 0) / 3;
+  });
+
+  let peakCount = 0;
+  for (let i = 1; i < smoothedHist.length - 1; i++) {
+    if (smoothedHist[i] > smoothedHist[i - 1] && smoothedHist[i] > smoothedHist[i + 1]) {
+      peakCount++;
+    }
+  }
+  if (peakCount >= 2 && kurtosis < -0.5) {
+    bimodalScore = 0.6 + Math.min(peakCount * 0.1, 0.3);
+  }
+
+  // Determine best fit
+  const scores = [
+    { type: 'uniform' as DistributionType, score: uniformScore },
+    { type: 'gaussian' as DistributionType, score: gaussianScore },
+    { type: 'exponential' as DistributionType, score: exponentialScore },
+    { type: 'bimodal' as DistributionType, score: bimodalScore },
+  ];
+
+  scores.sort((a, b) => b.score - a.score);
+  const best = scores[0];
+
+  // Require minimum confidence
+  if (best.score < 0.5) {
+    return { type: 'unknown', confidence: best.score, mean, stddev, skewness };
+  }
+
+  return {
+    type: best.type,
+    confidence: Math.min(best.score, 0.95),
+    mean,
+    stddev,
+    skewness,
+  };
+}
+
+/**
  * Round range values to nice numbers for better readability
  */
 export function roundRangeToNice(min: number, max: number): { min: number; max: number } {

@@ -564,6 +564,9 @@ dataset TestData {
 | `binary` | Hex string |
 | `password` | `Pass1234!` |
 | `iban` | `GB99MOCK12345678` |
+| `credit-card` | `4532123456789012` |
+| `mac-address` | `00:1A:2B:3C:4D:5E` |
+| `isbn` | `978-3-16-148410-0` |
 
 Fields without format hints use type-based generation:
 - `string` → Markov chain text (context-aware based on field name)
@@ -816,12 +819,14 @@ inferSchema(data, {
 | Weights | Value frequency | `0.7: "paid" \| 0.3: "draft"` |
 | Nullable | Null presence | `string?` |
 | Unique | All values distinct | `unique int in 1..100` |
-| Formats | Pattern matching | `uuid()`, `email()`, etc. |
+| Formats | Pattern matching | `uuid()`, `email()`, `creditCard()`, `iban()`, `macAddress()`, `isbn()` |
 | Arrays | Array lengths | `1..5 of Item` |
 | Nested | Object structure | Separate schema definitions |
-| Derived fields | Correlation analysis | `total: round(qty * price, 2)` |
+| Derived fields | Correlation analysis | `total: round(qty * price, 2)`, `balance: total - paid`, `sum: a + b + c` |
 | Ordering | Date/value patterns | `assume end >= start` |
 | Conditionals | Value co-occurrence | `assume if status == "paid" { amount > 0 }` |
+| Percentages | 0-1 or 0-100 scale | Detected as ratio/percentage fields |
+| Distributions | Statistical analysis | `gaussian(mean, stddev, min, max)` when data fits normal distribution |
 
 ### Data Validation (Dual-Use)
 

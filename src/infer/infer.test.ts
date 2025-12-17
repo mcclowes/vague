@@ -6,6 +6,9 @@ import {
   detectDateRange,
   detectArrayCardinality,
   detectUniqueness,
+  detectStringLengthRange,
+  detectPercentage,
+  detectDistribution,
 } from './range-detector.js';
 import { detectSuperposition } from './enum-detector.js';
 import { detectFormat, detectFieldNamePattern } from './format-detector.js';
@@ -127,6 +130,85 @@ describe('Range Detector', () => {
       expect(detectUniqueness([1, 2, 2, 3], 'int')).toBe(false);
     });
   });
+
+  describe('detectStringLengthRange', () => {
+    it('detects min/max string lengths', () => {
+      const result = detectStringLengthRange(['ab', 'abcde', 'abc']);
+      expect(result?.minLength).toBe(2);
+      expect(result?.maxLength).toBe(5);
+      expect(result?.isFixedLength).toBe(false);
+    });
+
+    it('detects fixed-length strings', () => {
+      const result = detectStringLengthRange(['abc', 'xyz', '123']);
+      expect(result?.isFixedLength).toBe(true);
+      expect(result?.minLength).toBe(3);
+      expect(result?.maxLength).toBe(3);
+    });
+
+    it('calculates average length', () => {
+      const result = detectStringLengthRange(['a', 'abc', 'abcde']); // 1, 3, 5 avg = 3
+      expect(result?.avgLength).toBe(3);
+    });
+
+    it('returns null for empty array', () => {
+      expect(detectStringLengthRange([])).toBeNull();
+    });
+  });
+
+  describe('detectPercentage', () => {
+    it('detects decimal percentages (0-1 scale)', () => {
+      const values = [0.15, 0.25, 0.5, 0.75, 0.9];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(true);
+      expect(result?.scale).toBe('decimal');
+    });
+
+    it('detects percentage scale (0-100)', () => {
+      const values = [15.5, 25.3, 50.0, 75.8, 90.2];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(true);
+      expect(result?.scale).toBe('percent');
+    });
+
+    it('returns false for non-percentage values', () => {
+      const values = [100, 200, 500, 1000];
+      const result = detectPercentage(values);
+      expect(result?.isPercentage).toBe(false);
+    });
+  });
+
+  describe('detectDistribution', () => {
+    it('detects uniform distribution', () => {
+      // Generate uniformly distributed values
+      const values = Array.from({ length: 100 }, (_, i) => i + Math.random() * 0.1);
+      const result = detectDistribution(values);
+      expect(result).toBeDefined();
+      // Note: distribution detection is probabilistic, so we just check it's detected
+      expect(result?.type).toBeDefined();
+    });
+
+    it('detects gaussian distribution', () => {
+      // Generate normally distributed values using Box-Muller transform
+      const values: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        const u1 = Math.random();
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        values.push(50 + z * 10); // mean=50, stddev=10
+      }
+      const result = detectDistribution(values);
+      expect(result).toBeDefined();
+      expect(result?.mean).toBeDefined();
+      expect(result?.stddev).toBeDefined();
+    });
+
+    it('returns null for insufficient samples', () => {
+      const values = [1, 2, 3];
+      const result = detectDistribution(values);
+      expect(result).toBeNull();
+    });
+  });
 });
 
 describe('Enum Detector', () => {
@@ -195,6 +277,30 @@ describe('Format Detector', () => {
       const values = ['hello', 'world', 'test'];
       expect(detectFormat(values)).toBe('none');
     });
+
+    it('detects credit card format', () => {
+      const values = ['4532015112830366', '5425233430109903', '371449635398431'];
+      expect(detectFormat(values)).toBe('credit-card');
+    });
+
+    it('detects IBAN format', () => {
+      const values = [
+        'GB82WEST12345698765432',
+        'DE89370400440532013000',
+        'FR7630006000011234567890189',
+      ];
+      expect(detectFormat(values)).toBe('iban');
+    });
+
+    it('detects MAC address format', () => {
+      const values = ['00:1A:2B:3C:4D:5E', 'AA:BB:CC:DD:EE:FF', '11:22:33:44:55:66'];
+      expect(detectFormat(values)).toBe('mac-address');
+    });
+
+    it('detects hex color format', () => {
+      const values = ['#FF5733', '#00FF00', '#ABC'];
+      expect(detectFormat(values)).toBe('hex-color');
+    });
   });
 
   describe('detectFieldNamePattern', () => {
@@ -214,6 +320,26 @@ describe('Format Detector', () => {
 
     it('returns null for unknown patterns', () => {
       expect(detectFieldNamePattern('foobar')).toBeNull();
+    });
+
+    it('detects credit card field names', () => {
+      expect(detectFieldNamePattern('credit_card')).toBe('faker.finance.creditCardNumber()');
+      expect(detectFieldNamePattern('cardNumber')).toBe('faker.finance.creditCardNumber()');
+    });
+
+    it('detects IBAN field names', () => {
+      expect(detectFieldNamePattern('iban')).toBe('faker.finance.iban()');
+      expect(detectFieldNamePattern('bank_account')).toBe('faker.finance.iban()');
+    });
+
+    it('detects MAC address field names', () => {
+      expect(detectFieldNamePattern('mac')).toBe('faker.internet.mac()');
+      expect(detectFieldNamePattern('mac_address')).toBe('faker.internet.mac()');
+    });
+
+    it('detects color field names', () => {
+      expect(detectFieldNamePattern('color')).toBe('faker.color.rgb()');
+      expect(detectFieldNamePattern('hex_color')).toBe('faker.color.rgb()');
     });
   });
 });

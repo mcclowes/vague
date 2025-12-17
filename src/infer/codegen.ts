@@ -4,7 +4,13 @@
  */
 
 import { InferredType } from './type-detector.js';
-import { NumericRange, DateRange } from './range-detector.js';
+import {
+  NumericRange,
+  DateRange,
+  StringLengthRange,
+  PercentageInfo,
+  DistributionInfo,
+} from './range-detector.js';
 import { SuperpositionOption } from './enum-detector.js';
 import { DetectedFormat } from './format-detector.js';
 
@@ -20,6 +26,15 @@ export interface InferredField {
   // Range info (for numeric/date types)
   numericRange?: NumericRange;
   dateRange?: DateRange;
+
+  // String length info
+  stringLengthRange?: StringLengthRange;
+
+  // Percentage/ratio info
+  percentageInfo?: PercentageInfo;
+
+  // Statistical distribution info
+  distributionInfo?: DistributionInfo;
 
   // Superposition info (for enum-like fields)
   isSuperposition: boolean;
