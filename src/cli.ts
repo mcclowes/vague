@@ -21,14 +21,17 @@ import {
   type CsvOptions,
 } from './csv/index.js';
 import { DataValidator } from './validator/data-validator.js';
+import { loadConfig, loadConfigFrom, type ResolvedConfig } from './config/index.js';
 
-// Register plugins automatically
-registerPlugin(fakerPlugin);
-registerPlugin(fakerShorthandPlugin);
-registerPlugin(datePlugin);
-registerPlugin(dateShorthandPlugin);
-registerPlugin(issuerPlugin);
-registerPlugin(issuerShorthandPlugin);
+// Built-in plugins (registered after config plugins to allow overrides)
+const builtinPlugins = [
+  fakerPlugin,
+  fakerShorthandPlugin,
+  datePlugin,
+  dateShorthandPlugin,
+  issuerPlugin,
+  issuerShorthandPlugin,
+];
 
 interface ValidationMapping {
   [collection: string]: string;
@@ -55,6 +58,8 @@ Options:
   -v, --validate <spec>    Validate output against OpenAPI spec
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
+  -c, --config <file>      Use specific config file (default: auto-detect vague.config.js)
+  --no-config              Skip loading config file
   -h, --help               Show this help message
 
 CSV Options (when --format csv):
@@ -109,6 +114,22 @@ Examples:
 
   # Validate data against Vague schema
   vague --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+
+  # Use custom config file
+  vague schema.vague -c ./custom-config.js
+  vague schema.vague --no-config  # Skip config file
+
+Configuration File (vague.config.js):
+  // vague.config.js
+  export default {
+    plugins: [
+      './my-plugin.js',           // Local plugin file
+      'vague-plugin-stripe',      // npm package
+    ],
+    seed: 42,                     // Default seed
+    format: 'json',               // Default format
+    pretty: true                  // Pretty-print by default
+  };
 `);
     process.exit(0);
   }
@@ -144,6 +165,10 @@ Examples:
   // Data validation options
   let validateDataFile: string | null = null;
   let schemaFile: string | null = null;
+
+  // Config options
+  let configFile: string | null = null;
+  let noConfig = false;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -242,6 +267,48 @@ Examples:
       validateDataFile = args[++i];
     } else if (args[i] === '--schema') {
       schemaFile = args[++i];
+    } else if (args[i] === '-c' || args[i] === '--config') {
+      configFile = args[++i];
+    } else if (args[i] === '--no-config') {
+      noConfig = true;
+    }
+  }
+
+  // Load config file (unless disabled)
+  let config: ResolvedConfig | null = null;
+  if (!noConfig) {
+    try {
+      config = configFile ? await loadConfigFrom(configFile) : await loadConfig();
+      if (config) {
+        // Register plugins from config first (they can be overridden by built-ins)
+        for (const plugin of config.plugins) {
+          registerPlugin(plugin);
+        }
+        if (config.configPath) {
+          console.error(`Loaded config from ${config.configPath}`);
+        }
+      }
+    } catch (err) {
+      console.error(`Error loading config: ${err instanceof Error ? err.message : err}`);
+      process.exit(1);
+    }
+  }
+
+  // Register built-in plugins (after config plugins so they take precedence)
+  for (const plugin of builtinPlugins) {
+    registerPlugin(plugin);
+  }
+
+  // Apply config defaults (CLI flags take precedence)
+  if (config) {
+    if (seed === null && config.seed !== undefined) {
+      seed = config.seed;
+    }
+    if (outputFormat === 'json' && config.format !== undefined) {
+      outputFormat = config.format;
+    }
+    if (!pretty && config.pretty !== undefined) {
+      pretty = config.pretty;
     }
   }
 

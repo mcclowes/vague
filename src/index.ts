@@ -62,6 +62,17 @@ export {
   type SchemaValidationResult,
   type DatasetValidationResult,
 } from './validator/data-validator.js';
+export {
+  loadConfig,
+  loadConfigFile,
+  loadConfigFrom,
+  findConfigFile,
+  type VagueConfig,
+  type ResolvedConfig,
+  type PluginSpec,
+  ConfigError,
+  PluginLoadError,
+} from './config/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
