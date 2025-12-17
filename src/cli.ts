@@ -31,6 +31,18 @@ import {
   enableDebug,
   setTimestamps,
 } from './logging/index.js';
+import {
+  generateReport,
+  formatReportAsHTML,
+  formatReportAsMarkdown,
+  formatReportAsJSON,
+  createAuditLogEntry,
+  formatAuditLogEntry,
+  hashString,
+  type ReportFormat,
+} from './reporting/index.js';
+import { warningCollector } from './warnings.js';
+import { appendFileSync } from 'node:fs';
 
 // Create CLI logger
 const log = createLogger('cli');
@@ -77,6 +89,12 @@ Options:
   -d, --debug              Enable debug logging (shows generation details)
   --log-level <level>      Set log level: none, error, warn, info, debug (default: warn)
   -h, --help               Show this help message
+
+Enterprise Reporting:
+  --report <file>          Generate enterprise report (JSON, HTML, or Markdown based on extension)
+  --report-format <fmt>    Report format: json, html, markdown (default: auto-detect from extension)
+  --audit-log <file>       Append audit log entry to JSONL file
+  --baseline <file>        Compare against baseline report for distribution drift
 
 CSV Options (when --format csv):
   --csv-delimiter <char>   Field delimiter (default: ',')
@@ -134,6 +152,13 @@ Examples:
   # Use custom config file
   vague schema.vague -c ./custom-config.js
   vague schema.vague --no-config  # Skip config file
+
+  # Enterprise reporting
+  vague schema.vague -o data.json --report report.html          # HTML report
+  vague schema.vague -o data.json --report report.md            # Markdown report
+  vague schema.vague -o data.json --report report.json          # JSON report
+  vague schema.vague --audit-log audit.jsonl                    # Append to audit log
+  vague schema.vague --report new.json --baseline old.json      # Compare distributions
 
 Configuration File (vague.config.js):
   // vague.config.js
@@ -194,6 +219,12 @@ Configuration File (vague.config.js):
   // Logging options
   let debugMode = false;
   let logLevelArg: LogLevel | null = null;
+
+  // Enterprise reporting options
+  let reportFile: string | null = null;
+  let reportFormat: ReportFormat | null = null;
+  let auditLogFile: string | null = null;
+  let baselineFile: string | null = null;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -307,6 +338,19 @@ Configuration File (vague.config.js):
         process.exit(1);
       }
       logLevelArg = level;
+    } else if (args[i] === '--report') {
+      reportFile = args[++i];
+    } else if (args[i] === '--report-format') {
+      const fmt = args[++i];
+      if (!['json', 'html', 'markdown'].includes(fmt)) {
+        console.error(`Error: Invalid report format '${fmt}'. Must be: json, html, markdown`);
+        process.exit(1);
+      }
+      reportFormat = fmt as ReportFormat;
+    } else if (args[i] === '--audit-log') {
+      auditLogFile = args[++i];
+    } else if (args[i] === '--baseline') {
+      baselineFile = args[++i];
     }
   }
 
@@ -559,6 +603,11 @@ Configuration File (vague.config.js):
 
     // Define compilation function for reuse in watch mode
     async function runCompilation(): Promise<boolean> {
+      const startTime = Date.now();
+
+      // Clear warnings from previous runs
+      warningCollector.clear();
+
       // Set seed if provided for reproducible generation
       if (seed !== null) {
         setSeed(seed);
@@ -697,6 +746,79 @@ Configuration File (vague.config.js):
           } else {
             console.log(json);
           }
+        }
+      }
+
+      const endTime = Date.now();
+
+      // Generate enterprise report if requested
+      if (reportFile || auditLogFile) {
+        const schemaHash = hashString(source);
+        const warnings = warningCollector.getWarnings();
+
+        // Load baseline for comparison if provided
+        let baseline = undefined;
+        if (baselineFile) {
+          try {
+            const baselineContent = readFileSync(resolve(baselineFile), 'utf-8');
+            baseline = JSON.parse(baselineContent);
+          } catch (err) {
+            console.error(
+              `Warning: Could not load baseline report: ${err instanceof Error ? err.message : err}`
+            );
+          }
+        }
+
+        if (reportFile) {
+          const report = generateReport(result as Record<string, unknown[]>, source, warnings, {
+            seed,
+            schemaFile: inputFile!,
+            configFile: config?.configPath ?? undefined,
+            startTime,
+            endTime,
+            baseline,
+          });
+
+          // Determine format from extension or flag
+          let format: ReportFormat = reportFormat ?? 'json';
+          if (!reportFormat) {
+            if (reportFile.endsWith('.html')) format = 'html';
+            else if (reportFile.endsWith('.md')) format = 'markdown';
+          }
+
+          // Format and write report
+          let reportContent: string;
+          switch (format) {
+            case 'html':
+              reportContent = formatReportAsHTML(report);
+              break;
+            case 'markdown':
+              reportContent = formatReportAsMarkdown(report);
+              break;
+            default:
+              reportContent = formatReportAsJSON(report);
+          }
+
+          writeFileSync(resolve(reportFile), reportContent);
+          console.error(`Enterprise report written to ${reportFile}`);
+        }
+
+        if (auditLogFile) {
+          const warnings = warningCollector.getWarnings();
+          const status = warnings.length > 0 ? 'warning' : 'success';
+          const entry = createAuditLogEntry(
+            'generate',
+            status,
+            inputFile!,
+            schemaHash,
+            result as Record<string, unknown[]>,
+            warnings,
+            endTime - startTime,
+            seed
+          );
+
+          appendFileSync(resolve(auditLogFile), formatAuditLogEntry(entry) + '\n');
+          console.error(`Audit log entry appended to ${auditLogFile}`);
         }
       }
 
