@@ -109,6 +109,51 @@ describe('correlation-detector', () => {
         expect(grandTotalDerived?.expression).toBe('subtotal + tax');
       });
 
+      it('detects subtraction (balance = total - paid)', () => {
+        // Use values where subtraction is the only clean relationship
+        // (no constant multiplier between total and paid)
+        const records = [
+          { total: 100, paid: 37, balance: 63 },
+          { total: 200, paid: 83, balance: 117 },
+          { total: 150, paid: 51, balance: 99 },
+          { total: 80, paid: 23, balance: 57 },
+          { total: 300, paid: 127, balance: 173 },
+        ];
+
+        const constraints = detectCorrelations(records);
+        const derived = constraints.filter((c) => c.type === 'derived');
+
+        // Should detect balance = total - paid or total = paid + balance (both are mathematically equivalent)
+        // Note: Addition terms are sorted alphabetically, so it's "paid + balance" not "balance + paid"
+        const balanceOrTotalDerived = derived.find(
+          (c) =>
+            c.type === 'derived' &&
+            ((c.targetField === 'balance' && c.expression === 'total - paid') ||
+              (c.targetField === 'total' && c.expression === 'paid + balance'))
+        );
+        expect(balanceOrTotalDerived).toBeDefined();
+      });
+
+      it('detects 3-term addition (grand_total = subtotal + tax + shipping)', () => {
+        // Use values with no obvious pairwise relationships (no constant multipliers)
+        const records = [
+          { subtotal: 100, tax: 17, shipping: 8, grand_total: 125 },
+          { subtotal: 200, tax: 31, shipping: 12, grand_total: 243 },
+          { subtotal: 150, tax: 23, shipping: 9, grand_total: 182 },
+          { subtotal: 80, tax: 11, shipping: 6, grand_total: 97 },
+          { subtotal: 300, tax: 47, shipping: 18, grand_total: 365 },
+        ];
+
+        const constraints = detectCorrelations(records);
+        const derived = constraints.filter((c) => c.type === 'derived');
+
+        const grandTotalDerived = derived.find(
+          (c) => c.type === 'derived' && c.targetField === 'grand_total'
+        );
+        expect(grandTotalDerived).toBeDefined();
+        expect(grandTotalDerived?.expression).toBe('subtotal + tax + shipping');
+      });
+
       it('detects division relationship (or equivalent multiplication)', () => {
         // Note: If c = a / b, then mathematically a = b * c
         // The system may detect either relationship; both are correct

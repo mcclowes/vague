@@ -399,6 +399,29 @@ function detectDerivedFields(
       }
     }
 
+    // Check for subtraction: C = A - B (e.g., balance = total - paid)
+    for (let i = 0; i < numericFields.length; i++) {
+      if (numericFields[i] === targetField) continue;
+
+      for (let j = 0; j < numericFields.length; j++) {
+        if (numericFields[j] === targetField || i === j) continue;
+
+        const fieldA = numericFields[i];
+        const fieldB = numericFields[j];
+
+        const result = checkSubtraction(records, targetField, fieldA, fieldB, opts.tolerance);
+        if (result.confidence >= opts.minConfidence) {
+          allCandidates.push({
+            type: 'derived',
+            targetField,
+            expression: `${fieldA} - ${fieldB}`,
+            sourceFields: [fieldA, fieldB],
+            confidence: result.confidence + 0.04, // Lower boost than addition (0.05) since A+B=C is more common than C-B=A
+          });
+        }
+      }
+    }
+
     // Check for constant multiplier: B = A * constant (lower priority - often redundant)
     for (const sourceField of numericFields) {
       if (sourceField === targetField) continue;
@@ -414,6 +437,43 @@ function detectDerivedFields(
           sourceFields: [sourceField],
           confidence: result.confidence, // No boost - lower priority
         });
+      }
+    }
+
+    // Check for 3-term addition: D = A + B + C (e.g., grand_total = subtotal + tax + shipping)
+    // Only check if we haven't found a pairwise relationship for this target
+    const hasPairwise = allCandidates.some((c) => c.targetField === targetField);
+    if (!hasPairwise && numericFields.length >= 4) {
+      for (let i = 0; i < numericFields.length; i++) {
+        if (numericFields[i] === targetField) continue;
+        for (let j = i + 1; j < numericFields.length; j++) {
+          if (numericFields[j] === targetField) continue;
+          for (let k = j + 1; k < numericFields.length; k++) {
+            if (numericFields[k] === targetField) continue;
+
+            const fieldA = numericFields[i];
+            const fieldB = numericFields[j];
+            const fieldC = numericFields[k];
+
+            const result = checkThreeTermAddition(
+              records,
+              targetField,
+              fieldA,
+              fieldB,
+              fieldC,
+              opts.tolerance
+            );
+            if (result.confidence >= opts.minConfidence) {
+              allCandidates.push({
+                type: 'derived',
+                targetField,
+                expression: `${fieldA} + ${fieldB} + ${fieldC}`,
+                sourceFields: [fieldA, fieldB, fieldC],
+                confidence: result.confidence + 0.03, // Small boost for 3-term
+              });
+            }
+          }
+        }
       }
     }
   }
@@ -611,6 +671,84 @@ function checkDivision(
 
     const expected = a / b;
     // Use relative tolerance for division results
+    const absError = Math.abs(t - expected);
+    const relError = expected !== 0 ? absError / Math.abs(expected) : absError;
+    if (absError <= 0.01 || relError <= tolerance) {
+      validCount++;
+    }
+  }
+
+  return { confidence: totalCount > 0 ? validCount / totalCount : 0 };
+}
+
+/**
+ * Check if target = fieldA - fieldB (subtraction)
+ */
+function checkSubtraction(
+  records: Record<string, unknown>[],
+  target: string,
+  fieldA: string,
+  fieldB: string,
+  tolerance: number
+): { confidence: number } {
+  let validCount = 0;
+  let totalCount = 0;
+
+  for (const record of records) {
+    const t = record[target];
+    const a = record[fieldA];
+    const b = record[fieldB];
+
+    if (typeof t !== 'number' || typeof a !== 'number' || typeof b !== 'number') {
+      continue;
+    }
+
+    totalCount++;
+
+    const expected = a - b;
+    // Use relative tolerance for larger numbers, absolute for small ones
+    const absError = Math.abs(t - expected);
+    const relError = expected !== 0 ? absError / Math.abs(expected) : absError;
+    if (absError <= 0.01 || relError <= tolerance) {
+      validCount++;
+    }
+  }
+
+  return { confidence: totalCount > 0 ? validCount / totalCount : 0 };
+}
+
+/**
+ * Check if target = fieldA + fieldB + fieldC (3-term addition)
+ */
+function checkThreeTermAddition(
+  records: Record<string, unknown>[],
+  target: string,
+  fieldA: string,
+  fieldB: string,
+  fieldC: string,
+  tolerance: number
+): { confidence: number } {
+  let validCount = 0;
+  let totalCount = 0;
+
+  for (const record of records) {
+    const t = record[target];
+    const a = record[fieldA];
+    const b = record[fieldB];
+    const c = record[fieldC];
+
+    if (
+      typeof t !== 'number' ||
+      typeof a !== 'number' ||
+      typeof b !== 'number' ||
+      typeof c !== 'number'
+    ) {
+      continue;
+    }
+
+    totalCount++;
+
+    const expected = a + b + c;
     const absError = Math.abs(t - expected);
     const relError = expected !== 0 ? absError / Math.abs(expected) : absError;
     if (absError <= 0.01 || relError <= tolerance) {
