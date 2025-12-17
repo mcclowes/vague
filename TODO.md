@@ -72,7 +72,6 @@
 ## Ideas to explore
 
 - [ ] Additional keywords like then - so, especially, etc.
-- [ ] currently we have to do: status: 0.85: "Active" | 0.15: "Archived",  but actually this should work: status: 0.85: "Active" | "Archived",
 
 ## OAS parsing
 
@@ -138,3 +137,4 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Plugin architecture** - `registerPlugin()`, namespace resolution, `VaguePlugin` type
 - [x] **OpenAPI example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
 - [x] **String transformations** - `uppercase()`, `lowercase()`, `capitalize()`, `kebabCase()`, `snakeCase()`, `camelCase()`, `trim()`, `concat()`, `substring()`, `replace()`, `length()`
+- [x] **Mixed weighted/unweighted superposition** - `0.85: "Active" | "Archived"` where unweighted options share remaining probability

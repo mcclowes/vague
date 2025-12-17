@@ -45,6 +45,8 @@ schema Person {
 ```vague
 status: "draft" | "sent" | "paid"           // Equal weight
 status: 0.7: "paid" | 0.2: "pending" | 0.1: "draft"  // Weighted
+status: 0.85: "Active" | "Archived"         // Mixed: "Archived" gets remaining 15%
+category: 0.6: "main" | "side" | "dessert"  // Unweighted options share remaining 40%
 
 // Mixed types: range OR field reference
 amount: int in 10..500 | invoice.total      // Either partial or full

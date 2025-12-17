@@ -55,6 +55,10 @@ status: "draft" | "sent" | "paid"
 
 // Weighted probability
 status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft"
+
+// Mixed: unweighted options share remaining probability
+status: 0.85: "Active" | "Archived"         // "Archived" gets 15%
+category: 0.6: "main" | "side" | "dessert"  // "side" and "dessert" get 20% each
 ```
 
 ### Ranges
