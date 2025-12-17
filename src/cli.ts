@@ -13,7 +13,7 @@ import {
   issuerShorthandPlugin,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
-import { inferSchema } from './infer/index.js';
+import { inferSchema, inferSchemaWithTypeScript } from './infer/index.js';
 import {
   datasetToCSV,
   datasetToSingleCSV,
@@ -71,6 +71,8 @@ Schema Inference:
   --no-formats             Disable format detection (uuid, email, etc.)
   --no-weights             Disable weighted superpositions
   --max-enum <n>           Maximum unique values for enum detection (default: 10)
+  --typescript             Also generate TypeScript definitions (.d.ts file)
+  --ts-only                Generate only TypeScript definitions (no .vague file)
 
 Data Validation:
   --validate-data <file>   Validate JSON data against a Vague schema
@@ -95,6 +97,10 @@ Examples:
   vague --infer data.csv -o schema.vague
   vague --infer data.csv --collection-name users -o schema.vague
   vague --infer data.json --dataset-name TestFixtures
+
+  # Infer schema with TypeScript definitions
+  vague --infer data.json -o schema.vague --typescript     # Outputs schema.vague and schema.vague.d.ts
+  vague --infer data.json -o types.d.ts --ts-only          # Only outputs TypeScript definitions
 
   # Populate OpenAPI spec with examples
   vague schema.vague --oas-output api-with-examples.json --oas-source api.json
@@ -132,6 +138,8 @@ Examples:
   let detectFormats = true;
   let weightedSuperpositions = true;
   let maxEnumValues = 10;
+  let generateTypescript = false;
+  let typescriptOnly = false;
 
   // Data validation options
   let validateDataFile: string | null = null;
@@ -225,6 +233,11 @@ Examples:
         console.error('Error: --max-enum must be a positive integer');
         process.exit(1);
       }
+    } else if (args[i] === '--typescript') {
+      generateTypescript = true;
+    } else if (args[i] === '--ts-only') {
+      typescriptOnly = true;
+      generateTypescript = true; // ts-only implies typescript generation
     } else if (args[i] === '--validate-data') {
       validateDataFile = args[++i];
     } else if (args[i] === '--schema') {
@@ -261,18 +274,58 @@ Examples:
         }
       }
 
-      const vagueCode = inferSchema(data, {
+      const inferOptions = {
         datasetName,
         detectFormats,
         weightedSuperpositions,
         maxEnumValues,
-      });
+      };
 
-      if (outputFile) {
-        writeFileSync(resolve(outputFile), vagueCode);
-        console.error(`Vague schema written to ${outputFile}`);
+      if (generateTypescript) {
+        // Generate both Vague and TypeScript
+        const result = inferSchemaWithTypeScript(data, inferOptions);
+
+        if (outputFile) {
+          // Determine output file names
+          const vagueFile = typescriptOnly
+            ? null
+            : outputFile.endsWith('.d.ts')
+              ? outputFile.replace(/\.d\.ts$/, '.vague')
+              : outputFile;
+          const tsFile = outputFile.endsWith('.vague')
+            ? outputFile.replace(/\.vague$/, '.d.ts')
+            : outputFile.endsWith('.d.ts')
+              ? outputFile
+              : outputFile + '.d.ts';
+
+          // Write Vague file (unless ts-only)
+          if (!typescriptOnly && vagueFile) {
+            writeFileSync(resolve(vagueFile), result.vague);
+            console.error(`Vague schema written to ${vagueFile}`);
+          }
+
+          // Write TypeScript file
+          writeFileSync(resolve(tsFile), result.typescript);
+          console.error(`TypeScript definitions written to ${tsFile}`);
+        } else {
+          // Output to stdout
+          if (!typescriptOnly) {
+            console.log('// === Vague Schema ===');
+            console.log(result.vague);
+            console.log('\n// === TypeScript Definitions ===');
+          }
+          console.log(result.typescript);
+        }
       } else {
-        console.log(vagueCode);
+        // Generate only Vague code
+        const vagueCode = inferSchema(data, inferOptions);
+
+        if (outputFile) {
+          writeFileSync(resolve(outputFile), vagueCode);
+          console.error(`Vague schema written to ${outputFile}`);
+        } else {
+          console.log(vagueCode);
+        }
       }
 
       process.exit(0);
