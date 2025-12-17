@@ -31,7 +31,7 @@
     "generator",
     "dsl"
   ],
-  "author": "",
+  "author": "Max Clayton Clowes <max@mcclowes.com>",
   "license": "ISC",
   "description": "A declarative language for generating realistic test data",
   "devDependencies": {
@@ -49,6 +49,7 @@
     "@faker-js/faker": "^10.1.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "midi-writer-js": "^3.1.1",
     "swagger-parser": "^10.0.3"
   }
 }

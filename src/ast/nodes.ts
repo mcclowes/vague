@@ -116,7 +116,8 @@ export type FieldType =
   | RangeType
   | CollectionType
   | ExpressionType
-  | GeneratorType;
+  | GeneratorType
+  | OrderedSequenceType;
 
 export interface ExpressionType {
   type: 'ExpressionType';
@@ -133,6 +134,12 @@ export interface GeneratorType {
   type: 'GeneratorType';
   name: string; // Full name including namespace: "uuid", "faker.company"
   arguments: Expression[]; // Optional arguments: phone("US")
+}
+
+// Ordered sequence: [48, 52, 55, 60] - cycles through values in order
+export interface OrderedSequenceType {
+  type: 'OrderedSequenceType';
+  elements: Expression[];
 }
 
 export interface ReferenceType {
@@ -192,7 +199,8 @@ export type Expression =
   | ParentReference
   | AnyOfExpression
   | MatchExpression
-  | TernaryExpression;
+  | TernaryExpression
+  | OrderedSequenceType;
 
 // and, or
 export interface LogicalExpression {

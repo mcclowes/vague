@@ -9,6 +9,7 @@ import {
   LogicalExpression,
   NotExpression,
   TernaryExpression,
+  OrderedSequenceType,
 } from '../ast/index.js';
 import { ParserBase } from './base.js';
 
@@ -286,6 +287,11 @@ export class ExpressionParser extends ParserBase {
       return this.parseMatchExpression();
     }
 
+    // Ordered sequence: [1, 2, 3, 4]
+    if (this.match(TokenType.LBRACKET)) {
+      return this.parseOrderedSequence();
+    }
+
     // Any of expression
     if (this.match(TokenType.ANY)) {
       this.consume(TokenType.OF, "Expected 'of'");
@@ -363,6 +369,28 @@ export class ExpressionParser extends ParserBase {
 
     this.consume(TokenType.RBRACE, "Expected '}'");
     return { type: 'MatchExpression', value, arms };
+  }
+
+  // ============================================
+  // Ordered sequence
+  // ============================================
+
+  private parseOrderedSequence(): OrderedSequenceType {
+    const elements: Expression[] = [];
+
+    // Handle empty sequence error
+    if (this.check(TokenType.RBRACKET)) {
+      throw this.error('Ordered sequence cannot be empty');
+    }
+
+    // Parse comma-separated expressions
+    do {
+      elements.push(this.parseExpression());
+    } while (this.match(TokenType.COMMA));
+
+    this.consume(TokenType.RBRACKET, "Expected ']'");
+
+    return { type: 'OrderedSequenceType', elements };
   }
 
   // ============================================

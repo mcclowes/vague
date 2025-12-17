@@ -2574,4 +2574,122 @@ describe('Generator', () => {
       expect(product.slug).toBe('my-product-name');
     });
   });
+
+  describe('ordered sequences', () => {
+    it('cycles through values in order', async () => {
+      const source = `
+        schema Note {
+          pitch: [48, 52, 55, 60]
+        }
+
+        dataset TestData {
+          notes: 8 * Note
+        }
+      `;
+
+      const result = await compile(source);
+      const notes = result.notes as { pitch: number }[];
+
+      // Should cycle: 48, 52, 55, 60, 48, 52, 55, 60
+      expect(notes[0].pitch).toBe(48);
+      expect(notes[1].pitch).toBe(52);
+      expect(notes[2].pitch).toBe(55);
+      expect(notes[3].pitch).toBe(60);
+      expect(notes[4].pitch).toBe(48);
+      expect(notes[5].pitch).toBe(52);
+      expect(notes[6].pitch).toBe(55);
+      expect(notes[7].pitch).toBe(60);
+    });
+
+    it('single element always returns same value', async () => {
+      const source = `
+        schema Item {
+          value: [42]
+        }
+
+        dataset TestData {
+          items: 5 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { value: number }[];
+
+      for (const item of items) {
+        expect(item.value).toBe(42);
+      }
+    });
+
+    it('works with string values', async () => {
+      const source = `
+        schema Chord {
+          name: ["C", "G", "Am", "F"]
+        }
+
+        dataset TestData {
+          chords: 8 * Chord
+        }
+      `;
+
+      const result = await compile(source);
+      const chords = result.chords as { name: string }[];
+
+      expect(chords[0].name).toBe('C');
+      expect(chords[1].name).toBe('G');
+      expect(chords[2].name).toBe('Am');
+      expect(chords[3].name).toBe('F');
+      expect(chords[4].name).toBe('C');
+      expect(chords[5].name).toBe('G');
+    });
+
+    it('works with expressions', async () => {
+      const source = `
+        schema Item {
+          value: [1+1, 2+2, 3+3]
+        }
+
+        dataset TestData {
+          items: 6 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { value: number }[];
+
+      expect(items[0].value).toBe(2);
+      expect(items[1].value).toBe(4);
+      expect(items[2].value).toBe(6);
+      expect(items[3].value).toBe(2);
+      expect(items[4].value).toBe(4);
+      expect(items[5].value).toBe(6);
+    });
+
+    it('multiple fields have independent sequences', async () => {
+      const source = `
+        schema Item {
+          a: [1, 2, 3],
+          b: ["x", "y"]
+        }
+
+        dataset TestData {
+          items: 6 * Item
+        }
+      `;
+
+      const result = await compile(source);
+      const items = result.items as { a: number; b: string }[];
+
+      // Field 'a' cycles: 1, 2, 3, 1, 2, 3
+      expect(items[0].a).toBe(1);
+      expect(items[1].a).toBe(2);
+      expect(items[2].a).toBe(3);
+      expect(items[3].a).toBe(1);
+
+      // Field 'b' cycles: x, y, x, y, x, y
+      expect(items[0].b).toBe('x');
+      expect(items[1].b).toBe('y');
+      expect(items[2].b).toBe('x');
+      expect(items[3].b).toBe('y');
+    });
+  });
 });
