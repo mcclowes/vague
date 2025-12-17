@@ -91,6 +91,11 @@ schema Count {
 age: int in 18..65
 price: decimal in 0.01..999.99
 founded: date in 2000..2023
+
+// Decimal with explicit precision (number of decimal places)
+score: decimal(1) in 0..10       // e.g., 7.3
+price: decimal(2) in 10..100     // e.g., 49.95
+scientific: decimal(4) in 0..1   // e.g., 0.8742
 ```
 
 ### Cardinality (Collections)
@@ -794,7 +799,7 @@ const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 644 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
+Currently 645 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
 
 ## Architecture Notes
 
@@ -985,6 +990,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Logical operators in where clauses (`any of X where .a == 1 or .b == 2`)
 - [x] Arithmetic in computed fields (`= sum(items.price) * 1.2`)
 - [x] Decimal precision functions (`round()`, `floor()`, `ceil()`)
+- [x] Decimal precision syntax (`decimal(2)` for 2 decimal places)
 - [x] Unique values (`id: unique int in 1..1000`)
 - [x] Statistical distributions (`gaussian`, `exponential`, `lognormal`, `poisson`, `beta`, `uniform`)
 - [x] Date functions (`now`, `today`, `daysAgo`, `daysFromNow`, `datetime`, `dateBetween`, `formatDate`)

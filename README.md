@@ -67,6 +67,10 @@ category: 0.6: "main" | "side" | "dessert"  // "side" and "dessert" get 20% each
 age: int in 18..65
 price: decimal in 0.01..999.99
 founded: date in 2000..2023
+
+// Decimal with explicit precision
+score: decimal(1) in 0..10       // 1 decimal place
+amount: decimal(2) in 10..100    // 2 decimal places
 ```
 
 ### Collections

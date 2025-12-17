@@ -109,7 +109,7 @@ schema Item {
 
 schema Order {
   order_id: unique string,
-  customer_id: 0.29: "cust_a1b2c3d4e5f6" | 0.29: "cust_b2c3d4e5f6g7" | ...,
+  customer_id: 0.29: "cust_a1b2c3d4e5f6" | ...,
   status: 0.71: "completed" | 0.14: "refunded" | 0.14: "pending",
   payment_method: 0.71: "card" | 0.29: "invoice",
   subtotal: unique int in 49..4999,
@@ -123,6 +123,9 @@ schema Order {
 // ... events schema ...
 
 dataset Generated {
+  addresss: 5 of Address,
+  items: 8 of Item,
+  propertiess: 8 of Properties,
   customers: 5 of Customer,
   orders: 7 of Order,
   events: 8 of Event
