@@ -333,6 +333,11 @@ export class TypeParser extends ExpressionParser {
       };
     }
 
+    // Ordered sequence: [1, 2, 3, 4]
+    if (expr.type === 'OrderedSequenceType') {
+      return expr;
+    }
+
     // Single literal as single-value superposition
     if (expr.type === 'Literal') {
       return {

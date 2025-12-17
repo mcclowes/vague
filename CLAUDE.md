@@ -60,6 +60,28 @@ notes: string | null        // Explicit: equivalent to string?
 priority: int | null        // Works with any primitive type
 ```
 
+### Ordered Sequences (Cycling Lists)
+```vague
+// Cycles through values in order when generating collections
+schema ArpeggioNote {
+  pitch: [48, 52, 55, 60]   // C-E-G-C arpeggio, plays in order
+}
+
+dataset Music {
+  notes: 8 * ArpeggioNote   // Produces: 48, 52, 55, 60, 48, 52, 55, 60
+}
+
+// Works with any values
+schema Color {
+  name: ["red", "green", "blue"]
+}
+
+// Works with expressions
+schema Count {
+  value: [1+1, 2+2, 3+3]    // Cycles: 2, 4, 6, 2, 4, 6...
+}
+```
+
 ### Ranges
 ```vague
 age: int in 18..65
@@ -748,6 +770,7 @@ See `src/plugins/faker.ts` and `src/plugins/issuer.ts` for complete examples of 
 - [x] Tagged template API (`vague\`...\``, `vague({ seed: 42 })\`...\``)
 - [x] String transformations (`uppercase`, `lowercase`, `capitalize`, `kebabCase`, `snakeCase`, `camelCase`, `trim`, `concat`, `substring`, `replace`, `length`)
 - [x] Schema inference from JSON data (`inferSchema()`, `--infer` CLI option)
+- [x] Ordered sequences (`[a, b, c, d]` cycles through values in order)
 
 See TODO.md for planned features.
 

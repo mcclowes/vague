@@ -24,6 +24,7 @@ import {
   Mutation,
   QualifiedName,
   TernaryExpression,
+  OrderedSequenceType,
 } from '../ast/index.js';
 import { OpenAPILoader, ImportedSchema } from '../openapi/index.js';
 import {
@@ -83,6 +84,7 @@ export interface GeneratorContext {
   violating?: boolean; // If true, generate data that violates constraints
   uniqueValues: Map<string, Set<unknown>>; // Track unique values per field
   sequences: Map<string, number>; // Track sequence counters
+  orderedSequenceIndices: Map<string, number>; // Track cycling index for ordered sequences
 }
 
 export class Generator {
@@ -96,6 +98,7 @@ export class Generator {
       collections: new Map(),
       uniqueValues: new Map(),
       sequences: new Map(),
+      orderedSequenceIndices: new Map(),
     };
     this.openApiLoader = new OpenAPILoader();
   }
@@ -676,9 +679,29 @@ export class Generator {
       case 'GeneratorType':
         return this.generateFromPlugin(fieldType);
 
+      case 'OrderedSequenceType':
+        return this.generateFromOrderedSequence(fieldType, fieldName);
+
       default:
         return null;
     }
+  }
+
+  private generateFromOrderedSequence(seqType: OrderedSequenceType, fieldName?: string): unknown {
+    // Create a unique key for this sequence based on schema and field
+    const key = `${this.ctx.currentSchemaName ?? 'anonymous'}.${fieldName ?? 'field'}`;
+
+    // Get current index (or start at 0)
+    const index = this.ctx.orderedSequenceIndices.get(key) ?? 0;
+
+    // Get element at current index (cycling)
+    const element = seqType.elements[index % seqType.elements.length];
+    const value = this.evaluateExpression(element);
+
+    // Increment index for next call
+    this.ctx.orderedSequenceIndices.set(key, index + 1);
+
+    return value;
   }
 
   private generateFromPlugin(genType: GeneratorType): unknown {
