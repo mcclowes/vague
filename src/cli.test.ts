@@ -304,6 +304,27 @@ dataset Test {
     });
   });
 
+  describe('watch mode', () => {
+    it('shows watch option in help', () => {
+      const result = runCLI('--help');
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('-w, --watch');
+      expect(result.stdout).toContain('Watch input file and regenerate on changes');
+    });
+
+    it('requires output file with -w flag', () => {
+      const result = runCLI(`"${join(EXAMPLES_DIR, 'basics', 'basic.vague')}" -w`);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Watch mode requires -o/--output to be specified');
+    });
+
+    it('requires output file with --watch flag', () => {
+      const result = runCLI(`"${join(EXAMPLES_DIR, 'basics', 'basic.vague')}" --watch`);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Watch mode requires -o/--output to be specified');
+    });
+  });
+
   describe('complex examples', () => {
     it('handles constraints example', () => {
       const result = runCLI(`"${join(EXAMPLES_DIR, 'basics', 'constraints.vague')}" -s 42`);
