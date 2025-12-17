@@ -1,0 +1,16 @@
+// Tree Structure
+// Hierarchical data with parent-child relationships
+
+schema TreeNode {
+  id: unique int in 1..1000,
+  name: string,
+  depth: int in 0..4,
+  node_type: depth == 0 ? "root" : depth < 3 ? "branch" : "leaf",
+
+  // Parent must be at a shallower depth (or null for root)
+  parent: any of tree_nodes where .depth < depth | null
+}
+
+dataset Tree {
+  tree_nodes: 30 of TreeNode
+}

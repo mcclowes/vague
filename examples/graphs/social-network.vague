@@ -1,0 +1,25 @@
+// Social Network Graph
+// A weighted friendship network between people
+
+schema Person {
+  id: unique int in 1..1000,
+  name: fullName(),
+  age: int in 18..80,
+  location: city()
+}
+
+schema Friendship {
+  person_a: any of people,
+  person_b: any of people,
+  strength: 0.5: "close" | 0.3: "casual" | 0.2: "acquaintance",
+  since: date in 2010..2024,
+  interactions_per_month: int in 1..30,
+
+  // No self-friendships
+  assume not (person_a.id == person_b.id)
+}
+
+dataset SocialNetwork {
+  people: 50 of Person,
+  friendships: 120 of Friendship
+}

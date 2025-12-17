@@ -1,0 +1,20 @@
+// Basic Directed Graph
+// A simple graph with nodes and edges
+
+schema Node {
+  id: unique int in 1..1000,
+  label: string
+}
+
+schema Edge {
+  source: any of nodes,
+  target: any of nodes,
+
+  // No self-loops
+  assume not (source.id == target.id)
+}
+
+dataset BasicGraph {
+  nodes: 10 of Node,
+  edges: 25 of Edge
+}

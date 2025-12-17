@@ -1,0 +1,31 @@
+// Bipartite Graph
+// Users and products with purchase edges between them
+// Edges only connect nodes of different types
+
+schema User {
+  id: unique int in 1..1000,
+  name: firstName(),
+  email: email(),
+  member_since: date in 2018..2024
+}
+
+schema Product {
+  id: unique int in 1..500,
+  name: faker.commerce.productName(),
+  category: "electronics" | "clothing" | "home" | "sports" | "books",
+  price: decimal(2) in 9.99..499.99
+}
+
+schema Purchase {
+  user: any of users,
+  product: any of products,
+  quantity: int in 1..5,
+  rating: int in 1..5 | null,
+  purchased_at: date in 2023..2024
+}
+
+dataset BipartiteGraph {
+  users: 30 of User,
+  products: 20 of Product,
+  purchases: 100 of Purchase
+}
