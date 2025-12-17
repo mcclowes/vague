@@ -1,4 +1,4 @@
-import petstore from "examples/openapi-examples-generation/petstore.json"
+import petstore from "examples/openapi-importing/petstore.json"
 
 schema ImportedPet from petstore.Pet {
   age: int in 1..15  // override with custom generation

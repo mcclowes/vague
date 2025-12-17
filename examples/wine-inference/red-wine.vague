@@ -1,23 +1,22 @@
-// Inferred from winequality-red.csv (UCI Wine Quality Dataset)
-// Original: 1599 Portuguese "Vinho Verde" red wine samples
-// Run: node dist/cli.js --infer winequality-red.csv --infer-delimiter ";"
-
-schema RedWine {
-  fixed_acidity: decimal in 4.6..15.9,
-  volatile_acidity: decimal in 0.12..1.58,
-  citric_acid: decimal in 0..1,
-  residual_sugar: decimal in 0.9..15.5,
-  chlorides: decimal in 0.012..0.611,
-  free_sulfur_dioxide: decimal in 1..72,
-  total_sulfur_dioxide: decimal in 6..289,
+schema WinequalityRed {
+  fixed_acidity: decimal(1) in 4.6..15.9,
+  volatile_acidity: decimal(3) in 0.12..1.58,
+  citric_acid: decimal(2) in 0..1,
+  residual_sugar: decimal(2) in 0.9..15.5,
+  chlorides: = fixed_acidity * 0.0108,
+  free_sulfur_dioxide: decimal(1) in 1..72,
+  total_sulfur_dioxide: decimal(1) in 6..289,
   density: decimal in 0.99007..1.00369,
-  ph: decimal in 2.74..4.01,
-  sulphates: decimal in 0.33..2,
-  alcohol: decimal in 8.4..14.9,
-  // Quality scores weighted by original distribution
-  quality: 0.43: 5 | 0.4: 6 | 0.12: 7 | 0.03: 4 | 0.01: 8 | 0.01: 3
+  ph: decimal(2) in 2.74..4.01,
+  sulphates: decimal(2) in 0.33..2,
+  alcohol: decimal(1) in 8.4..14.9,
+  quality: 0.43: 5 | 0.4: 6 | 0.12: 7 | 0.03: 4 | 0.01: 8 | 0.01: 3,
+
+  assume if quality == 3 { free_sulfur_dioxide >= quality }
+  assume if quality == 3 { ph >= quality }
+  assume if quality == 5 { free_sulfur_dioxide >= quality }
 }
 
-dataset WineData {
-  wines: 50 * RedWine
+dataset Generated {
+  winequality_reds: 1599 * WinequalityRed
 }

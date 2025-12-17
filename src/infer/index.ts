@@ -24,8 +24,23 @@ export type {
 export { detectFormat, getGeneratorForFormat, detectFieldNamePattern } from './format-detector.js';
 export type { DetectedFormat } from './format-detector.js';
 
-export { generateSchema, generateDataset, toPascalCase, singularize } from './codegen.js';
+export {
+  generateSchema,
+  generateDataset,
+  toPascalCase,
+  singularize,
+  toValidIdentifier,
+} from './codegen.js';
 export type { InferredField, InferredSchema } from './codegen.js';
+
+export { detectCorrelations, constraintsToVague } from './correlation-detector.js';
+export type {
+  InferredConstraint,
+  OrderingConstraint,
+  DerivedConstraint,
+  ConditionalConstraint,
+  CorrelationOptions,
+} from './correlation-detector.js';
 
 import { detectFieldType } from './type-detector.js';
 import {
@@ -42,7 +57,61 @@ import {
   generateDataset,
   toPascalCase,
   singularize,
+  toValidIdentifier,
 } from './codegen.js';
+import {
+  detectCorrelations,
+  InferredConstraint,
+  DerivedConstraint,
+  OrderingConstraint,
+  ConditionalConstraint,
+  constraintsToVague,
+} from './correlation-detector.js';
+
+/**
+ * Escape special regex characters
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Sanitize field names in a constraint
+ */
+function sanitizeConstraint(constraint: InferredConstraint): InferredConstraint {
+  if (constraint.type === 'ordering') {
+    const c = constraint as OrderingConstraint;
+    return {
+      ...c,
+      fieldA: toValidIdentifier(c.fieldA),
+      fieldB: toValidIdentifier(c.fieldB),
+    };
+  } else if (constraint.type === 'conditional') {
+    const c = constraint as ConditionalConstraint;
+    // Sanitize field names in condition and assertion
+    const sanitizedCondition = c.condition.replace(
+      /\b(\w+)\s*(==|!=|>=|<=|>|<)/g,
+      (match, field, op) => `${toValidIdentifier(field)} ${op}`
+    );
+    const sanitizedAssertion = c.assertion.replace(
+      /\b(\w+)\s*(==|!=|>=|<=|>|<)\s*(\w+)/g,
+      (match, field1, op, field2) => {
+        // Check if field2 is a number
+        if (/^\d+(\.\d+)?$/.test(field2)) {
+          return `${toValidIdentifier(field1)} ${op} ${field2}`;
+        }
+        return `${toValidIdentifier(field1)} ${op} ${toValidIdentifier(field2)}`;
+      }
+    );
+    return {
+      ...c,
+      condition: sanitizedCondition,
+      assertion: sanitizedAssertion,
+      conditionField: toValidIdentifier(c.conditionField),
+    };
+  }
+  return constraint;
+}
 
 /**
  * Options for schema inference
@@ -58,6 +127,10 @@ export interface InferOptions {
   maxEnumValues?: number;
   /** Detect unique fields (default: true) */
   detectUnique?: boolean;
+  /** Detect correlations between fields (ordering, derived, conditional) (default: true) */
+  detectCorrelations?: boolean;
+  /** Minimum confidence for correlation detection (default: 0.95) */
+  correlationConfidence?: number;
 }
 
 const DEFAULT_OPTIONS: Required<InferOptions> = {
@@ -66,6 +139,8 @@ const DEFAULT_OPTIONS: Required<InferOptions> = {
   weightedSuperpositions: true,
   maxEnumValues: 10,
   detectUnique: true,
+  detectCorrelations: true,
+  correlationConfidence: 0.95,
 };
 
 /**
@@ -149,10 +224,65 @@ function inferSchemaFromRecords(
     fields.push(field);
   }
 
+  // Detect correlations between fields
+  let constraints: string[] = [];
+  let derivedFields: Map<string, string> | undefined;
+
+  if (options.detectCorrelations && records.length >= 2) {
+    const typedRecords = records.filter(
+      (r): r is Record<string, unknown> => typeof r === 'object' && r !== null
+    );
+
+    if (typedRecords.length >= 2) {
+      const correlations = detectCorrelations(typedRecords, {
+        minConfidence: options.correlationConfidence,
+      });
+
+      // Separate derived fields from other constraints
+      // Sanitize field names to valid identifiers
+      derivedFields = new Map();
+      const otherConstraints: InferredConstraint[] = [];
+
+      for (const corr of correlations) {
+        if (corr.type === 'derived') {
+          const derived = corr as DerivedConstraint;
+          // Sanitize the target field and expression
+          const sanitizedTarget = toValidIdentifier(derived.targetField);
+          let sanitizedExpr = derived.expression;
+          // Replace all source field names with sanitized versions
+          for (const sourceField of derived.sourceFields) {
+            const sanitizedSource = toValidIdentifier(sourceField);
+            // Use word boundary to avoid partial replacements
+            sanitizedExpr = sanitizedExpr.replace(
+              new RegExp(`\\b${escapeRegex(sourceField)}\\b`, 'g'),
+              sanitizedSource
+            );
+          }
+          derivedFields.set(sanitizedTarget, sanitizedExpr);
+        } else {
+          // Sanitize ordering and conditional constraints
+          const sanitized = sanitizeConstraint(corr);
+          otherConstraints.push(sanitized);
+        }
+      }
+
+      // Convert remaining constraints to Vague code
+      // Pass original field names for sanitization
+      constraints = constraintsToVague(otherConstraints, [...fieldNames]).map((c) => c.trim());
+
+      // Clear derivedFields if empty
+      if (derivedFields.size === 0) {
+        derivedFields = undefined;
+      }
+    }
+  }
+
   return {
     name: schemaName,
     fields,
     recordCount: records.length,
+    constraints: constraints.length > 0 ? constraints : undefined,
+    derivedFields,
   };
 }
 

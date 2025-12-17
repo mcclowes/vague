@@ -39,6 +39,7 @@ Codebase Analysis Summary
 - [ ] Explore other keywords for fields, like unique
 - [ ] 'Match' syntax
 - [ ] Logging functionality generally
+- [ ]   winequality_reds: 1599 * WinequalityRed   - the use of multiplication for how many of an entity to generate for a dataset conflates that with mathematical operations. If we will allow further mathematical operations, thats great, but otherwise we should just say '  winequality_reds: 1599 of WinequalityRed'
 
 ## Dataset-Level Features
 

@@ -115,7 +115,19 @@ export class TypeParser extends ExpressionParser {
   private parsePrimitiveType(): PrimitiveType | GeneratorType | null {
     // Built-in primitive keywords
     if (this.match(TokenType.INT)) return { type: 'PrimitiveType', name: 'int' };
-    if (this.match(TokenType.DECIMAL)) return { type: 'PrimitiveType', name: 'decimal' };
+    if (this.match(TokenType.DECIMAL)) {
+      // Check for optional precision: decimal(2)
+      if (this.match(TokenType.LPAREN)) {
+        const precisionToken = this.consume(TokenType.NUMBER, 'Expected precision number');
+        const precision = parseInt(precisionToken.value, 10);
+        if (isNaN(precision) || precision < 0) {
+          throw new Error(`Invalid decimal precision: ${precisionToken.value}`);
+        }
+        this.consume(TokenType.RPAREN, "Expected ')' after precision");
+        return { type: 'PrimitiveType', name: 'decimal', precision };
+      }
+      return { type: 'PrimitiveType', name: 'decimal' };
+    }
 
     // DATE can be a primitive type OR a generator namespace (date.weekday)
     // Check if followed by '.' to distinguish

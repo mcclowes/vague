@@ -43,6 +43,8 @@ export interface InferredSchema {
   name: string;
   fields: InferredField[];
   recordCount: number;
+  constraints?: string[]; // Vague constraint expressions (e.g., "assume due_date >= issued_date")
+  derivedFields?: Map<string, string>; // Field name -> expression for computed fields
 }
 
 /**
@@ -110,8 +112,7 @@ function generateFieldType(field: InferredField): string {
 
   // Numeric types with range
   if ((field.type === 'int' || field.type === 'decimal') && field.numericRange) {
-    const { min, max, allInteger } = field.numericRange;
-    const typeStr = allInteger ? 'int' : 'decimal';
+    const { min, max, allInteger, decimalPlaces } = field.numericRange;
 
     if (min === max) {
       // Single value - just use the value directly
@@ -119,6 +120,13 @@ function generateFieldType(field: InferredField): string {
     }
 
     const uniquePrefix = field.unique ? 'unique ' : '';
+
+    // Use decimal(n) syntax for fixed precision decimals (1-4 places)
+    if (!allInteger && decimalPlaces > 0 && decimalPlaces <= 4) {
+      return `${uniquePrefix}decimal(${decimalPlaces}) in ${min}..${max}`;
+    }
+
+    const typeStr = allInteger ? 'int' : 'decimal';
     return `${uniquePrefix}${typeStr} in ${min}..${max}`;
   }
 
@@ -163,14 +171,41 @@ export function generateSchema(schema: InferredSchema): string {
 
   lines.push(`schema ${schema.name} {`);
 
-  for (let i = 0; i < schema.fields.length; i++) {
-    const field = schema.fields[i];
+  // Collect all field lines
+  const fieldLines: string[] = [];
+
+  for (const field of schema.fields) {
     const fieldName = toValidIdentifier(field.name);
+
+    // Check if this field is derived from other fields
+    const derivedExpr = schema.derivedFields?.get(field.name);
+    if (derivedExpr) {
+      fieldLines.push(`  ${fieldName}: = ${derivedExpr}`);
+      continue;
+    }
+
     const typeExpr = generateFieldType(field);
     const nullableSuffix = field.nullable && !field.isSuperposition ? '?' : '';
-    const comma = i < schema.fields.length - 1 ? ',' : '';
+    fieldLines.push(`  ${fieldName}: ${typeExpr}${nullableSuffix}`);
+  }
 
-    lines.push(`  ${fieldName}: ${typeExpr}${nullableSuffix}${comma}`);
+  // Add commas between field lines
+  const hasConstraints = schema.constraints && schema.constraints.length > 0;
+  for (let i = 0; i < fieldLines.length; i++) {
+    const isLast = i === fieldLines.length - 1;
+    const comma = isLast && !hasConstraints ? '' : ',';
+    lines.push(fieldLines[i] + comma);
+  }
+
+  // Add constraints (assume statements)
+  if (schema.constraints && schema.constraints.length > 0) {
+    // Add blank line before constraints for readability
+    lines.push('');
+    for (let i = 0; i < schema.constraints.length; i++) {
+      const constraint = schema.constraints[i];
+      // Constraints don't have trailing commas
+      lines.push(`  ${constraint}`);
+    }
   }
 
   lines.push('}');
@@ -224,7 +259,7 @@ function toSnakeCase(str: string): string {
  * Convert a string to a valid Vague identifier (snake_case)
  * Handles spaces, special characters, and ensures it starts with a letter
  */
-function toValidIdentifier(str: string): string {
+export function toValidIdentifier(str: string): string {
   return (
     str
       // Replace spaces and hyphens with underscores

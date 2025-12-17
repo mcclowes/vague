@@ -661,10 +661,15 @@ export class Generator {
   private generateFromFieldType(fieldType: FieldType, fieldName?: string): unknown {
     switch (fieldType.type) {
       case 'PrimitiveType':
-        return this.generatePrimitive(fieldType.name, fieldName);
+        return this.generatePrimitive(fieldType.name, fieldName, fieldType.precision);
 
       case 'RangeType':
-        return this.generateInRange(fieldType.baseType.name, fieldType.min, fieldType.max);
+        return this.generateInRange(
+          fieldType.baseType.name,
+          fieldType.min,
+          fieldType.max,
+          fieldType.baseType.precision
+        );
 
       case 'SuperpositionType':
         return this.pickWeighted(fieldType.options);
@@ -750,13 +755,20 @@ export class Generator {
 
   private generatePrimitive(
     type: 'int' | 'decimal' | 'string' | 'date' | 'boolean',
-    fieldName?: string
+    fieldName?: string,
+    precision?: number
   ): unknown {
     switch (type) {
       case 'int':
         return Math.floor(random() * 1000);
-      case 'decimal':
-        return Math.round(random() * 10000) / 100;
+      case 'decimal': {
+        const value = random() * 1000;
+        if (precision !== undefined) {
+          const factor = Math.pow(10, precision);
+          return Math.round(value * factor) / factor;
+        }
+        return Math.round(value * 100) / 100; // Default 2 decimal places
+      }
       case 'string':
         return this.randomString(fieldName);
       case 'date':
@@ -766,7 +778,12 @@ export class Generator {
     }
   }
 
-  private generateInRange(type: string, min?: Expression, max?: Expression): unknown {
+  private generateInRange(
+    type: string,
+    min?: Expression,
+    max?: Expression,
+    precision?: number
+  ): unknown {
     const minVal = min ? (this.evaluateExpression(min) as number) : 0;
     const maxVal = max ? (this.evaluateExpression(max) as number) : 1000;
 
@@ -781,7 +798,13 @@ export class Generator {
       return new Date(minDate.getTime() + random() * diff).toISOString().split('T')[0];
     }
 
-    return random() * (maxVal - minVal) + minVal;
+    // Decimal with optional precision
+    const value = random() * (maxVal - minVal) + minVal;
+    if (precision !== undefined) {
+      const factor = Math.pow(10, precision);
+      return Math.round(value * factor) / factor;
+    }
+    return value;
   }
 
   private pickWeighted(options: { weight?: number; value: Expression }[]): unknown {

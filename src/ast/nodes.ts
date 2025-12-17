@@ -128,6 +128,7 @@ export interface ExpressionType {
 export interface PrimitiveType {
   type: 'PrimitiveType';
   name: 'int' | 'decimal' | 'string' | 'date' | 'boolean';
+  precision?: number; // For decimal(n) - number of decimal places
 }
 
 // Plugin-provided generator: uuid, email, faker.company(), etc.

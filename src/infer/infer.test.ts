@@ -244,7 +244,42 @@ describe('Schema Inference', () => {
 
       const result = inferSchema(data);
 
-      expect(result).toContain('decimal in 10.99..50');
+      // Should emit decimal(2) since all values have at most 2 decimal places
+      expect(result).toContain('decimal(2) in 10.99..50');
+    });
+
+    it('emits decimal(n) with detected precision', () => {
+      const data = {
+        measurements: [{ value: 1.5 }, { value: 2.3 }, { value: 4.7 }],
+      };
+
+      const result = inferSchema(data);
+
+      // Values have 1 decimal place
+      expect(result).toContain('decimal(1) in 1.5..4.7');
+    });
+
+    it('emits decimal(4) for high precision values', () => {
+      const data = {
+        rates: [{ rate: 0.0123 }, { rate: 0.9876 }, { rate: 0.5432 }],
+      };
+
+      const result = inferSchema(data);
+
+      // Values have 4 decimal places
+      expect(result).toContain('decimal(4) in 0.0123..0.9876');
+    });
+
+    it('emits plain decimal for high precision (>4 places)', () => {
+      const data = {
+        precise: [{ value: 0.123456 }, { value: 0.654321 }],
+      };
+
+      const result = inferSchema(data);
+
+      // More than 4 decimal places, use plain decimal
+      expect(result).toContain('decimal in');
+      expect(result).not.toContain('decimal(');
     });
 
     it('infers superposition for enum-like fields', () => {

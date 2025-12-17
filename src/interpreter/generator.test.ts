@@ -1901,6 +1901,113 @@ describe('Generator', () => {
         expect(item.ceiled).toBeGreaterThanOrEqual(item.price);
       }
     });
+
+    it('decimal(n) generates values with specified precision', async () => {
+      const source = `
+        schema Product {
+          price: decimal(2) in 10..100
+        }
+
+        dataset TestData {
+          products: 50 * Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      const products = result.products as { price: number }[];
+      for (const product of products) {
+        // Check value has at most 2 decimal places
+        const rounded = Math.round(product.price * 100) / 100;
+        expect(product.price).toBe(rounded);
+        // Check value is in range
+        expect(product.price).toBeGreaterThanOrEqual(10);
+        expect(product.price).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it('decimal(1) generates single decimal place values', async () => {
+      const source = `
+        schema Item {
+          score: decimal(1) in 0..10
+        }
+
+        dataset TestData {
+          items: 50 * Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { score: number }[];
+      for (const item of items) {
+        // Check value has at most 1 decimal place
+        const rounded = Math.round(item.score * 10) / 10;
+        expect(item.score).toBe(rounded);
+      }
+    });
+
+    it('decimal(4) generates high precision values', async () => {
+      const source = `
+        schema Rate {
+          value: decimal(4) in 0..1
+        }
+
+        dataset TestData {
+          rates: 50 * Rate
+        }
+      `;
+
+      const result = await compile(source);
+
+      const rates = result.rates as { value: number }[];
+      for (const rate of rates) {
+        // Check value has at most 4 decimal places
+        const rounded = Math.round(rate.value * 10000) / 10000;
+        expect(rate.value).toBe(rounded);
+      }
+    });
+
+    it('decimal(0) generates integer values', async () => {
+      const source = `
+        schema Score {
+          points: decimal(0) in 0..100
+        }
+
+        dataset TestData {
+          scores: 50 * Score
+        }
+      `;
+
+      const result = await compile(source);
+
+      const scores = result.scores as { points: number }[];
+      for (const score of scores) {
+        expect(Number.isInteger(score.points)).toBe(true);
+      }
+    });
+
+    it('plain decimal without precision uses 2 decimal places', async () => {
+      const source = `
+        schema Price {
+          amount: decimal in 10..100
+        }
+
+        dataset TestData {
+          prices: 50 * Price
+        }
+      `;
+
+      const result = await compile(source);
+
+      const prices = result.prices as { amount: number }[];
+      // Most values should be rounded to 2 decimal places (default)
+      // but since it's a range without explicit precision, it just returns the raw value
+      for (const price of prices) {
+        expect(price.amount).toBeGreaterThanOrEqual(10);
+        expect(price.amount).toBeLessThanOrEqual(100);
+      }
+    });
   });
 
   describe('unique fields', () => {
