@@ -14,6 +14,7 @@ import {
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema } from './infer/index.js';
+import { datasetToCSV, datasetToSingleCSV, type CsvOptions } from './csv/index.js';
 
 // Register plugins automatically
 registerPlugin(fakerPlugin);
@@ -40,6 +41,7 @@ Usage:
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
+  -f, --format <fmt>       Output format: json (default), csv
   -p, --pretty             Pretty-print JSON output
   -s, --seed <number>      Seed for reproducible random generation
   -w, --watch              Watch input file and regenerate on changes
@@ -47,6 +49,12 @@ Options:
   -m, --mapping <json>     Schema mapping for validation (JSON: {"collection": "SchemaName"})
   --validate-only          Only validate, don't output data
   -h, --help               Show this help message
+
+CSV Options (when --format csv):
+  --csv-delimiter <char>   Field delimiter (default: ',')
+  --csv-no-header          Omit header row
+  --csv-arrays <mode>      Array handling: json, first, count (default: json)
+  --csv-nested <mode>      Nested object handling: flatten, json (default: flatten)
 
 Schema Inference:
   --infer <data.json>      Infer Vague schema from JSON data
@@ -64,6 +72,8 @@ OpenAPI Example Population:
 Examples:
   vague schema.vague -o output.json -p
   vague schema.vague -s 12345                 # Reproducible output
+  vague schema.vague -f csv -o data.csv       # CSV output
+  vague schema.vague -f csv --csv-delimiter ";" -o data.csv  # Semicolon-delimited
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}'
   vague schema.vague -v openapi.json -m '{"invoices": "AccountingInvoice"}' --validate-only
 
@@ -81,6 +91,7 @@ Examples:
 
   let inputFile: string | null = null;
   let outputFile: string | null = null;
+  let outputFormat: 'json' | 'csv' = 'json';
   let pretty = false;
   let seed: number | null = null;
   let validateSpec: string | null = null;
@@ -91,6 +102,9 @@ Examples:
   let oasExternal = false;
   let oasExampleCount = 1;
   let watchMode = false;
+
+  // CSV options
+  const csvOptions: CsvOptions = {};
 
   // Inference options
   let inferFile: string | null = null;
@@ -113,8 +127,33 @@ Examples:
     }
     if (args[i] === '-o' || args[i] === '--output') {
       outputFile = args[++i];
+    } else if (args[i] === '-f' || args[i] === '--format') {
+      const fmt = args[++i];
+      if (fmt !== 'json' && fmt !== 'csv') {
+        console.error('Error: Format must be "json" or "csv"');
+        process.exit(1);
+      }
+      outputFormat = fmt;
     } else if (args[i] === '-p' || args[i] === '--pretty') {
       pretty = true;
+    } else if (args[i] === '--csv-delimiter') {
+      csvOptions.delimiter = args[++i];
+    } else if (args[i] === '--csv-no-header') {
+      csvOptions.header = false;
+    } else if (args[i] === '--csv-arrays') {
+      const mode = args[++i];
+      if (mode !== 'json' && mode !== 'first' && mode !== 'count') {
+        console.error('Error: --csv-arrays must be "json", "first", or "count"');
+        process.exit(1);
+      }
+      csvOptions.arrayHandling = mode;
+    } else if (args[i] === '--csv-nested') {
+      const mode = args[++i];
+      if (mode !== 'flatten' && mode !== 'json') {
+        console.error('Error: --csv-nested must be "flatten" or "json"');
+        process.exit(1);
+      }
+      csvOptions.nestedHandling = mode;
     } else if (args[i] === '-s' || args[i] === '--seed') {
       seed = parseInt(args[++i], 10);
       if (isNaN(seed)) {
@@ -310,13 +349,40 @@ Examples:
 
       // Output data unless validate-only
       if (!validateOnly) {
-        const json = pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
+        if (outputFormat === 'csv') {
+          // CSV output
+          const csvCollections = datasetToCSV(result as Record<string, unknown[]>, csvOptions);
 
-        if (outputFile) {
-          writeFileSync(resolve(outputFile), json);
-          console.error(`Output written to ${outputFile}`);
+          if (outputFile) {
+            // If output file specified with multiple collections, write separate files
+            if (csvCollections.size === 1) {
+              // Single collection: write directly to output file
+              const csv = Array.from(csvCollections.values())[0];
+              writeFileSync(resolve(outputFile), csv ?? '');
+              console.error(`CSV output written to ${outputFile}`);
+            } else {
+              // Multiple collections: write separate files with collection name suffix
+              const baseName = outputFile.replace(/\.csv$/i, '');
+              for (const [collectionName, csv] of csvCollections) {
+                const fileName = `${baseName}_${collectionName}.csv`;
+                writeFileSync(resolve(fileName), csv ?? '');
+                console.error(`CSV output written to ${fileName}`);
+              }
+            }
+          } else {
+            // stdout: use single CSV format with section markers
+            console.log(datasetToSingleCSV(result as Record<string, unknown[]>, csvOptions));
+          }
         } else {
-          console.log(json);
+          // JSON output
+          const json = pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result);
+
+          if (outputFile) {
+            writeFileSync(resolve(outputFile), json);
+            console.error(`Output written to ${outputFile}`);
+          } else {
+            console.log(json);
+          }
         }
       }
 

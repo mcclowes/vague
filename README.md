@@ -285,6 +285,12 @@ node dist/cli.js file.vague --seed 123
 # Watch mode - regenerate on file change
 node dist/cli.js file.vague -o output.json -w
 
+# CSV output
+node dist/cli.js file.vague -f csv -o output.csv
+
+# CSV with options
+node dist/cli.js file.vague -f csv --csv-delimiter ";" -o output.csv
+
 # Validate against OpenAPI spec
 node dist/cli.js file.vague -v openapi.json -m '{"invoices": "Invoice"}'
 
@@ -314,12 +320,17 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
+| `-f, --format <fmt>` | Output format: `json` (default), `csv` |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
 | `-w, --watch` | Watch input file and regenerate on changes |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |
+| `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
+| `--csv-no-header` | Omit CSV header row |
+| `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
+| `--csv-nested <mode>` | Nested objects: `flatten`, `json` |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
 | `--oas-output <file>` | Output path for populated OpenAPI spec |
 | `--oas-example-count <n>` | Number of examples per schema (default: 1) |
@@ -344,6 +355,7 @@ src/
 ├── interpreter/ # JSON generator
 ├── validator/   # Schema validation (Ajv)
 ├── openapi/     # OpenAPI import support
+├── csv/         # CSV output formatter
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 ```
@@ -353,7 +365,6 @@ src/
 See [TODO.md](TODO.md) for planned features:
 
 - Probabilistic constraints (`assume X with probability 0.7`)
-- Date arithmetic (`due_date <= issued_date + 90.days`)
 - Conditional schema variants
 - Constraint solving (SMT integration)
 

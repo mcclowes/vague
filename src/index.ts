@@ -46,6 +46,7 @@ export {
   type InferredField,
   type InferredSchema,
 } from './infer/index.js';
+export { toCSV, datasetToCSV, datasetToSingleCSV, type CsvOptions } from './csv/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';

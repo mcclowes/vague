@@ -13,7 +13,8 @@ src/
 ├── validator/   # Schema validation against OpenAPI/JSON Schema
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
-├── plugins/     # Built-in plugins (faker, issuer, dates)
+├── csv/         # CSV output formatter
+├── plugins/     # Built-in plugins (faker, issuer, date)
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -27,6 +28,7 @@ npm test         # Run tests (vitest)
 npm run dev      # Watch mode compilation
 node dist/cli.js <file.vague>  # Run CLI
 node dist/cli.js <file.vague> -o output.json -w  # Watch mode - regenerate on file change
+node dist/cli.js <file.vague> -f csv -o data.csv  # CSV output
 node dist/cli.js <file.vague> -v <openapi.json> -m '{"collection": "Schema"}'  # With validation
 ```
 
@@ -584,6 +586,54 @@ Benefits:
 - Complex relationships handled automatically
 - TypeScript types keep fixtures aligned with code
 
+### CSV Output
+
+Convert generated data to CSV format:
+
+```typescript
+import { compile, toCSV, datasetToCSV, datasetToSingleCSV } from 'vague';
+
+const data = await compile(source);
+
+// Convert a single collection to CSV
+const users = toCSV(data.users);
+
+// Convert all collections to separate CSV strings
+const csvMap = datasetToCSV(data);  // Map<string, string>
+
+// Convert all collections to a single CSV with section markers
+const combined = datasetToSingleCSV(data);
+```
+
+**CLI Usage:**
+```bash
+# Output as CSV
+vague schema.vague -f csv -o output.csv
+
+# CSV options
+vague schema.vague -f csv --csv-delimiter ";" -o data.csv  # Semicolon delimiter
+vague schema.vague -f csv --csv-no-header -o data.csv      # No header row
+vague schema.vague -f csv --csv-arrays count -o data.csv   # Show array lengths
+vague schema.vague -f csv --csv-nested json -o data.csv    # JSON for nested objects
+```
+
+**Options:**
+| Option | Values | Description |
+|--------|--------|-------------|
+| `--csv-delimiter` | Any character | Field delimiter (default: `,`) |
+| `--csv-no-header` | Flag | Omit header row |
+| `--csv-arrays` | `json`, `first`, `count` | Array handling (default: `json`) |
+| `--csv-nested` | `flatten`, `json` | Nested object handling (default: `flatten`) |
+
+**Array handling modes:**
+- `json`: Serialize arrays as JSON strings (default)
+- `first`: Use only the first element
+- `count`: Output the array length
+
+**Nested handling modes:**
+- `flatten`: Use dot notation (`address.city`, `address.zip`)
+- `json`: Serialize nested objects as JSON strings
+
 ### Schema Inference from Data
 
 Reverse-engineer Vague schemas from existing JSON data:
@@ -861,6 +911,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Watch mode (`-w/--watch` for regenerating output on file change)
 - [x] Private fields (`age: private int` - generated but excluded from output)
 - [x] Date arithmetic (`date.days()`, `date.weeks()`, `date.months()`, `date.years()` with `+`/`-` operators)
+- [x] CSV output format (`-f csv`, `--csv-delimiter`, `--csv-arrays`, `--csv-nested`)
 
 See TODO.md for planned features.
 

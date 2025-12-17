@@ -10,6 +10,33 @@ node dist/cli.js <file.vague>
 node dist/cli.js <file.vague> --seed 123
 ```
 
+## Output Formats
+
+```bash
+# JSON output (default)
+node dist/cli.js data.vague -o output.json
+
+# CSV output
+node dist/cli.js data.vague -f csv -o output.csv
+
+# CSV with semicolon delimiter
+node dist/cli.js data.vague -f csv --csv-delimiter ";" -o output.csv
+
+# CSV without header row
+node dist/cli.js data.vague -f csv --csv-no-header -o output.csv
+```
+
+CSV Options:
+- `-f, --format <fmt>`: Output format (`json` or `csv`)
+- `--csv-delimiter <char>`: Field delimiter (default: `,`)
+- `--csv-no-header`: Omit header row
+- `--csv-arrays <mode>`: Array handling (`json`, `first`, `count`)
+- `--csv-nested <mode>`: Nested object handling (`flatten`, `json`)
+
+For multiple collections with CSV output:
+- Single collection: writes to specified file
+- Multiple collections: creates separate files (`output_users.csv`, `output_orders.csv`)
+
 ## Schema Validation
 
 Validate generated data against an OpenAPI spec:
