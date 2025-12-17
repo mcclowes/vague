@@ -17,8 +17,8 @@ Test data generation for Shopify's e-commerce platform.
 Products contain variants which have their own complex fields:
 ```vague
 schema Product {
-  variants: 1..6 * ProductVariant,
-  images: 1..5 * Image
+  variants: 1..6 of ProductVariant,
+  images: 1..5 of Image
 }
 ```
 

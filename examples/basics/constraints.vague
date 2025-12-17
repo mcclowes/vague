@@ -26,7 +26,7 @@ schema Product {
 }
 
 dataset TestData {
-  invoices: 10 * Invoice,
-  companies: 10 * Company,
-  products: 10 * Product
+  invoices: 10 of Invoice,
+  companies: 10 of Company,
+  products: 10 of Product
 }

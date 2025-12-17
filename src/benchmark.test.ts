@@ -11,7 +11,7 @@ describe('Memory and performance benchmarks', () => {
           active: boolean
         }
         dataset Test {
-          items: 1000 * Item
+          items: 1000 of Item
         }
       `;
 
@@ -27,7 +27,7 @@ describe('Memory and performance benchmarks', () => {
           price: decimal in 0.01..999.99
         }
         dataset Test {
-          items: 10000 * Item
+          items: 10000 of Item
         }
       `;
 
@@ -49,10 +49,10 @@ describe('Memory and performance benchmarks', () => {
         }
         schema Order {
           id: int in 1..100000,
-          items: 3..5 * LineItem
+          items: 3..5 of LineItem
         }
         dataset Test {
-          orders: 1000 * Order
+          orders: 1000 of Order
         }
       `;
 
@@ -78,8 +78,8 @@ describe('Memory and performance benchmarks', () => {
           total: decimal in 10..500
         }
         dataset Test {
-          customers: 100 * Customer,
-          orders: 1000 * Order
+          customers: 100 of Customer,
+          orders: 1000 of Order
         }
       `;
 
@@ -100,12 +100,12 @@ describe('Memory and performance benchmarks', () => {
           unit_price: decimal in 1..50
         }
         schema Invoice {
-          items: 5 * LineItem,
+          items: 5 of LineItem,
           subtotal: = sum(items.quantity) * 10,
           item_count: = count(items)
         }
         dataset Test {
-          invoices: 500 * Invoice
+          invoices: 500 of Invoice
         }
       `;
 
@@ -128,7 +128,7 @@ describe('Memory and performance benchmarks', () => {
           id: unique int in 1..100000
         }
         dataset Test {
-          items: 5000 * Item
+          items: 5000 of Item
         }
       `;
 
@@ -155,7 +155,7 @@ describe('Memory and performance benchmarks', () => {
           value: int in 1..1000
         }
         dataset Test {
-          items: 100 * Item
+          items: 100 of Item
         }
       `;
 
@@ -174,7 +174,7 @@ describe('Memory and performance benchmarks', () => {
           assume a < b
         }
         dataset Test {
-          items: 500 * Item
+          items: 500 of Item
         }
       `;
 
@@ -193,8 +193,8 @@ describe('Memory and performance benchmarks', () => {
           value: int
         }
         dataset Test {
-          empty: 0 * Item,
-          items: 100 * Item
+          empty: 0 of Item,
+          items: 100 of Item
         }
       `;
 
@@ -209,16 +209,16 @@ describe('Memory and performance benchmarks', () => {
           value: int in 1..10
         }
         schema Level2 {
-          items: 2 * Level3
+          items: 2 of Level3
         }
         schema Level1 {
-          items: 2 * Level2
+          items: 2 of Level2
         }
         schema Root {
-          items: 2 * Level1
+          items: 2 of Level1
         }
         dataset Test {
-          roots: 50 * Root
+          roots: 50 of Root
         }
       `;
 

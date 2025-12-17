@@ -82,8 +82,8 @@ export class Generator {
   private predicateFunctions: ReturnType<typeof createPredicateFunctions>;
   private uniqueFn: ReturnType<typeof createUniqueFn>;
 
-  constructor() {
-    this.ctx = createContext();
+  constructor(ctx?: GeneratorContext) {
+    this.ctx = ctx ?? createContext();
     this.openApiLoader = new OpenAPILoader();
     // Initialize functions that need expression evaluator
     this.predicateFunctions = createPredicateFunctions(this.evaluateExpression.bind(this));
@@ -944,7 +944,7 @@ export class Generator {
     return value;
   }
 
-  private evaluateExpression(expr: Expression): unknown {
+  public evaluateExpression(expr: Expression): unknown {
     switch (expr.type) {
       case 'Literal':
         return (expr as Literal).value;

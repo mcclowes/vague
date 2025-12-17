@@ -90,11 +90,11 @@ describe('Error handling', () => {
     });
 
     it('throws on missing dataset name', () => {
-      expect(() => parse('dataset { companies: 10 * Company }')).toThrow();
+      expect(() => parse('dataset { companies: 10 of Company }')).toThrow();
     });
 
     it('throws on missing cardinality in collection', () => {
-      expect(() => parse('dataset Test { companies: * Company }')).toThrow();
+      expect(() => parse('dataset Test { companies: of Company }')).toThrow();
     });
 
     it('throws on invalid import syntax', () => {
@@ -124,7 +124,7 @@ describe('Error handling', () => {
     it('parses dataset without validate block', () => {
       const ast = parse(`
         dataset Test {
-          items: 10 * Item
+          items: 10 of Item
         }
       `);
       expect(ast.statements[0].type).toBe('DatasetDefinition');
@@ -136,7 +136,7 @@ describe('Error handling', () => {
       // The generator should throw or return empty when schema is missing
       const source = `
         dataset Test {
-          items: 10 * NonExistentSchema
+          items: 10 of NonExistentSchema
         }
       `;
       // This may throw or produce empty results depending on implementation
@@ -152,7 +152,7 @@ describe('Error handling', () => {
           assume x < 50
         }
         dataset Test {
-          items: 1 * Impossible
+          items: 1 of Impossible
         }
       `;
       // This should either throw or emit a warning about unsatisfiable constraints
@@ -173,8 +173,8 @@ describe('Error handling', () => {
           a: any of as
         }
         dataset Test {
-          as: 5 * A,
-          bs: 5 * B
+          as: 5 of A,
+          bs: 5 of B
         }
       `;
       // Generation order matters - this might fail or produce partial results
@@ -190,8 +190,8 @@ describe('Error handling', () => {
           ref: any of emptyList
         }
         dataset Test {
-          emptyList: 0 * Item,
-          items: 5 * Item
+          emptyList: 0 of Item,
+          items: 5 of Item
         }
       `;
       // Referencing empty collection may throw or return null
@@ -211,7 +211,7 @@ describe('Error handling', () => {
           value: = nonexistentFunction()
         }
         dataset Test {
-          items: 1 * X
+          items: 1 of X
         }
       `;
 
@@ -230,7 +230,7 @@ describe('Error handling', () => {
           total: = sum(value)
         }
         dataset Test {
-          items: 1 * X
+          items: 1 of X
         }
       `;
       // sum() on a non-collection should fail or return NaN
@@ -251,7 +251,7 @@ describe('Error handling', () => {
           c: = a / b
         }
         dataset Test {
-          items: 1 * X
+          items: 1 of X
         }
       `;
       const result = await compile(source);
@@ -267,7 +267,7 @@ describe('Error handling', () => {
           value: = ^nonexistent.field
         }
         dataset Test {
-          items: 5 * Child
+          items: 5 of Child
         }
       `;
       // Parent reference without parent context should fail gracefully
@@ -287,7 +287,7 @@ describe('Error handling', () => {
           id: unique int in 1..3
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
       // This should either throw or produce duplicates after exhaustion

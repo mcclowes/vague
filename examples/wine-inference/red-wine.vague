@@ -18,5 +18,5 @@ schema WinequalityRed {
 }
 
 dataset Generated {
-  winequality_reds: 1599 * WinequalityRed
+  winequality_reds: 1599 of WinequalityRed
 }

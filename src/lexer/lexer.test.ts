@@ -81,11 +81,11 @@ describe('Lexer', () => {
   });
 
   it('tokenizes cardinality', () => {
-    const lexer = new Lexer('companies: 100 * Company');
+    const lexer = new Lexer('companies: 100 of Company');
     const tokens = lexer.tokenize();
 
     expect(tokens[2]).toMatchObject({ type: TokenType.NUMBER, value: '100' });
-    expect(tokens[3]).toMatchObject({ type: TokenType.STAR });
+    expect(tokens[3]).toMatchObject({ type: TokenType.OF });
     expect(tokens[4]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'Company' });
   });
 

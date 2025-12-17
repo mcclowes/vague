@@ -209,24 +209,24 @@ schema Conversation {
   state: 0.8: "active" | 0.15: "inactive" | 0.05: "closed",
   timers_inactive: int?,
   timers_closed: int?,
-  participants: 2..10 * ConversationParticipant,
+  participants: 2..10 of ConversationParticipant,
   date_created: faker.date.past(),
   date_updated: faker.date.recent()
 }
 
 dataset TwilioTestData {
-  phone_numbers: 50 * PhoneNumber,
-  messaging_services: 10 * MessagingService,
-  messages: 1000 * Message,
-  calls: 500 * Call,
-  recordings: 100 * Recording,
-  transcriptions: 30 * Transcription,
-  verification_services: 5 * VerificationService,
-  verifications: 200 * Verification,
-  conversations: 50 * Conversation,
-  usage_records: 100 * UsageRecord,
-  accounts: 10 * Account,
-  alerts: 50 * Alert,
+  phone_numbers: 50 of PhoneNumber,
+  messaging_services: 10 of MessagingService,
+  messages: 1000 of Message,
+  calls: 500 of Call,
+  recordings: 100 of Recording,
+  transcriptions: 30 of Transcription,
+  verification_services: 5 of VerificationService,
+  verifications: 200 of Verification,
+  conversations: 50 of Conversation,
+  usage_records: 100 of UsageRecord,
+  accounts: 10 of Account,
+  alerts: 50 of Alert,
 
   validate {
     some(messages, .status == "delivered"),

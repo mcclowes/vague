@@ -205,7 +205,7 @@ schema Pet {
 }
 
 dataset Test {
-  pets: 5 * Pet
+  pets: 5 of Pet
 }
 `
       );
@@ -231,7 +231,7 @@ schema Pet {
 }
 
 dataset Test {
-  pets: 5 * Pet
+  pets: 5 of Pet
 }
 `
       );
@@ -269,7 +269,7 @@ schema Pet {
 }
 
 dataset Test {
-  pets: 5 * Pet
+  pets: 5 of Pet
 }
 `
       );
@@ -359,6 +359,26 @@ dataset Test {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
       expect(output).toBeDefined();
+    });
+
+    it('handles conditional-fields example', () => {
+      const result = runCLI(`"${join(EXAMPLES_DIR, 'basics', 'conditional-fields.vague')}" -s 42`);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output).toBeDefined();
+      // Verify conditional fields work - business accounts should have companyNumber
+      const businessAccounts = output.accounts.filter(
+        (a: Record<string, unknown>) => a.type === 'business'
+      );
+      const personalAccounts = output.accounts.filter(
+        (a: Record<string, unknown>) => a.type === 'personal'
+      );
+      if (businessAccounts.length > 0) {
+        expect(businessAccounts[0]).toHaveProperty('companyNumber');
+      }
+      if (personalAccounts.length > 0) {
+        expect(personalAccounts[0]).not.toHaveProperty('companyNumber');
+      }
     });
   });
 });

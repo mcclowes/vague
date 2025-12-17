@@ -16,7 +16,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -38,7 +38,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -59,7 +59,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -81,7 +81,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -102,7 +102,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -124,7 +124,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -146,7 +146,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -169,7 +169,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -188,7 +188,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -210,7 +210,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 2 * Test
+          items: 2 of Test
         }
       `;
 
@@ -230,7 +230,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -252,7 +252,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -274,7 +274,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -293,7 +293,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -315,7 +315,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -335,7 +335,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -357,7 +357,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -381,7 +381,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -400,7 +400,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -419,7 +419,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -440,7 +440,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -459,7 +459,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -479,7 +479,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 10 * Test
+          items: 10 of Test
         }
       `;
 
@@ -500,7 +500,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -520,7 +520,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -540,7 +540,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -562,7 +562,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -583,7 +583,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -606,7 +606,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -627,7 +627,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -648,7 +648,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 5 * Test
+          items: 5 of Test
         }
       `;
 
@@ -673,7 +673,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -692,7 +692,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -712,7 +712,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          items: 3 * Test
+          items: 3 of Test
         }
       `;
 
@@ -739,7 +739,7 @@ describe('Issuer Plugin', () => {
         }
 
         dataset TestData {
-          users: 5 * EdgeCaseUser
+          users: 5 of EdgeCaseUser
         }
       `;
 

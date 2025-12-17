@@ -158,7 +158,7 @@ describe('SchemaValidator', () => {
         }
 
         dataset TestData {
-          accounts: 5 * TestAccount
+          accounts: 5 of TestAccount
         }
       `;
       const data = await compile(source);

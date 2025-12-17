@@ -539,11 +539,11 @@ function generateFieldTypeExpr(field: InferredField): string {
     const cardinality = field.arrayCardinality;
     if (cardinality) {
       if (cardinality.min === cardinality.max) {
-        return `${cardinality.min} * ${field.nestedSchemaName}`;
+        return `${cardinality.min} of ${field.nestedSchemaName}`;
       }
-      return `${cardinality.min}..${cardinality.max} * ${field.nestedSchemaName}`;
+      return `${cardinality.min}..${cardinality.max} of ${field.nestedSchemaName}`;
     }
-    return `0..10 * ${field.nestedSchemaName}`;
+    return `0..10 of ${field.nestedSchemaName}`;
   }
 
   // Nested object

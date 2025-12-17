@@ -13,7 +13,7 @@ A minimal example showing companies and invoices with line items. Shows the fund
 - Schema definitions with primitives (`string`, `int`, `decimal`, `date`)
 - Weighted superposition (`0.6: "paid" | 0.3: "pending" | 0.1: "draft"`)
 - Ranges (`int in 1..10`, `date in 2020..2024`)
-- Cardinality for collections (`1..5 * LineItem`)
+- Cardinality for collections (`1..5 of LineItem`)
 
 ---
 
@@ -60,10 +60,23 @@ Shows how to reference previously generated records and inherit values from pare
 Collection sizes can depend on field values evaluated at generation time.
 
 **Key concepts:**
-- Dynamic cardinality: `(size == "large" ? 5..10 : 1..3) * LineItem`
+- Dynamic cardinality: `(size == "large" ? 5..10 : 1..3) of LineItem`
 - Nested ternary: `size == "large" ? 5..10 : size == "medium" ? 3..5 : 1..2`
 - Logical operators in ternary: `is_priority or size == "large" ? "express" : "standard"`
 - Dataset-level validation: `validate { sum(orders.subtotal) >= 5000 }`
+
+---
+
+### `conditional-fields.vague`
+**Demonstrates:** Fields that only exist when a condition is true (`when` clause)
+
+Shows how to create variant schemas where certain fields only appear based on other field values.
+
+**Key concepts:**
+- Basic conditional: `companyNumber: string when type == "business"`
+- Multiple conditions: `premiumHandling: boolean when size == "large" or size == "medium"`
+- Numeric comparison: `bulkDiscount: decimal when basePrice >= 50`
+- Combined conditions: `prioritySupport: boolean when verified == true and accountType == "premium"`
 
 ---
 

@@ -20,6 +20,7 @@ import {
   parseCSVToDataset,
   type CsvOptions,
 } from './csv/index.js';
+import { DataValidator } from './validator/data-validator.js';
 
 // Register plugins automatically
 registerPlugin(fakerPlugin);
@@ -43,6 +44,7 @@ vague - Declarative test data generator
 Usage:
   vague <input.vague> [options]
   vague --infer <data.json|data.csv> [options]
+  vague --validate-data <data.json> --schema <schema.vague> [options]
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
@@ -70,6 +72,10 @@ Schema Inference:
   --no-weights             Disable weighted superpositions
   --max-enum <n>           Maximum unique values for enum detection (default: 10)
 
+Data Validation:
+  --validate-data <file>   Validate JSON data against a Vague schema
+  --schema <file>          Vague schema file for validation
+
 OpenAPI Example Population:
   --oas-output <file>      Write OpenAPI spec with examples to file
   --oas-source <spec>      Source OpenAPI spec to populate (auto-detected if using import)
@@ -94,6 +100,9 @@ Examples:
   vague schema.vague --oas-output api-with-examples.json --oas-source api.json
   vague schema.vague --oas-output api.json --oas-source api.json --oas-example-count 3
   vague schema.vague --oas-output api.json --oas-source api.json --oas-external
+
+  # Validate data against Vague schema
+  vague --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
 `);
     process.exit(0);
   }
@@ -123,6 +132,10 @@ Examples:
   let detectFormats = true;
   let weightedSuperpositions = true;
   let maxEnumValues = 10;
+
+  // Data validation options
+  let validateDataFile: string | null = null;
+  let schemaFile: string | null = null;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -212,6 +225,10 @@ Examples:
         console.error('Error: --max-enum must be a positive integer');
         process.exit(1);
       }
+    } else if (args[i] === '--validate-data') {
+      validateDataFile = args[++i];
+    } else if (args[i] === '--schema') {
+      schemaFile = args[++i];
     }
   }
 
@@ -259,6 +276,99 @@ Examples:
       }
 
       process.exit(0);
+    }
+
+    // Handle data validation mode
+    if (validateDataFile) {
+      if (!schemaFile) {
+        console.error('Error: --schema is required when using --validate-data');
+        process.exit(1);
+      }
+
+      // Load the data
+      const dataContent = readFileSync(resolve(validateDataFile), 'utf-8');
+      let data: Record<string, unknown[]>;
+      try {
+        data = JSON.parse(dataContent) as Record<string, unknown[]>;
+      } catch {
+        console.error('Error: Invalid JSON in data file');
+        process.exit(1);
+        return;
+      }
+
+      // Load the schema
+      const schemaContent = readFileSync(resolve(schemaFile), 'utf-8');
+      const validator = new DataValidator();
+      const schemas = validator.loadSchema(schemaContent);
+
+      console.error(`Loaded schemas: ${schemas.join(', ')}`);
+
+      if (!schemaMapping) {
+        // Auto-detect mapping if not provided
+        const autoMapping: Record<string, string> = {};
+        for (const collectionName of Object.keys(data)) {
+          // Try to match collection name to schema name
+          const normalizedCollection = collectionName.toLowerCase().replace(/_/g, '');
+          for (const schemaName of schemas) {
+            const normalizedSchema = schemaName.toLowerCase();
+            // Match plural to singular, case insensitive
+            if (
+              normalizedCollection === normalizedSchema ||
+              normalizedCollection === normalizedSchema + 's' ||
+              normalizedCollection.replace(/s$/, '') === normalizedSchema ||
+              normalizedCollection.replace(/ies$/, 'y') === normalizedSchema
+            ) {
+              autoMapping[collectionName] = schemaName;
+              break;
+            }
+          }
+        }
+        if (Object.keys(autoMapping).length > 0) {
+          schemaMapping = autoMapping;
+          console.error(`Auto-detected mapping: ${JSON.stringify(schemaMapping)}`);
+        } else {
+          console.error('Error: No mapping provided and could not auto-detect. Use -m/--mapping');
+          console.error('Available schemas:', schemas.join(', '));
+          console.error('Data collections:', Object.keys(data).join(', '));
+          process.exit(1);
+        }
+      }
+
+      const result = validator.validateDataset(data, schemaMapping);
+
+      // Output results
+      let hasErrors = false;
+      for (const [collectionName, collResult] of result.collections) {
+        if (collResult.valid) {
+          console.error(
+            `✓ ${collectionName} (${collResult.recordsValidated} records) - all constraints satisfied`
+          );
+        } else {
+          hasErrors = true;
+          console.error(
+            `✗ ${collectionName} (${collResult.recordsFailed}/${collResult.recordsValidated} failed)`
+          );
+
+          // Show first few errors
+          const errorsToShow = collResult.errors.slice(0, 5);
+          for (const err of errorsToShow) {
+            const recordInfo = err.record >= 0 ? `[${err.record}]` : '';
+            console.error(`  ${recordInfo} ${err.message}`);
+            if (err.value && Object.keys(err.value).length > 0) {
+              console.error(`    Values: ${JSON.stringify(err.value)}`);
+            }
+          }
+          if (collResult.errors.length > 5) {
+            console.error(`  ... and ${collResult.errors.length - 5} more errors`);
+          }
+        }
+      }
+
+      console.error(
+        `\nValidation summary: ${result.totalRecords - result.totalFailed}/${result.totalRecords} records valid`
+      );
+
+      process.exit(hasErrors ? 1 : 0);
     }
 
     // Normal compilation mode

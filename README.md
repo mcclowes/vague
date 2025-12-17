@@ -30,8 +30,8 @@ schema Invoice {
 }
 
 dataset TestData {
-  customers: 50 * Customer,
-  invoices: 200 * Invoice
+  customers: 50 of Customer,
+  invoices: 200 of Invoice
 }
 ```
 
@@ -72,8 +72,8 @@ founded: date in 2000..2023
 ### Collections
 
 ```vague
-line_items: 1..5 * LineItem    // 1-5 items
-employees: 100 * Employee       // Exactly 100
+line_items: 1..5 of LineItem    // 1-5 items
+employees: 100 of Employee       // Exactly 100
 ```
 
 ### Constraints
@@ -119,7 +119,7 @@ schema LineItem {
 
 schema Invoice {
   base_currency: "USD" | "GBP" | "EUR",
-  line_items: 1..5 * LineItem
+  line_items: 1..5 of LineItem
 }
 ```
 
@@ -127,7 +127,7 @@ schema Invoice {
 
 ```vague
 schema Invoice {
-  line_items: 1..10 * LineItem,
+  line_items: 1..10 of LineItem,
 
   total: = sum(line_items.amount),
   item_count: = count(line_items),
@@ -155,12 +155,21 @@ status: = amount_paid >= total ? "paid" : "pending"
 grade: = score >= 90 ? "A" : score >= 70 ? "B" : "C"
 ```
 
+### Conditional Fields
+
+```vague
+schema Account {
+  type: "personal" | "business",
+  companyNumber: string when type == "business"  // Only exists for business accounts
+}
+```
+
 ### Dynamic Cardinality
 
 ```vague
 schema Order {
   size: "small" | "large",
-  items: (size == "large" ? 5..10 : 1..3) * LineItem
+  items: (size == "large" ? 5..10 : 1..3) of LineItem
 }
 ```
 
@@ -254,7 +263,7 @@ len: = length(name)                  // String length
 ```vague
 // Generate data that violates constraints (for testing error handling)
 dataset Invalid violating {
-  bad_invoices: 100 * Invoice
+  bad_invoices: 100 of Invoice
 }
 ```
 

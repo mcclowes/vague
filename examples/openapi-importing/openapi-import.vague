@@ -10,6 +10,6 @@ schema EnhancedOwner from petstore.Owner {
 }
 
 dataset PetStoreData {
-  pets: 10 * ImportedPet,
-  owners: 5 * EnhancedOwner
+  pets: 10 of ImportedPet,
+  owners: 5 of EnhancedOwner
 }

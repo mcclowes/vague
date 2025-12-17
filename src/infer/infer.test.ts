@@ -234,7 +234,7 @@ describe('Schema Inference', () => {
       expect(result).toContain('name:');
       expect(result).toContain('active:');
       expect(result).toContain('dataset Generated');
-      expect(result).toContain('users: 2 * User');
+      expect(result).toContain('users: 2 of User');
     });
 
     it('infers ranges for numeric fields', () => {
@@ -362,7 +362,7 @@ describe('Schema Inference', () => {
       const result = inferSchema(data);
 
       expect(result).toContain('schema Item {');
-      expect(result).toContain('1..3 * Item');
+      expect(result).toContain('1..3 of Item');
     });
 
     it('detects unique fields', () => {

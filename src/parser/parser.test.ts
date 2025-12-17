@@ -170,7 +170,7 @@ describe('Parser', () => {
     it('parses collection field', () => {
       const ast = parse(`
         schema Invoice {
-          line_items: 1..10 * LineItem
+          line_items: 1..10 of LineItem
         }
       `);
 
@@ -235,7 +235,7 @@ describe('Parser', () => {
     it('parses dataset', () => {
       const ast = parse(`
         dataset TestData {
-          companies: 100 * Company
+          companies: 100 of Company
         }
       `);
 
@@ -258,7 +258,7 @@ describe('Parser', () => {
     it('parses dataset with context', () => {
       const ast = parse(`
         dataset TestData with Geography("en_GB") {
-          companies: 100 * Company
+          companies: 100 of Company
         }
       `);
 
@@ -272,8 +272,8 @@ describe('Parser', () => {
     it('parses per-parent cardinality', () => {
       const ast = parse(`
         dataset TestData {
-          companies: 100 * Company,
-          invoices: 10..50 per company * Invoice
+          companies: 100 of Company,
+          invoices: 10..50 per company of Invoice
         }
       `);
 
@@ -521,7 +521,7 @@ describe('Parser', () => {
           amount: int
         }
         schema Invoice {
-          items: 1..5 * LineItem
+          items: 1..5 of LineItem
         }
       `);
 
@@ -673,7 +673,7 @@ describe('Parser', () => {
         schema X {
           a: boolean,
           b: boolean,
-          items: (a and b ? 10..20 : 1..5) * Item
+          items: (a and b ? 10..20 : 1..5) of Item
         }
       `);
 
@@ -698,7 +698,7 @@ describe('Parser', () => {
     it('parses validate block with multiple constraints', () => {
       const ast = parse(`
         dataset Test {
-          items: 100 * Item,
+          items: 100 of Item,
           validate {
             sum(items.total) >= 1000,
             count(items) == 100,
@@ -748,7 +748,7 @@ describe('Parser', () => {
     it('parses dataset with violating modifier', () => {
       const ast = parse(`
         dataset Invalid violating {
-          items: 10 * Item
+          items: 10 of Item
         }
       `);
 
@@ -782,7 +782,7 @@ describe('Parser', () => {
     it('parses computed field with aggregation chain', () => {
       const ast = parse(`
         schema Order {
-          items: 1..10 * LineItem,
+          items: 1..10 of LineItem,
           subtotal: = sum(items.price),
           tax: = subtotal * 0.2,
           total: = subtotal + tax

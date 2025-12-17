@@ -1,0 +1,42 @@
+// Conditional fields - fields that only exist when a condition is true
+// Uses the `when` keyword to conditionally include fields
+
+schema Account {
+  type: "personal" | "business",
+  name: string,
+
+  // These fields only exist for business accounts
+  companyNumber: string when type == "business",
+  taxId: string when type == "business",
+
+  // This field only exists for personal accounts
+  dateOfBirth: date when type == "personal"
+}
+
+schema Order {
+  size: "small" | "medium" | "large",
+  basePrice: decimal in 10..100,
+
+  // Discount only for large orders
+  discount: decimal in 0.1..0.2 when size == "large",
+
+  // Premium handling for medium and large orders (using `or`)
+  premiumHandling: boolean when size == "large" or size == "medium",
+
+  // Bulk pricing for orders over $50 (numeric comparison)
+  bulkDiscount: decimal in 0.05..0.1 when basePrice >= 50
+}
+
+schema Customer {
+  accountType: "free" | "premium" | "enterprise",
+  verified: boolean,
+
+  // Priority support only for verified premium/enterprise customers (using `and`)
+  prioritySupport: boolean when verified == true and (accountType == "premium" or accountType == "enterprise")
+}
+
+dataset TestData {
+  accounts: 10 of Account,
+  orders: 15 of Order,
+  customers: 10 of Customer
+}

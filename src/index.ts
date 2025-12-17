@@ -56,6 +56,12 @@ export {
   type CsvOptions,
   type CsvParseOptions,
 } from './csv/index.js';
+export {
+  DataValidator,
+  type ValidationError as DataValidationError,
+  type SchemaValidationResult,
+  type DatasetValidationResult,
+} from './validator/data-validator.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';

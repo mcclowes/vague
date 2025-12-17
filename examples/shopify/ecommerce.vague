@@ -41,8 +41,8 @@ schema Product {
   published_at: faker.date.past()?,
   template_suffix: string?,
   tags: faker.commerce.department(),
-  variants: 1..6 * ProductVariant,
-  images: 1..5 * Image,
+  variants: 1..6 of ProductVariant,
+  images: 1..5 of Image,
   created_at: faker.date.past(),
   updated_at: faker.date.recent()
 }
@@ -80,7 +80,7 @@ schema Customer {
   currency: 0.6: "USD" | 0.25: "CAD" | 0.1: "GBP" | 0.05: "AUD",
   tax_exempt: 0.05: true | 0.95: false,
   tags: string?,
-  addresses: 1..3 * CustomerAddress,
+  addresses: 1..3 of CustomerAddress,
   default_address: any of addresses,
   created_at: faker.date.past(),
   updated_at: faker.date.recent()
@@ -150,10 +150,10 @@ schema Order {
   customer: any of customers,
   billing_address: any of customer.addresses,
   shipping_address: any of customer.addresses,
-  line_items: 1..8 * OrderLineItem,
-  shipping_lines: 1..2 * ShippingLine,
-  tax_lines: 1..3 * TaxLine,
-  discount_codes: 0..2 * DiscountCode,
+  line_items: 1..8 of OrderLineItem,
+  shipping_lines: 1..2 of ShippingLine,
+  tax_lines: 1..3 of TaxLine,
+  discount_codes: 0..2 of DiscountCode,
   subtotal_price: = sum(line_items.price) * sum(line_items.quantity),
   total_shipping: = sum(shipping_lines.price),
   total_tax: = sum(tax_lines.price),
@@ -213,12 +213,12 @@ schema GiftCard {
 }
 
 dataset ShopifyTestData {
-  products: 200 * Product,
-  customers: 500 * Customer,
-  orders: 1000 * Order,
-  inventory_levels: 400 * InventoryLevel,
-  collections: 20 * Collection,
-  gift_cards: 50 * GiftCard,
+  products: 200 of Product,
+  customers: 500 of Customer,
+  orders: 1000 of Order,
+  inventory_levels: 400 of InventoryLevel,
+  collections: 20 of Collection,
+  gift_cards: 50 of GiftCard,
 
   validate {
     some(orders, .financial_status == "paid"),

@@ -29,7 +29,7 @@ schema Invoice from codat.AccountingInvoice {
   issueDate: date in 2023..2024,
   dueDate: date in 2024..2024,
   currency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-  lineItems: 1..8 * InvoiceLineItem,
+  lineItems: 1..8 of InvoiceLineItem,
   subTotal: = round(sum(lineItems.unitAmount), 2),
   totalTaxAmount: = round(sum(lineItems.taxAmount), 2),
   totalAmount: = round(sum(lineItems.totalAmount), 2),
@@ -93,7 +93,7 @@ schema Bill from codat.AccountingBill {
   issueDate: date in 2023..2024,
   dueDate: date in 2024..2024,
   currency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-  lineItems: 1..5 * BillLineItem,
+  lineItems: 1..5 of BillLineItem,
   subTotal: = round(sum(lineItems.unitAmount), 2),
   totalTaxAmount: = round(sum(lineItems.taxAmount), 2),
   totalAmount: = round(sum(lineItems.totalAmount), 2),
@@ -125,18 +125,18 @@ schema Company {
   name: companyName(),
   description: faker.company.catchPhrase()?,
   defaultCurrency: 0.6: "GBP" | 0.25: "USD" | 0.1: "EUR" | 0.05: "AUD",
-  dataConnections: 1..3 * Connection
+  dataConnections: 1..3 of Connection
 }
 
 dataset LendingTestData {
-  companies: 20 * Company,
-  accounts: 50 * Account,
-  customers: 100 * Customer,
-  suppliers: 50 * Supplier,
-  invoices: 500 * Invoice,
-  payments: 400 * Payment,
-  bills: 200 * Bill,
-  billPayments: 150 * BillPayment,
+  companies: 20 of Company,
+  accounts: 50 of Account,
+  customers: 100 of Customer,
+  suppliers: 50 of Supplier,
+  invoices: 500 of Invoice,
+  payments: 400 of Payment,
+  bills: 200 of Bill,
+  billPayments: 150 of BillPayment,
 
   validate {
     sum(invoices.totalAmount) >= 100000,

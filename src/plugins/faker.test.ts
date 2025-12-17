@@ -15,7 +15,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        users: 5 * User
+        users: 5 of User
       }
     `;
 
@@ -35,7 +35,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        users: 3 * User
+        users: 3 of User
       }
     `;
 
@@ -56,7 +56,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        users: 3 * User
+        users: 3 of User
       }
     `;
 
@@ -79,7 +79,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        companies: 3 * Company
+        companies: 3 of Company
       }
     `;
 
@@ -102,7 +102,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        events: 3 * Event
+        events: 3 of Event
       }
     `;
 
@@ -126,7 +126,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        accounts: 3 * Account
+        accounts: 3 of Account
       }
     `;
 
@@ -150,7 +150,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        addresses: 3 * Address
+        addresses: 3 of Address
       }
     `;
 
@@ -172,7 +172,7 @@ describe('Faker Plugin', () => {
         }
 
         dataset TestData {
-          users: 3 * User
+          users: 3 of User
         }
       `;
 
@@ -191,7 +191,7 @@ describe('Faker Plugin', () => {
         }
 
         dataset TestData {
-          users: 3 * User
+          users: 3 of User
         }
       `;
 
@@ -212,7 +212,7 @@ describe('Faker Plugin', () => {
         }
 
         dataset TestData {
-          users: 3 * User
+          users: 3 of User
         }
       `;
 
@@ -238,7 +238,7 @@ describe('Faker Plugin', () => {
       }
 
       dataset TestData {
-        users: 5 * User
+        users: 5 of User
       }
     `;
 

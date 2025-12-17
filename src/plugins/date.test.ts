@@ -16,7 +16,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 20 * Event
+          events: 20 of Event
         }
       `;
 
@@ -42,7 +42,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -71,7 +71,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -95,7 +95,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 20 * Event
+          events: 20 of Event
         }
       `;
 
@@ -120,7 +120,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -148,7 +148,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -172,7 +172,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -193,7 +193,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -213,7 +213,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -235,7 +235,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 200 * Event
+          events: 200 of Event
         }
       `;
 
@@ -277,7 +277,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          meetings: 10 * Meeting
+          meetings: 10 of Meeting
         }
       `;
 
@@ -309,7 +309,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 5 * Event
+          events: 5 of Event
         }
       `;
 
@@ -334,7 +334,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 5 * Event
+          events: 5 of Event
         }
       `;
 
@@ -363,7 +363,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          invoices: 1 * Invoice
+          invoices: 1 of Invoice
         }
       `;
 
@@ -382,7 +382,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          events: 1 * Event
+          events: 1 of Event
         }
       `;
 
@@ -401,7 +401,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          projects: 1 * Project
+          projects: 1 of Project
         }
       `;
 
@@ -420,7 +420,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          subscriptions: 1 * Subscription
+          subscriptions: 1 of Subscription
         }
       `;
 
@@ -440,7 +440,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          contracts: 1 * Contract
+          contracts: 1 of Contract
         }
       `;
 
@@ -460,7 +460,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          invoices: 10 * Invoice
+          invoices: 10 of Invoice
         }
       `;
 
@@ -488,7 +488,7 @@ describe('Date Plugin', () => {
         }
 
         dataset TestData {
-          invoices: 20 * Invoice
+          invoices: 20 of Invoice
         }
       `;
 

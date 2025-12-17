@@ -15,10 +15,10 @@ schema Invoice {
   status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft",
   customer: any of companies,  // reference another collection
   base_currency: "USD" | "GBP" | "EUR",
-  line_items: 1..5 * LineItem
+  line_items: 1..5 of LineItem
 }
 
 dataset TestData {
-  companies: 10 * Company,
-  invoices: 30 * Invoice
+  companies: 10 of Company,
+  invoices: 30 of Invoice
 }

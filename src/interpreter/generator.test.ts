@@ -9,7 +9,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        companies: 5 * Company
+        companies: 5 of Company
       }
     `;
 
@@ -29,7 +29,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        items: 3..7 * Item
+        items: 3..7 of Item
       }
     `;
 
@@ -46,7 +46,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        people: 10 * Person
+        people: 10 of Person
       }
     `;
 
@@ -66,7 +66,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        invoices: 20 * Invoice
+        invoices: 20 of Invoice
       }
     `;
 
@@ -89,7 +89,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        invoices: 100 * Invoice
+        invoices: 100 of Invoice
       }
     `;
 
@@ -115,7 +115,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        invoices: 100 * Invoice
+        invoices: 100 of Invoice
       }
     `;
 
@@ -146,7 +146,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        items: 100 * Item
+        items: 100 of Item
       }
     `;
 
@@ -176,7 +176,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        items: 50 * Item
+        items: 50 of Item
       }
     `;
 
@@ -209,7 +209,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        users: 50 * User
+        users: 50 of User
       }
     `;
 
@@ -241,7 +241,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        users: 50 * User
+        users: 50 of User
       }
     `;
 
@@ -275,7 +275,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        items: 50 * Item
+        items: 50 of Item
       }
     `;
 
@@ -306,7 +306,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        items: 100 * Item
+        items: 100 of Item
       }
     `;
 
@@ -343,8 +343,8 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        invoices: 10 * Invoice,
-        payments: 50 * Payment
+        invoices: 10 of Invoice,
+        payments: 50 of Payment
       }
     `;
 
@@ -375,7 +375,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        configs: 30 * Config
+        configs: 30 of Config
       }
     `;
 
@@ -403,11 +403,11 @@ describe('Generator', () => {
       }
 
       schema Invoice {
-        line_items: 1..5 * LineItem
+        line_items: 1..5 of LineItem
       }
 
       dataset TestData {
-        invoices: 10 * Invoice
+        invoices: 10 of Invoice
       }
     `;
 
@@ -432,7 +432,7 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        companies: 10 * Company
+        companies: 10 of Company
       }
     `;
 
@@ -457,8 +457,8 @@ describe('Generator', () => {
       }
 
       dataset TestData {
-        companies: 5 * Company,
-        invoices: 10 * Invoice
+        companies: 5 of Company,
+        invoices: 10 of Invoice
       }
     `;
 
@@ -481,8 +481,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          companies: 5 * Company,
-          invoices: 10 * Invoice
+          companies: 5 of Company,
+          invoices: 10 of Invoice
         }
       `;
 
@@ -508,8 +508,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          companies: 20 * Company,
-          invoices: 10 * Invoice
+          companies: 20 of Company,
+          invoices: 10 of Invoice
         }
       `;
 
@@ -535,11 +535,11 @@ describe('Generator', () => {
 
         schema Invoice {
           currency: "USD" | "GBP" | "EUR",
-          line_items: 3 * LineItem
+          line_items: 3 of LineItem
         }
 
         dataset TestData {
-          invoices: 5 * Invoice
+          invoices: 5 of Invoice
         }
       `;
 
@@ -567,7 +567,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 20 * Item
+          items: 20 of Item
         }
       `;
 
@@ -590,7 +590,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          companies: 30 * Company
+          companies: 30 of Company
         }
       `;
 
@@ -614,7 +614,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          products: 20 * Product
+          products: 20 of Product
         }
       `;
 
@@ -636,7 +636,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 30 * Item
+          items: 30 of Item
         }
       `;
 
@@ -659,7 +659,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 30 * Invoice
+          invoices: 30 of Invoice
         }
       `;
 
@@ -681,7 +681,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 20 * Order
+          orders: 20 of Order
         }
       `;
 
@@ -707,7 +707,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          companies: 30 * Company
+          companies: 30 of Company
         }
       `;
 
@@ -731,12 +731,12 @@ describe('Generator', () => {
         }
 
         schema Invoice {
-          line_items: 3..5 * LineItem,
+          line_items: 3..5 of LineItem,
           total: = sum(line_items.amount)
         }
 
         dataset TestData {
-          invoices: 10 * Invoice
+          invoices: 10 of Invoice
         }
       `;
 
@@ -757,12 +757,12 @@ describe('Generator', () => {
         }
 
         schema Container {
-          items: 2..6 * Item,
+          items: 2..6 of Item,
           item_count: = count(items)
         }
 
         dataset TestData {
-          containers: 10 * Container
+          containers: 10 of Container
         }
       `;
 
@@ -782,13 +782,13 @@ describe('Generator', () => {
         }
 
         schema Game {
-          scores: 5 * Score,
+          scores: 5 of Score,
           lowest: = min(scores.value),
           highest: = max(scores.value)
         }
 
         dataset TestData {
-          games: 10 * Game
+          games: 10 of Game
         }
       `;
 
@@ -810,12 +810,12 @@ describe('Generator', () => {
         }
 
         schema Product {
-          ratings: 4 * Rating,
+          ratings: 4 of Rating,
           avg_rating: = avg(ratings.stars)
         }
 
         dataset TestData {
-          products: 10 * Product
+          products: 10 of Product
         }
       `;
 
@@ -838,14 +838,14 @@ describe('Generator', () => {
         }
 
         schema Order {
-          items: 2..4 * LineItem,
+          items: 2..4 of LineItem,
           subtotal: = sum(items.unit_price),
           item_count: = count(items),
           avg_price: = avg(items.unit_price)
         }
 
         dataset TestData {
-          orders: 10 * Order
+          orders: 10 of Order
         }
       `;
 
@@ -875,13 +875,13 @@ describe('Generator', () => {
         }
 
         schema Container {
-          items: 5 * Item,
+          items: 5 of Item,
           first_val: = first(items.value),
           last_val: = last(items.value)
         }
 
         dataset TestData {
-          containers: 10 * Container
+          containers: 10 of Container
         }
       `;
 
@@ -903,12 +903,12 @@ describe('Generator', () => {
         }
 
         schema Analysis {
-          scores: 5 * Score,
+          scores: 5 of Score,
           median_score: = median(scores.value)
         }
 
         dataset TestData {
-          analyses: 10 * Analysis
+          analyses: 10 of Analysis
         }
       `;
 
@@ -933,12 +933,12 @@ describe('Generator', () => {
         }
 
         schema Calculation {
-          factors: 3 * Factor,
+          factors: 3 of Factor,
           result: = product(factors.value)
         }
 
         dataset TestData {
-          calculations: 10 * Calculation
+          calculations: 10 of Calculation
         }
       `;
 
@@ -960,13 +960,13 @@ describe('Generator', () => {
         }
 
         schema Container {
-          items: 0 * Item,
+          items: 0 of Item,
           first_val: = first(items.value),
           last_val: = last(items.value)
         }
 
         dataset TestData {
-          containers: 1 * Container
+          containers: 1 of Container
         }
       `;
 
@@ -985,7 +985,7 @@ describe('Generator', () => {
         schema TestPet from petstore.Pet { }
 
         dataset TestData {
-          pets: 5 * TestPet
+          pets: 5 of TestPet
         }
       `;
 
@@ -1013,7 +1013,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          pets: 10 * CustomPet
+          pets: 10 of CustomPet
         }
       `;
 
@@ -1039,7 +1039,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          owners: 5 * ExtendedOwner
+          owners: 5 of ExtendedOwner
         }
       `;
 
@@ -1095,7 +1095,7 @@ describe('Generator', () => {
           schema TestUser from formattest.User { }
 
           dataset TestData {
-            users: 5 * TestUser
+            users: 5 of TestUser
           }
         `;
 
@@ -1142,7 +1142,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 10 * Item,
+          items: 10 of Item,
           validate {
             sum(items.value) >= 200,
             sum(items.value) <= 400
@@ -1163,7 +1163,7 @@ describe('Generator', () => {
         schema Item { x: int }
 
         dataset TestData {
-          items: 5..15 * Item,
+          items: 5..15 of Item,
           validate {
             count(items) >= 8
           }
@@ -1181,8 +1181,8 @@ describe('Generator', () => {
         schema Payment { amount: int in 50..200 }
 
         dataset TestData {
-          invoices: 5 * Invoice,
-          payments: 3 * Payment,
+          invoices: 5 of Invoice,
+          payments: 3 of Payment,
           validate {
             sum(payments.amount) <= sum(invoices.total)
           }
@@ -1209,7 +1209,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 10 * Item,
+          items: 10 of Item,
           validate {
             sum(items.price) >= 200,
             avg(items.price) >= 20,
@@ -1236,8 +1236,8 @@ describe('Generator', () => {
         schema B { y: int }
 
         dataset TestData {
-          as: 5..10 * A,
-          bs: 3..8 * B,
+          as: 5..10 of A,
+          bs: 3..8 of B,
           validate {
             count(bs) <= count(as)
           }
@@ -1256,7 +1256,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 10 * Item,
+          items: 10 of Item,
           validate {
             all(items, .value >= 10)
           }
@@ -1279,7 +1279,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          accounts: 10 * Account,
+          accounts: 10 of Account,
           validate {
             all(accounts, .balance >= .min_balance)
           }
@@ -1301,7 +1301,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 20 * Item,
+          items: 20 of Item,
           validate {
             some(items, .value >= 50)
           }
@@ -1322,7 +1322,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 10 * Item,
+          items: 10 of Item,
           validate {
             none(items, .value > 50)
           }
@@ -1355,8 +1355,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 5 * Invoice,
-          payments: 3 * Payment
+          invoices: 5 of Invoice,
+          payments: 3 of Payment
         }
       `;
 
@@ -1384,8 +1384,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          accounts: 3 * Account,
-          deposits: 5 * Deposit
+          accounts: 3 of Account,
+          deposits: 5 of Deposit
         }
       `;
 
@@ -1418,8 +1418,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 3 * Invoice,
-          payments: 2 * Payment
+          invoices: 3 of Invoice,
+          payments: 2 of Payment
         }
       `;
 
@@ -1451,8 +1451,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 10 * Invoice,
-          payments: 10 * Payment
+          invoices: 10 of Invoice,
+          payments: 10 of Payment
         }
       `;
 
@@ -1486,8 +1486,8 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 5 * Invoice,
-          payments: 10 * Payment
+          invoices: 5 of Invoice,
+          payments: 10 of Payment
         }
       `;
 
@@ -1515,7 +1515,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 20 * Item
+          items: 20 of Item
         }
       `;
 
@@ -1539,7 +1539,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 30 * Item
+          items: 30 of Item
         }
       `;
 
@@ -1565,7 +1565,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 20 * Order
+          orders: 20 of Order
         }
       `;
 
@@ -1590,7 +1590,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 30 * Order
+          orders: 30 of Order
         }
       `;
 
@@ -1615,7 +1615,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          products: 30 * Product
+          products: 30 of Product
         }
       `;
 
@@ -1643,7 +1643,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          users: 20 * User
+          users: 20 of User
         }
       `;
 
@@ -1669,7 +1669,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 40 * Order
+          orders: 40 of Order
         }
       `;
 
@@ -1696,7 +1696,7 @@ describe('Generator', () => {
       const source = `
         schema Order {
           size: "small" | "large",
-          items: (size == "large" ? 5..10 : 1..3) * Item
+          items: (size == "large" ? 5..10 : 1..3) of Item
         }
 
         schema Item {
@@ -1704,7 +1704,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 20 * Order
+          orders: 20 of Order
         }
       `;
 
@@ -1726,7 +1726,7 @@ describe('Generator', () => {
       const source = `
         schema Container {
           is_bulk: boolean,
-          items: (is_bulk ? 100 : 10) * Item
+          items: (is_bulk ? 100 : 10) of Item
         }
 
         schema Item {
@@ -1734,7 +1734,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          containers: 10 * Container
+          containers: 10 of Container
         }
       `;
 
@@ -1755,7 +1755,7 @@ describe('Generator', () => {
         schema Order {
           is_wholesale: boolean,
           is_priority: boolean,
-          items: (is_wholesale and is_priority ? 20..30 : 1..5) * Item
+          items: (is_wholesale and is_priority ? 20..30 : 1..5) of Item
         }
 
         schema Item {
@@ -1763,7 +1763,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 20 * Order
+          orders: 20 of Order
         }
       `;
 
@@ -1797,7 +1797,7 @@ describe('Generator', () => {
         }
 
         dataset Invalid violating {
-          invoices: 20 * Invoice
+          invoices: 20 of Invoice
         }
       `;
 
@@ -1816,7 +1816,7 @@ describe('Generator', () => {
         }
 
         dataset Invalid violating {
-          items: 10 * Item,
+          items: 10 of Item,
 
           validate {
             sum(items.price) >= 500
@@ -1842,7 +1842,7 @@ describe('Generator', () => {
         }
 
         dataset Valid {
-          invoices: 20 * Invoice
+          invoices: 20 of Invoice
         }
       `;
 
@@ -1866,7 +1866,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 10 * Order
+          orders: 10 of Order
         }
       `;
 
@@ -1889,7 +1889,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 10 * Item
+          items: 10 of Item
         }
       `;
 
@@ -1909,7 +1909,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          products: 50 * Product
+          products: 50 of Product
         }
       `;
 
@@ -1933,7 +1933,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 50 * Item
+          items: 50 of Item
         }
       `;
 
@@ -1954,7 +1954,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          rates: 50 * Rate
+          rates: 50 of Rate
         }
       `;
 
@@ -1975,7 +1975,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          scores: 50 * Score
+          scores: 50 of Score
         }
       `;
 
@@ -1994,7 +1994,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          prices: 50 * Price
+          prices: 50 of Price
         }
       `;
 
@@ -2019,7 +2019,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 20 * Invoice
+          invoices: 20 of Invoice
         }
       `;
 
@@ -2038,7 +2038,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 5 * Item
+          items: 5 of Item
         }
       `;
 
@@ -2059,7 +2059,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          people: 100 * Person
+          people: 100 of Person
         }
       `;
 
@@ -2085,7 +2085,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 100 * Event
+          events: 100 of Event
         }
       `;
 
@@ -2109,7 +2109,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          days: 100 * Day
+          days: 100 of Day
         }
       `;
 
@@ -2134,7 +2134,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 100 * Item
+          items: 100 of Item
         }
       `;
 
@@ -2159,7 +2159,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 100 * Item
+          items: 100 of Item
         }
       `;
 
@@ -2184,7 +2184,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          salaries: 100 * Salary
+          salaries: 100 of Salary
         }
       `;
 
@@ -2206,7 +2206,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 1 * Event
+          events: 1 of Event
         }
       `;
 
@@ -2228,7 +2228,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 1 * Event
+          events: 1 of Event
         }
       `;
 
@@ -2247,7 +2247,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 1 * Event
+          events: 1 of Event
         }
       `;
 
@@ -2268,7 +2268,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 1 * Event
+          events: 1 of Event
         }
       `;
 
@@ -2289,7 +2289,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 20 * Event
+          events: 20 of Event
         }
       `;
 
@@ -2310,7 +2310,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 20 * Event
+          events: 20 of Event
         }
       `;
 
@@ -2332,7 +2332,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 10 * Event
+          events: 10 of Event
         }
       `;
 
@@ -2361,7 +2361,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          invoices: 5 * Invoice
+          invoices: 5 of Invoice
         }
       `;
 
@@ -2383,7 +2383,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 5 * Order
+          orders: 5 of Order
         }
       `;
 
@@ -2404,7 +2404,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 3 * Item
+          items: 3 of Item
         }
       `;
 
@@ -2424,7 +2424,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          events: 3 * Event
+          events: 3 of Event
         }
       `;
 
@@ -2445,7 +2445,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          series: 5 * TimeSeries
+          series: 5 of TimeSeries
         }
       `;
 
@@ -2469,7 +2469,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          records: 3 * Record
+          records: 3 of Record
         }
       `;
 
@@ -2494,7 +2494,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2512,7 +2512,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2530,7 +2530,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2548,7 +2548,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2566,7 +2566,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2584,7 +2584,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2602,7 +2602,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2620,7 +2620,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2638,7 +2638,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2656,7 +2656,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2675,7 +2675,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2694,7 +2694,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2713,7 +2713,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2731,7 +2731,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2751,7 +2751,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 1 * Item
+          items: 1 of Item
         }
       `;
 
@@ -2778,7 +2778,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          products: 1 * Product
+          products: 1 of Product
         }
       `;
 
@@ -2798,7 +2798,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          notes: 8 * Note
+          notes: 8 of Note
         }
       `;
 
@@ -2823,7 +2823,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 5 * Item
+          items: 5 of Item
         }
       `;
 
@@ -2842,7 +2842,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          chords: 8 * Chord
+          chords: 8 of Chord
         }
       `;
 
@@ -2864,7 +2864,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 6 * Item
+          items: 6 of Item
         }
       `;
 
@@ -2887,7 +2887,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 6 * Item
+          items: 6 of Item
         }
       `;
 
@@ -2917,7 +2917,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          people: 10 * Person
+          people: 10 of Person
         }
       `;
 
@@ -2942,7 +2942,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 20 * Item
+          items: 20 of Item
         }
       `;
 
@@ -2966,7 +2966,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          orders: 5 * Order
+          orders: 5 of Order
         }
       `;
 
@@ -2996,7 +2996,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          products: 10 * Product
+          products: 10 of Product
         }
       `;
 
@@ -3020,7 +3020,7 @@ describe('Generator', () => {
         }
 
         dataset TestData {
-          items: 5 * Item {
+          items: 5 of Item {
             internal: private int in 1..10,
             label: = concat("Item-", internal)
           }
@@ -3037,6 +3037,161 @@ describe('Generator', () => {
         expect(item).toHaveProperty('label');
         // value from base schema should be present
         expect(item).toHaveProperty('value');
+      }
+    });
+  });
+
+  describe('conditional fields (when clause)', () => {
+    it('includes field only when condition is true', async () => {
+      const source = `
+        schema Account {
+          type: "personal" | "business",
+          companyNumber: string when type == "business"
+        }
+
+        dataset TestData {
+          accounts: 20 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const account of result.accounts as Record<string, unknown>[]) {
+        if (account.type === 'business') {
+          expect(account).toHaveProperty('companyNumber');
+          expect(typeof account.companyNumber).toBe('string');
+        } else {
+          expect(account).not.toHaveProperty('companyNumber');
+        }
+      }
+    });
+
+    it('supports multiple conditional fields', async () => {
+      const source = `
+        schema Account {
+          type: "personal" | "business",
+          companyNumber: string when type == "business",
+          taxId: string when type == "business"
+        }
+
+        dataset TestData {
+          accounts: 20 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const account of result.accounts as Record<string, unknown>[]) {
+        if (account.type === 'business') {
+          expect(account).toHaveProperty('companyNumber');
+          expect(account).toHaveProperty('taxId');
+        } else {
+          expect(account).not.toHaveProperty('companyNumber');
+          expect(account).not.toHaveProperty('taxId');
+        }
+      }
+    });
+
+    it('supports logical operators in when condition', async () => {
+      const source = `
+        schema Order {
+          size: "small" | "medium" | "large",
+          premiumHandling: boolean when size == "large" or size == "medium"
+        }
+
+        dataset TestData {
+          orders: 30 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const order of result.orders as Record<string, unknown>[]) {
+        if (order.size === 'large' || order.size === 'medium') {
+          expect(order).toHaveProperty('premiumHandling');
+          expect(typeof order.premiumHandling).toBe('boolean');
+        } else {
+          expect(order).not.toHaveProperty('premiumHandling');
+        }
+      }
+    });
+
+    it('supports different conditions for different fields', async () => {
+      const source = `
+        schema Order {
+          size: "small" | "medium" | "large",
+          discount: decimal in 0.1..0.2 when size == "large",
+          premiumHandling: boolean when size == "large" or size == "medium"
+        }
+
+        dataset TestData {
+          orders: 30 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const order of result.orders as Record<string, unknown>[]) {
+        // discount only for large
+        if (order.size === 'large') {
+          expect(order).toHaveProperty('discount');
+        } else {
+          expect(order).not.toHaveProperty('discount');
+        }
+
+        // premiumHandling for large and medium
+        if (order.size === 'large' || order.size === 'medium') {
+          expect(order).toHaveProperty('premiumHandling');
+        } else {
+          expect(order).not.toHaveProperty('premiumHandling');
+        }
+      }
+    });
+
+    it('works with numeric comparisons in when condition', async () => {
+      const source = `
+        schema Invoice {
+          total: int in 100..1000,
+          bulkDiscount: decimal in 0.05..0.15 when total >= 500
+        }
+
+        dataset TestData {
+          invoices: 20 of Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const invoice of result.invoices as Record<string, unknown>[]) {
+        if ((invoice.total as number) >= 500) {
+          expect(invoice).toHaveProperty('bulkDiscount');
+        } else {
+          expect(invoice).not.toHaveProperty('bulkDiscount');
+        }
+      }
+    });
+
+    it('works with and operator in when condition', async () => {
+      const source = `
+        schema Customer {
+          type: "personal" | "business",
+          verified: boolean,
+          premiumFeatures: boolean when type == "business" and verified == true
+        }
+
+        dataset TestData {
+          customers: 40 of Customer
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const customer of result.customers as Record<string, unknown>[]) {
+        if (customer.type === 'business' && customer.verified === true) {
+          expect(customer).toHaveProperty('premiumFeatures');
+        } else {
+          expect(customer).not.toHaveProperty('premiumFeatures');
+        }
       }
     });
   });

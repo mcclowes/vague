@@ -7,6 +7,6 @@ schema Pet from petstore.Pet {
 schema Owner from petstore.Owner {}
 
 dataset PetStoreExamples {
-  pets: 10 * Pet,  // auto-mapped to "Pet" schema in OpenAPI spec
-  owners: 5 * Owner
+  pets: 10 of Pet,  // auto-mapped to "Pet" schema in OpenAPI spec
+  owners: 5 of Owner
 }

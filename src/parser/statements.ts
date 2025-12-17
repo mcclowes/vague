@@ -442,7 +442,7 @@ export class StatementParser extends TypeParser {
       perParent = this.consume(TokenType.IDENTIFIER, 'Expected parent name').value;
     }
 
-    this.consume(TokenType.STAR, "Expected '*'");
+    this.consume(TokenType.OF, "Expected 'of'");
     const schemaRef = this.consume(TokenType.IDENTIFIER, 'Expected schema name').value;
 
     const contexts = this.parseContextApplications();

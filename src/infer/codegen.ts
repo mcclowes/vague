@@ -135,11 +135,11 @@ function generateFieldType(field: InferredField): string {
     const cardinality = field.arrayCardinality;
     if (cardinality) {
       if (cardinality.min === cardinality.max) {
-        return `${cardinality.min} * ${field.nestedSchemaName}`;
+        return `${cardinality.min} of ${field.nestedSchemaName}`;
       }
-      return `${cardinality.min}..${cardinality.max} * ${field.nestedSchemaName}`;
+      return `${cardinality.min}..${cardinality.max} of ${field.nestedSchemaName}`;
     }
-    return `0..10 * ${field.nestedSchemaName}`;
+    return `0..10 of ${field.nestedSchemaName}`;
   }
 
   // Object type (nested schema)
@@ -237,7 +237,7 @@ export function generateDataset(
     const collectionName = toSnakeCase(schema.name) + 's';
     const comma = i < schemas.length - 1 ? ',' : '';
 
-    lines.push(`  ${collectionName}: ${schema.recordCount} * ${schema.name}${comma}`);
+    lines.push(`  ${collectionName}: ${schema.recordCount} of ${schema.name}${comma}`);
   }
 
   lines.push('}');

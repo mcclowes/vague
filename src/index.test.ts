@@ -9,7 +9,7 @@ describe('vague tagged template', () => {
         name: string
       }
       dataset Test {
-        people: 3 * Person
+        people: 3 of Person
       }
     `;
 
@@ -24,7 +24,7 @@ describe('vague tagged template', () => {
         value: int
       }
       dataset Test {
-        items: ${count} * Item
+        items: ${count} of Item
       }
     `;
 
@@ -37,7 +37,7 @@ describe('vague tagged template', () => {
         age: int in 18..65
       }
       dataset Test {
-        people: 10 * Person
+        people: 10 of Person
       }
     `;
 
@@ -46,7 +46,7 @@ describe('vague tagged template', () => {
         age: int in 18..65
       }
       dataset Test {
-        people: 10 * Person
+        people: 10 of Person
       }
     `;
 
@@ -59,7 +59,7 @@ describe('vague tagged template', () => {
         age: int in 18..65
       }
       dataset Test {
-        people: 10 * Person
+        people: 10 of Person
       }
     `;
 
@@ -68,7 +68,7 @@ describe('vague tagged template', () => {
         age: int in 18..65
       }
       dataset Test {
-        people: 10 * Person
+        people: 10 of Person
       }
     `;
 
@@ -87,7 +87,7 @@ describe('vague tagged template', () => {
         status: "draft" | "sent" | "paid"
       }
       dataset Test {
-        invoices: 5 * Invoice
+        invoices: 5 of Invoice
       }
     `;
 
@@ -100,12 +100,12 @@ describe('vague tagged template', () => {
     const count = 3;
     const result1 = await vague({ seed: 99 })`
       schema Item { value: int in 1..100 }
-      dataset Test { items: ${count} * Item }
+      dataset Test { items: ${count} of Item }
     `;
 
     const result2 = await vague({ seed: 99 })`
       schema Item { value: int in 1..100 }
-      dataset Test { items: ${count} * Item }
+      dataset Test { items: ${count} of Item }
     `;
 
     expect(result1).toEqual(result2);

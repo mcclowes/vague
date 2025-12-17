@@ -31,7 +31,7 @@ Codebase Analysis Summary
 
 
 ## Core Language
-- [ ] **Conditional schema variants** - Add/remove fields based on type: `if type == "business" { companyNumber: string }`
+- [x] **Conditional fields** - Add/remove fields based on condition: `companyNumber: string when type == "business"`
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
 - [x] **Date arithmetic** - `due_date <= issued_date + date.days(90)`, duration functions: `date.days()`, `date.weeks()`, `date.months()`, `date.years()`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
@@ -39,7 +39,7 @@ Codebase Analysis Summary
 - [ ] Explore other keywords for fields, like unique
 - [ ] 'Match' syntax
 - [ ] Logging functionality generally
-- [ ]   winequality_reds: 1599 * WinequalityRed   - the use of multiplication for how many of an entity to generate for a dataset conflates that with mathematical operations. If we will allow further mathematical operations, thats great, but otherwise we should just say '  winequality_reds: 1599 of WinequalityRed'
+- [x] **Cardinality syntax** - Changed from `1599 * Schema` to `1599 of Schema` to avoid conflation with multiplication
 
 ## Dataset-Level Features
 
@@ -73,9 +73,10 @@ Codebase Analysis Summary
 
 ## Validation Mode (Dual-Use)
 
-- [ ] **Data ingestion validation** - `vague validate data.json --schema schema.vague` to validate real data against Vague schemas
-- [ ] **Reuse constraint engine** - Run `assume` constraints and `validate { }` blocks as assertions on external data
-- [ ] **Error reporting** - Report which records fail which constraints with clear messages
+- [x] **Data ingestion validation** - `vague --validate-data data.json --schema schema.vague` to validate real data against Vague schemas
+- [x] **Reuse constraint engine** - Run `assume` constraints as assertions on external data
+- [x] **Error reporting** - Report which records fail which constraints with clear messages
+- [ ] **Dataset-level validation** - Run `validate { }` blocks on external data (aggregate constraints)
 
 ## Code quality and organisation
 
@@ -156,7 +157,7 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **`then` blocks** - Side effects to mutate referenced records: `schema Payment { ... } then { invoice.status = "paid" }`
 - [x] **Ternary expressions** - `condition ? value : other` for conditional values
 - [x] **Logical operators in expressions** - `and`, `or`, `not` work everywhere (comparisons, ternaries, etc.)
-- [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) * Item` for conditional collection sizes
+- [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) of Item` for conditional collection sizes
 - [x] **Nullable fields** - `string?` and `int | null` syntax for fields that can be null
 - [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights: `0.7: int in 10..100 | 0.3: field`
 - [x] **Seed support** - `--seed 123` for reproducible generation

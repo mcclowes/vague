@@ -36,19 +36,19 @@ schema FMajorArpNote {
 
 // Collection schemas for the MIDI converter
 schema CMajorArp {
-  notes: 4 * CMajorArpNote
+  notes: 4 of CMajorArpNote
 }
 
 schema GMajorArp {
-  notes: 4 * GMajorArpNote
+  notes: 4 of GMajorArpNote
 }
 
 schema AMinorArp {
-  notes: 4 * AMinorArpNote
+  notes: 4 of AMinorArpNote
 }
 
 schema FMajorArp {
-  notes: 4 * FMajorArpNote
+  notes: 4 of FMajorArpNote
 }
 
 // =============================================================================
@@ -66,7 +66,7 @@ schema ChordToneMelody {
 }
 
 schema ChordTonePhrase {
-  notes: 4..6 * ChordToneMelody
+  notes: 4..6 of ChordToneMelody
 }
 
 // =============================================================================
@@ -86,24 +86,24 @@ schema ProgressionBassNote {
 
 // Simple C major arpeggios - notes play in ascending order
 dataset SimpleArpeggio {
-  phrases: 8 * CMajorArp
+  phrases: 8 of CMajorArp
 }
 
 // Pop chord progression with arpeggios (I-V-vi-IV)
 // Each arpeggio plays its notes in ascending order
 dataset PopArpeggios {
-  c_arps: 2 * CMajorArp,
-  g_arps: 2 * GMajorArp,
-  am_arps: 2 * AMinorArp,
-  f_arps: 2 * FMajorArp
+  c_arps: 2 of CMajorArp,
+  g_arps: 2 of GMajorArp,
+  am_arps: 2 of AMinorArp,
+  f_arps: 2 of FMajorArp
 }
 
 // Bass line following the progression
 dataset BassLine {
-  notes: 16 * ProgressionBassNote
+  notes: 16 of ProgressionBassNote
 }
 
 // Just melody (chord tones - random for musicality)
 dataset ChordToneMelodyDataset {
-  phrases: 4 * ChordTonePhrase
+  phrases: 4 of ChordTonePhrase
 }

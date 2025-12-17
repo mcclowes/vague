@@ -37,7 +37,7 @@ import { vague } from 'vague';
 
 const fixtures = await vague<TestFixtures>({ seed: 42 })`
   schema Invoice { ... }
-  dataset TestFixtures { invoices: 20 * Invoice }
+  dataset TestFixtures { invoices: 20 of Invoice }
 `;
 ```
 
@@ -82,8 +82,8 @@ Define an interface matching your dataset collections:
 
 ```typescript
 interface TestFixtures {
-  invoices: Invoice[];    // Matches: invoices: 20 * Invoice
-  lineItems: LineItem[];  // Matches: lineItems: 10 * LineItem
+  invoices: Invoice[];    // Matches: invoices: 20 of Invoice
+  lineItems: LineItem[];  // Matches: lineItems: 10 of LineItem
 }
 ```
 

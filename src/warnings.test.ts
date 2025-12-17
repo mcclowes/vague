@@ -13,7 +13,7 @@ describe('Warnings', () => {
           id: unique int in 1..3
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
 
@@ -40,7 +40,7 @@ describe('Warnings', () => {
           id: unique int in 1..100
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
 
@@ -61,7 +61,7 @@ describe('Warnings', () => {
           status: unique "a" | "b" | "c"
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
 
@@ -84,7 +84,7 @@ describe('Warnings', () => {
           id: unique int in 1..2
         }
         dataset Test {
-          items: 5 * X
+          items: 5 of X
         }
       `;
 
@@ -103,7 +103,7 @@ describe('Warnings', () => {
           code: unique "x" | "y"
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
 
@@ -128,7 +128,7 @@ describe('Warnings', () => {
           assume value > 100
         }
         dataset Test {
-          items: 1 * X
+          items: 1 of X
         }
       `;
 
@@ -149,7 +149,7 @@ describe('Warnings', () => {
           assume value == 5
         }
         dataset Test violating {
-          items: 1 * X
+          items: 1 of X
         }
       `;
 
@@ -169,7 +169,7 @@ describe('Warnings', () => {
           id: unique int in 1..2
         }
         dataset Test {
-          items: 10 * X
+          items: 10 of X
         }
       `;
 

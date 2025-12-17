@@ -48,8 +48,8 @@ founded: date in 2000..2023
 ## Cardinality (Collections)
 
 ```vague
-line_items: 1..5 * LineItem    // 1-5 items
-employees: 100 * Employee       // Exactly 100
+line_items: 1..5 of LineItem    // 1-5 items
+employees: 100 of Employee       // Exactly 100
 ```
 
 ## Unique Values
@@ -117,7 +117,7 @@ schema LineItem {
 
 ```vague
 schema Invoice {
-  line_items: 1..10 * LineItem,
+  line_items: 1..10 of LineItem,
 
   // Aggregates
   total: = sum(line_items.amount),
@@ -161,13 +161,13 @@ schema Order {
 ```vague
 schema Order {
   size: "small" | "large",
-  items: (size == "large" ? 5..10 : 1..3) * LineItem
+  items: (size == "large" ? 5..10 : 1..3) of LineItem
 }
 
 schema Shipment {
   is_bulk: boolean,
   is_priority: boolean,
-  packages: (is_bulk and is_priority ? 20..30 : 1..5) * Package
+  packages: (is_bulk and is_priority ? 20..30 : 1..5) of Package
 }
 ```
 
@@ -194,8 +194,8 @@ then {
 
 ```vague
 dataset TestData {
-  companies: 100 * Company,
-  invoices: 500 * Invoice
+  companies: 100 of Company,
+  invoices: 500 of Invoice
 }
 ```
 
@@ -203,8 +203,8 @@ dataset TestData {
 
 ```vague
 dataset TestData {
-  invoices: 100 * Invoice,
-  payments: 50 * Payment,
+  invoices: 100 of Invoice,
+  payments: 50 of Payment,
 
   validate {
     sum(invoices.total) >= 100000,
@@ -224,12 +224,12 @@ dataset TestData {
 ```vague
 // Normal dataset - satisfies constraints
 dataset Valid {
-  invoices: 100 * Invoice
+  invoices: 100 of Invoice
 }
 
 // Violating dataset - intentionally breaks constraints
 dataset Invalid violating {
-  bad_invoices: 100 * Invoice
+  bad_invoices: 100 of Invoice
 }
 ```
 
@@ -243,6 +243,6 @@ schema Pet from petstore.Pet {
 }
 
 dataset TestData {
-  pets: 50 * Pet
+  pets: 50 of Pet
 }
 ```

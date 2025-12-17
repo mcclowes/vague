@@ -125,9 +125,9 @@ schema Message {
   latest_reply: string?,
   is_starred: 0.05: true | 0.95: false,
   pinned_to: 0..2 * uuid(),
-  reactions: 0..5 * Reaction,
-  attachments: 0..3 * Attachment?,
-  blocks: 0..5 * Block?,
+  reactions: 0..5 of Reaction,
+  attachments: 0..3 of Attachment?,
+  blocks: 0..5 of Block?,
   edited_user: uuid()?,
   edited_ts: string?,
   bot_id: uuid()?,
@@ -144,7 +144,7 @@ schema ThreadReply {
   ts: faker.date.recent(),
   thread_ts: any of messages.ts,
   parent_user_id: uuid(),
-  reactions: 0..3 * Reaction?,
+  reactions: 0..3 of Reaction?,
   edited_user: uuid()?,
   edited_ts: string?
 }
@@ -254,18 +254,18 @@ schema Emoji {
 }
 
 dataset SlackTestData {
-  teams: 5 * Team,
-  users: 200 * User,
-  channels: 100 * Channel,
-  messages: 2000 * Message,
-  thread_replies: 500 * ThreadReply,
-  files: 300 * File,
-  apps: 20 * App,
-  bots: 15 * BotInfo,
-  usergroups: 30 * Usergroup,
-  reminders: 50 * Reminder,
-  bookmarks: 100 * Bookmark,
-  emojis: 50 * Emoji,
+  teams: 5 of Team,
+  users: 200 of User,
+  channels: 100 of Channel,
+  messages: 2000 of Message,
+  thread_replies: 500 of ThreadReply,
+  files: 300 of File,
+  apps: 20 of App,
+  bots: 15 of BotInfo,
+  usergroups: 30 of Usergroup,
+  reminders: 50 of Reminder,
+  bookmarks: 100 of Bookmark,
+  emojis: 50 of Emoji,
 
   validate {
     some(users, .deleted == false),

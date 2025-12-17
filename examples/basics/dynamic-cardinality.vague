@@ -9,7 +9,7 @@ schema Order {
   customer: string,
   size: "small" | "medium" | "large",
   is_priority: boolean,
-  items: (size == "large" ? 5..10 : size == "medium" ? 3..5 : 1..2) * LineItem,  // dynamic cardinality
+  items: (size == "large" ? 5..10 : size == "medium" ? 3..5 : 1..2) of LineItem,  // dynamic cardinality
   subtotal: = sum(items.unit_price),
   item_count: = count(items),
   shipping: = is_priority or size == "large" ? "express" : "standard"  // ternary with logical operators
@@ -18,7 +18,7 @@ schema Order {
 schema Shipment {
   order: any of orders,
   is_bulk: boolean,
-  packages: (is_bulk and order.is_priority ? 10..20 : 1..3) * Package
+  packages: (is_bulk and order.is_priority ? 10..20 : 1..3) of Package
 }
 
 schema Package {
@@ -27,8 +27,8 @@ schema Package {
 }
 
 dataset OrderData {
-  orders: 20 * Order,
-  shipments: 15 * Shipment,
+  orders: 20 of Order,
+  shipments: 15 of Shipment,
 
   validate {
     sum(orders.subtotal) >= 5000,

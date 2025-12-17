@@ -42,7 +42,7 @@ const vagueCode = inferSchema(data);
 | **Nullable** | Null presence | `string?` |
 | **Unique** | All values distinct | `unique int in 1000..9999` |
 | **Formats** | Pattern matching | `uuid()`, `email()`, `datetime()` |
-| **Arrays** | Array lengths | `1..5 * LineItem` |
+| **Arrays** | Array lengths | `1..5 of LineItem` |
 | **Nested** | Object structure | Separate schema definitions |
 
 ## Running the Example
@@ -117,15 +117,15 @@ schema Order {
   total: unique decimal in 53.9..5498.9,
   currency: "USD",
   placed_at: date in 2024..2024,
-  items: 1..2 * Item
+  items: 1..2 of Item
 }
 
 // ... events schema ...
 
 dataset Generated {
-  customers: 5 * Customer,
-  orders: 7 * Order,
-  events: 8 * Event
+  customers: 5 of Customer,
+  orders: 7 of Order,
+  events: 8 of Event
 }
 ```
 
@@ -167,9 +167,9 @@ schema Order {
 ```vague
 dataset TestFixtures {
   // Scale up for load testing
-  customers: 1000 * Customer,
-  orders: 5000 * Order,
-  events: 50000 * Event
+  customers: 1000 of Customer,
+  orders: 5000 of Order,
+  events: 50000 of Event
 }
 ```
 
@@ -177,7 +177,7 @@ dataset TestFixtures {
 
 ```vague
 schema Order {
-  items: 1..5 * Item,
+  items: 1..5 of Item,
   // Replace inferred field with computation
   subtotal: = sum(items.unit_price),
   tax: = round(subtotal * 0.1, 2),

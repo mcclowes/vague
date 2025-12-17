@@ -9,7 +9,7 @@ schema Invoice {
   id: unique int in 1000..9999,
   status: "draft" | "sent" | "paid",
   customerId: int in 1..100,
-  lineItems: 1..5 * LineItem,
+  lineItems: 1..5 of LineItem,
   subtotal: = round(sum(lineItems.amount), 2),
   taxRate: 0.2,
   tax: = round(subtotal * taxRate, 2),
@@ -17,6 +17,6 @@ schema Invoice {
 }
 
 dataset TestFixtures {
-  invoices: 20 * Invoice,
-  lineItems: 10 * LineItem
+  invoices: 20 of Invoice,
+  lineItems: 10 of LineItem
 }

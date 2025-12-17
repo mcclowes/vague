@@ -72,7 +72,7 @@ schema ArpeggioNote {
 }
 
 dataset Music {
-  notes: 8 * ArpeggioNote   // Produces: 48, 52, 55, 60, 48, 52, 55, 60
+  notes: 8 of ArpeggioNote   // Produces: 48, 52, 55, 60, 48, 52, 55, 60
 }
 
 // Works with any values
@@ -95,8 +95,8 @@ founded: date in 2000..2023
 
 ### Cardinality (Collections)
 ```vague
-line_items: 1..5 * LineItem    // 1-5 items
-employees: 100 * Employee       // Exactly 100
+line_items: 1..5 of LineItem    // 1-5 items
+employees: 100 of Employee       // Exactly 100
 ```
 
 ### Constraints
@@ -127,8 +127,8 @@ schema Invoice {
 
 ```vague
 dataset Test {
-  companies: 10 * Company,    // Generated first
-  invoices: 50 * Invoice      // Can reference companies
+  companies: 10 of Company,    // Generated first
+  invoices: 50 of Invoice      // Can reference companies
 }
 ```
 
@@ -144,7 +144,7 @@ schema LineItem {
 ### Computed Fields
 ```vague
 schema Invoice {
-  line_items: 1..10 * LineItem,
+  line_items: 1..10 of LineItem,
   total: = sum(line_items.amount),
   item_count: = count(line_items),
   avg_price: = avg(line_items.unit_price),
@@ -338,27 +338,49 @@ schema Order {
 }
 ```
 
+### Conditional Fields
+```vague
+schema Account {
+  type: "personal" | "business",
+  name: string,
+
+  // Field only exists when condition is true
+  companyNumber: string when type == "business",
+  taxId: string when type == "business"
+}
+// Output for personal: { "type": "personal", "name": "..." }
+// Output for business: { "type": "business", "name": "...", "companyNumber": "...", "taxId": "..." }
+
+schema Order {
+  size: "small" | "medium" | "large",
+
+  // Logical operators work in conditions
+  discount: decimal in 0.1..0.2 when size == "large",
+  premiumHandling: boolean when size == "large" or size == "medium"
+}
+```
+
 ### Dynamic Cardinality
 ```vague
 schema Order {
   size: "small" | "large",
   // Cardinality depends on field value
-  items: (size == "large" ? 5..10 : 1..3) * LineItem
+  items: (size == "large" ? 5..10 : 1..3) of LineItem
 }
 
 schema Shipment {
   is_bulk: boolean,
   is_priority: boolean,
   // Logical conditions in cardinality
-  packages: (is_bulk and is_priority ? 20..30 : 1..5) * Package
+  packages: (is_bulk and is_priority ? 20..30 : 1..5) of Package
 }
 ```
 
 ### Datasets
 ```vague
 dataset TestData {
-  companies: 100 * Company,
-  invoices: 500 * Invoice
+  companies: 100 of Company,
+  invoices: 500 of Invoice
 }
 ```
 
@@ -373,20 +395,20 @@ schema Invoice {
 
 // Normal dataset - all invoices satisfy constraints
 dataset Valid {
-  invoices: 100 * Invoice
+  invoices: 100 of Invoice
 }
 
 // Violating dataset - generates invoices where due_date < issued_date
 dataset Invalid violating {
-  bad_invoices: 100 * Invoice
+  bad_invoices: 100 of Invoice
 }
 ```
 
 ### Dataset-Level Constraints
 ```vague
 dataset TestData {
-  invoices: 100 * Invoice,
-  payments: 50 * Payment,
+  invoices: 100 of Invoice,
+  payments: 50 of Payment,
 
   validate {
     sum(invoices.total) >= 100000,
@@ -434,7 +456,7 @@ schema Pet from petstore.Pet {
 }
 
 dataset TestData {
-  pets: 50 * Pet
+  pets: 50 of Pet
 }
 ```
 
@@ -533,7 +555,7 @@ import { vague } from 'vague';
 // Basic usage
 const data = await vague`
   schema Person { name: string, age: int in 18..65 }
-  dataset Test { people: 10 * Person }
+  dataset Test { people: 10 of Person }
 `;
 
 // With seed for deterministic output
@@ -543,13 +565,13 @@ const fixtures = await vague({ seed: 42 })`
     status: "draft" | "sent" | "paid",
     total: decimal in 100..5000
   }
-  dataset Test { invoices: 20 * Invoice }
+  dataset Test { invoices: 20 of Invoice }
 `;
 
 // Interpolation support
 const count = 100;
 const data = await vague`
-  dataset Test { items: ${count} * Item }
+  dataset Test { items: ${count} of Item }
 `;
 ```
 
@@ -560,7 +582,7 @@ See `examples/vitest-fixtures/` for a complete example of using Vague as a seede
 ```typescript
 // fixtures.vague
 schema Invoice { id: unique int in 1000..9999, status: "draft" | "sent" | "paid" }
-dataset TestFixtures { invoices: 20 * Invoice }
+dataset TestFixtures { invoices: 20 of Invoice }
 
 // invoice.test.ts
 import { fromFile } from 'vague';
@@ -659,7 +681,7 @@ const vagueCode = inferSchema(data);
 // }
 //
 // dataset Generated {
-//   invoices: 3 * Invoice
+//   invoices: 3 of Invoice
 // }
 ```
 
@@ -709,17 +731,70 @@ inferSchema(data, {
 | Nullable | Null presence | `string?` |
 | Unique | All values distinct | `unique int in 1..100` |
 | Formats | Pattern matching | `uuid()`, `email()`, etc. |
-| Arrays | Array lengths | `1..5 * Item` |
+| Arrays | Array lengths | `1..5 of Item` |
 | Nested | Object structure | Separate schema definitions |
 | Derived fields | Correlation analysis | `total: = round(qty * price, 2)` |
 | Ordering | Date/value patterns | `assume end >= start` |
 | Conditionals | Value co-occurrence | `assume if status == "paid" { amount > 0 }` |
 
+### Data Validation (Dual-Use)
+
+Validate real-world data against Vague schema constraints:
+
+```bash
+# Validate JSON data against a Vague schema
+node dist/cli.js --validate-data data.json --schema schema.vague
+
+# With explicit collection-to-schema mapping
+node dist/cli.js --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+```
+
+The validator runs all `assume` constraints defined in the schema against each record in the data:
+
+```vague
+schema Invoice {
+  amount: decimal,
+  status: string,
+
+  assume amount > 0,
+  assume if status == "paid" {
+    amount >= 100
+  }
+}
+```
+
+**Output:**
+```
+Loaded schemas: Invoice
+Auto-detected mapping: {"invoices":"Invoice"}
+✓ invoices (100 records) - all constraints satisfied
+
+Validation summary: 100/100 records valid
+```
+
+**TypeScript API:**
+```typescript
+import { DataValidator } from 'vague';
+
+const validator = new DataValidator();
+validator.loadSchema(vagueSource);
+
+// Validate single record
+const errors = validator.validateRecord('Invoice', { amount: 150, status: 'paid' }, 0);
+
+// Validate collection
+const result = validator.validateCollection('Invoice', invoices);
+// result.valid, result.errors, result.recordsValidated, result.recordsFailed
+
+// Validate entire dataset
+const datasetResult = validator.validateDataset(data, { invoices: 'Invoice' });
+```
+
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 626 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
+Currently 644 tests covering lexer, parser, generator, validator, data validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
 
 ## Architecture Notes
 
@@ -902,7 +977,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Side effects (`then { }` blocks for mutating referenced objects)
 - [x] Ternary expressions (`condition ? value : other`)
 - [x] Logical operators in expressions (`and`, `or`, `not`)
-- [x] Dynamic cardinality (`(condition ? 5..10 : 1..3) * Item`)
+- [x] Dynamic cardinality (`(condition ? 5..10 : 1..3) of Item`)
 - [x] Nullable fields (`string?`, `int | null`)
 - [x] Mixed superposition (`int in 10..500 | field.ref`, weighted: `0.7: int in 10..100 | 0.3: field`)
 - [x] Seeded generation (`--seed 123` for reproducible output)
@@ -927,6 +1002,8 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] CSV output format (`-f csv`, `--csv-delimiter`, `--csv-arrays`, `--csv-nested`)
 - [x] CSV input for schema inference (`--infer data.csv`, `--collection-name`, `--infer-delimiter`)
 - [x] Correlation detection in inference (derived fields, ordering constraints, conditional constraints)
+- [x] Data validation mode (`--validate-data` CLI option to validate external data against Vague schemas)
+- [x] Conditional fields (`field: type when condition` - field only exists when condition is true)
 
 See TODO.md for planned features.
 

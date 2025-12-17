@@ -8,7 +8,7 @@ schema LineItem {
 schema Invoice {
   customer_name: string,
   notes: string | null,  // explicit nullable
-  line_items: 2..5 * LineItem,
+  line_items: 2..5 of LineItem,
   item_count: = count(line_items),  // computed fields
   subtotal: = sum(line_items.unit_price),
   min_price: = min(line_items.unit_price),
@@ -17,5 +17,5 @@ schema Invoice {
 }
 
 dataset TestData {
-  invoices: 2..10 * Invoice
+  invoices: 2..10 of Invoice
 }

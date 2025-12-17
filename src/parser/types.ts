@@ -219,7 +219,7 @@ export class TypeParser extends ExpressionParser {
       perParent = this.parseQualifiedName();
     }
 
-    this.consume(TokenType.STAR, "Expected '*'");
+    this.consume(TokenType.OF, "Expected 'of'");
     const elementType = this.parseFieldType();
 
     return {
@@ -265,7 +265,7 @@ export class TypeParser extends ExpressionParser {
     const next = this.peek().type;
     this.restorePosition(saved);
 
-    return next === TokenType.STAR || next === TokenType.DOTDOT || next === TokenType.PER;
+    return next === TokenType.OF || next === TokenType.DOTDOT || next === TokenType.PER;
   }
 
   private isWeightedSuperposition(): boolean {
@@ -293,7 +293,7 @@ export class TypeParser extends ExpressionParser {
   }
 
   private isDynamicCardinality(): boolean {
-    // Look ahead for ) * pattern indicating dynamic cardinality
+    // Look ahead for ) of pattern indicating dynamic cardinality
     const saved = this.savePosition();
     let depth = 0;
 
@@ -307,7 +307,7 @@ export class TypeParser extends ExpressionParser {
           this.advance();
           const afterParen = this.peek().type;
           this.restorePosition(saved);
-          return afterParen === TokenType.STAR || afterParen === TokenType.PER;
+          return afterParen === TokenType.OF || afterParen === TokenType.PER;
         }
       }
       this.advance();

@@ -44,7 +44,7 @@ schema Order {
   total: unique decimal in 53.9..5498.9,
   currency: "USD",
   placed_at: date in 2024..2024,
-  items: 1..2 * Item
+  items: 1..2 of Item
 }
 
 schema Event {
@@ -56,10 +56,10 @@ schema Event {
 }
 
 dataset Generated {
-  addresss: 5 * Address,
-  items: 8 * Item,
-  propertiess: 8 * Properties,
-  customers: 5 * Customer,
-  orders: 7 * Order,
-  events: 8 * Event
+  addresss: 5 of Address,
+  items: 8 of Item,
+  propertiess: 8 of Properties,
+  customers: 5 of Customer,
+  orders: 7 of Order,
+  events: 8 of Event
 }

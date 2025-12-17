@@ -18,8 +18,8 @@ schema Payment {
 }
 
 dataset FinancialData {
-  invoices: 50 * Invoice,
-  payments: 40 * Payment,
+  invoices: 50 of Invoice,
+  payments: 40 of Payment,
 
   validate {
     sum(invoices.total) >= 15000,
