@@ -53,7 +53,6 @@
 ## Output & Tooling
 
 - [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
-- [ ] **Watch mode** - Regenerate on file change
 - [ ] **Better error messages** - Parse error locations and suggestions
 - [ ] **LSP server** - Language server for editor support
 
@@ -138,3 +137,4 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **OpenAPI example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
 - [x] **String transformations** - `uppercase()`, `lowercase()`, `capitalize()`, `kebabCase()`, `snakeCase()`, `camelCase()`, `trim()`, `concat()`, `substring()`, `replace()`, `length()`
 - [x] **Mixed weighted/unweighted superposition** - `0.85: "Active" | "Archived"` where unweighted options share remaining probability
+- [x] **Watch mode** - `-w/--watch` flag to regenerate output on file change

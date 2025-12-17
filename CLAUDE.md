@@ -25,6 +25,7 @@ npm run build    # Compile TypeScript
 npm test         # Run tests (vitest)
 npm run dev      # Watch mode compilation
 node dist/cli.js <file.vague>  # Run CLI
+node dist/cli.js <file.vague> -o output.json -w  # Watch mode - regenerate on file change
 node dist/cli.js <file.vague> -v <openapi.json> -m '{"collection": "Schema"}'  # With validation
 ```
 
@@ -748,6 +749,7 @@ See `src/plugins/faker.ts` and `src/plugins/issuer.ts` for complete examples of 
 - [x] Tagged template API (`vague\`...\``, `vague({ seed: 42 })\`...\``)
 - [x] String transformations (`uppercase`, `lowercase`, `capitalize`, `kebabCase`, `snakeCase`, `camelCase`, `trim`, `concat`, `substring`, `replace`, `length`)
 - [x] Schema inference from JSON data (`inferSchema()`, `--infer` CLI option)
+- [x] Watch mode (`-w/--watch` for regenerating output on file change)
 
 See TODO.md for planned features.
 
