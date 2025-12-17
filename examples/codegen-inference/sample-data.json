@@ -1,0 +1,257 @@
+{
+  "customers": [
+    {
+      "id": "cust_a1b2c3d4e5f6",
+      "email": "alice.johnson@techcorp.io",
+      "name": "Alice Johnson",
+      "tier": "enterprise",
+      "created_at": "2023-01-15T09:30:00Z",
+      "lifetime_value": 12500.00,
+      "is_active": true,
+      "address": {
+        "city": "San Francisco",
+        "country": "US",
+        "postal_code": "94102"
+      }
+    },
+    {
+      "id": "cust_b2c3d4e5f6g7",
+      "email": "bob.smith@startup.co",
+      "name": "Bob Smith",
+      "tier": "growth",
+      "created_at": "2023-03-22T14:15:00Z",
+      "lifetime_value": 3200.50,
+      "is_active": true,
+      "address": {
+        "city": "Austin",
+        "country": "US",
+        "postal_code": "78701"
+      }
+    },
+    {
+      "id": "cust_c3d4e5f6g7h8",
+      "email": "carol.white@agency.com",
+      "name": "Carol White",
+      "tier": "starter",
+      "created_at": "2023-06-10T11:00:00Z",
+      "lifetime_value": 450.00,
+      "is_active": false,
+      "address": {
+        "city": "New York",
+        "country": "US",
+        "postal_code": "10001"
+      }
+    },
+    {
+      "id": "cust_d4e5f6g7h8i9",
+      "email": "david.lee@enterprise.org",
+      "name": "David Lee",
+      "tier": "enterprise",
+      "created_at": "2022-11-05T16:45:00Z",
+      "lifetime_value": 28750.00,
+      "is_active": true,
+      "address": {
+        "city": "Seattle",
+        "country": "US",
+        "postal_code": "98101"
+      }
+    },
+    {
+      "id": "cust_e5f6g7h8i9j0",
+      "email": "emma.davis@freelance.io",
+      "name": "Emma Davis",
+      "tier": "starter",
+      "created_at": "2024-01-20T08:30:00Z",
+      "lifetime_value": 150.00,
+      "is_active": true,
+      "address": {
+        "city": "Portland",
+        "country": "US",
+        "postal_code": "97201"
+      }
+    }
+  ],
+  "orders": [
+    {
+      "order_id": "ord_001",
+      "customer_id": "cust_a1b2c3d4e5f6",
+      "status": "completed",
+      "payment_method": "card",
+      "subtotal": 2499.00,
+      "tax": 249.90,
+      "total": 2748.90,
+      "currency": "USD",
+      "placed_at": "2024-01-10T10:30:00Z",
+      "items": [
+        { "sku": "PLAN-ENT-ANNUAL", "name": "Enterprise Plan (Annual)", "quantity": 1, "unit_price": 2499.00 }
+      ]
+    },
+    {
+      "order_id": "ord_002",
+      "customer_id": "cust_b2c3d4e5f6g7",
+      "status": "completed",
+      "payment_method": "card",
+      "subtotal": 799.00,
+      "tax": 79.90,
+      "total": 878.90,
+      "currency": "USD",
+      "placed_at": "2024-01-12T15:45:00Z",
+      "items": [
+        { "sku": "PLAN-GRO-ANNUAL", "name": "Growth Plan (Annual)", "quantity": 1, "unit_price": 799.00 }
+      ]
+    },
+    {
+      "order_id": "ord_003",
+      "customer_id": "cust_a1b2c3d4e5f6",
+      "status": "completed",
+      "payment_method": "invoice",
+      "subtotal": 500.00,
+      "tax": 50.00,
+      "total": 550.00,
+      "currency": "USD",
+      "placed_at": "2024-02-01T09:00:00Z",
+      "items": [
+        { "sku": "ADDON-SEATS-10", "name": "Additional Seats (10)", "quantity": 1, "unit_price": 500.00 }
+      ]
+    },
+    {
+      "order_id": "ord_004",
+      "customer_id": "cust_c3d4e5f6g7h8",
+      "status": "refunded",
+      "payment_method": "card",
+      "subtotal": 99.00,
+      "tax": 9.90,
+      "total": 108.90,
+      "currency": "USD",
+      "placed_at": "2024-01-25T11:30:00Z",
+      "items": [
+        { "sku": "PLAN-START-MONTH", "name": "Starter Plan (Monthly)", "quantity": 1, "unit_price": 99.00 }
+      ]
+    },
+    {
+      "order_id": "ord_005",
+      "customer_id": "cust_d4e5f6g7h8i9",
+      "status": "completed",
+      "payment_method": "invoice",
+      "subtotal": 4999.00,
+      "tax": 499.90,
+      "total": 5498.90,
+      "currency": "USD",
+      "placed_at": "2024-02-15T14:00:00Z",
+      "items": [
+        { "sku": "PLAN-ENT-ANNUAL", "name": "Enterprise Plan (Annual)", "quantity": 1, "unit_price": 2499.00 },
+        { "sku": "ADDON-SEATS-50", "name": "Additional Seats (50)", "quantity": 1, "unit_price": 2500.00 }
+      ]
+    },
+    {
+      "order_id": "ord_006",
+      "customer_id": "cust_e5f6g7h8i9j0",
+      "status": "pending",
+      "payment_method": "card",
+      "subtotal": 49.00,
+      "tax": 4.90,
+      "total": 53.90,
+      "currency": "USD",
+      "placed_at": "2024-03-01T08:15:00Z",
+      "items": [
+        { "sku": "PLAN-START-MONTH", "name": "Starter Plan (Monthly)", "quantity": 1, "unit_price": 49.00 }
+      ]
+    },
+    {
+      "order_id": "ord_007",
+      "customer_id": "cust_b2c3d4e5f6g7",
+      "status": "completed",
+      "payment_method": "card",
+      "subtotal": 199.00,
+      "tax": 19.90,
+      "total": 218.90,
+      "currency": "USD",
+      "placed_at": "2024-03-05T16:30:00Z",
+      "items": [
+        { "sku": "ADDON-STORAGE-100GB", "name": "Storage Add-on (100GB)", "quantity": 1, "unit_price": 199.00 }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440001",
+      "type": "page_view",
+      "user_id": "cust_a1b2c3d4e5f6",
+      "timestamp": "2024-03-10T10:15:32.456Z",
+      "properties": {
+        "page": "/dashboard",
+        "referrer": "https://google.com"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440002",
+      "type": "feature_used",
+      "user_id": "cust_a1b2c3d4e5f6",
+      "timestamp": "2024-03-10T10:16:45.123Z",
+      "properties": {
+        "feature": "report_export",
+        "format": "pdf"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440003",
+      "type": "page_view",
+      "user_id": "cust_b2c3d4e5f6g7",
+      "timestamp": "2024-03-10T11:00:00.000Z",
+      "properties": {
+        "page": "/settings",
+        "referrer": null
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440004",
+      "type": "subscription_upgraded",
+      "user_id": "cust_b2c3d4e5f6g7",
+      "timestamp": "2024-03-10T11:05:12.789Z",
+      "properties": {
+        "from_plan": "starter",
+        "to_plan": "growth"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440005",
+      "type": "page_view",
+      "user_id": "cust_d4e5f6g7h8i9",
+      "timestamp": "2024-03-10T14:30:00.000Z",
+      "properties": {
+        "page": "/analytics",
+        "referrer": "https://slack.com"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440006",
+      "type": "feature_used",
+      "user_id": "cust_d4e5f6g7h8i9",
+      "timestamp": "2024-03-10T14:32:15.000Z",
+      "properties": {
+        "feature": "api_access",
+        "endpoint": "/v1/reports"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440007",
+      "type": "page_view",
+      "user_id": "cust_e5f6g7h8i9j0",
+      "timestamp": "2024-03-10T16:00:00.000Z",
+      "properties": {
+        "page": "/onboarding",
+        "referrer": "https://twitter.com"
+      }
+    },
+    {
+      "event_id": "evt_550e8400-e29b-41d4-a716-446655440008",
+      "type": "subscription_cancelled",
+      "user_id": "cust_c3d4e5f6g7h8",
+      "timestamp": "2024-03-11T09:00:00.000Z",
+      "properties": {
+        "reason": "too_expensive",
+        "feedback": "Will reconsider when budget allows"
+      }
+    }
+  ]
+}
