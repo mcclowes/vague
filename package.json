@@ -31,7 +31,7 @@
     "generator",
     "dsl"
   ],
-  "author": "",
+  "author": "Max Clayton Clowes <max@mcclowes.com>",
   "license": "ISC",
   "description": "A declarative language for generating realistic test data",
   "devDependencies": {
