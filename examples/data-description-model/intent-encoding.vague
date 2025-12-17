@@ -1,0 +1,72 @@
+// Intent Encoding: Describing realistic data distributions
+//
+// Unlike random generators, Vague lets you encode the *intent* behind
+// your data — how it's actually distributed in production.
+
+schema User {
+  id: uuid(),
+  email: email(),
+
+  // Intent: 80% of users are active (realistic churn rate)
+  status: 0.8: "active" | 0.15: "inactive" | 0.05: "suspended",
+
+  // Intent: Most users are on free tier (freemium model)
+  plan: 0.7: "free" | 0.2: "pro" | 0.08: "enterprise" | 0.02: "legacy",
+
+  // Intent: Age follows normal distribution (realistic demographics)
+  age: gaussian(35, 12, 18, 80),
+
+  // Intent: Most signups are recent (growth curve)
+  signup_date: datetime(2020, 2024),
+
+  // Intent: Verification varies by plan (business logic)
+  verified: plan == "enterprise" ? true : (0.6: true | 0.4: false)
+}
+
+schema Order {
+  id: sequence("ORD-", 10001),
+  user: any of users where .status == "active",
+
+  // Intent: Order sizes follow real e-commerce patterns
+  item_count: 0.5: 1 | 0.3: 2 | 0.15: int in 3..5 | 0.05: int in 6..20,
+
+  // Intent: Most orders succeed (healthy checkout flow)
+  status: 0.85: "completed" | 0.08: "pending" | 0.05: "cancelled" | 0.02: "refunded",
+
+  // Intent: Prices follow log-normal (few high-value orders)
+  total: lognormal(4.5, 0.8, 10, 5000),
+
+  // Intent: Payment methods reflect market share
+  payment_method: 0.45: "card" | 0.30: "paypal" | 0.15: "apple_pay" | 0.10: "bank_transfer"
+}
+
+schema SupportTicket {
+  id: uuid(),
+  user: any of users,
+  order: any of orders?,
+
+  // Intent: Priority distribution (most issues are low priority)
+  priority: 0.6: "low" | 0.3: "medium" | 0.08: "high" | 0.02: "urgent",
+
+  // Intent: Category reflects actual support volume
+  category: 0.35: "billing" | 0.25: "technical" | 0.20: "shipping" | 0.15: "returns" | 0.05: "other",
+
+  // Intent: Resolution time depends on priority (business SLA)
+  resolution_hours: priority == "urgent" ? int in 1..4 :
+                    priority == "high" ? int in 4..24 :
+                    priority == "medium" ? int in 24..72 :
+                    int in 72..168
+}
+
+dataset RealisticTestData {
+  users: 1000 of User,
+  orders: 5000 of Order,
+  tickets: 200 of SupportTicket,
+
+  validate {
+    // Verify our intent was captured
+    some(users, .plan == "enterprise"),
+    some(orders, .status == "refunded"),
+    all(orders, .total >= 10)
+  }
+}
