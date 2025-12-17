@@ -179,4 +179,6 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **Private fields** - `age: private int` generated but excluded from output
 - [x] **Date plugin** - `date.weekday()`, `date.weekend()`, `date.dayOfWeek()` for day-of-week filtering
 - [x] **Schema inference** - `inferSchema()` and `--infer` CLI option to reverse-engineer schemas from JSON
+- [x] **Correlation detection** - Automatically infer derived fields (`= qty * price`), ordering constraints (`assume end >= start`), and conditional constraints from data patterns
+- [x] **CSV inference** - `--infer data.csv` with `--infer-delimiter` and `--collection-name` options
 - [x] **Date arithmetic** - `date.days()`, `date.weeks()`, `date.months()`, `date.years()` duration functions with `+`/`-` operators

@@ -703,6 +703,7 @@ inferSchema(data, {
 |---------|-----------------|--------------|
 | Types | Value analysis | `int`, `decimal`, `string`, `date`, `boolean` |
 | Ranges | Min/max values | `int in 18..65` |
+| Precision | Bounds analysis | `decimal(2) in 0.99..9.99` |
 | Enums | Distinct value count | `"a" \| "b" \| "c"` |
 | Weights | Value frequency | `0.7: "paid" \| 0.3: "draft"` |
 | Nullable | Null presence | `string?` |
@@ -710,12 +711,15 @@ inferSchema(data, {
 | Formats | Pattern matching | `uuid()`, `email()`, etc. |
 | Arrays | Array lengths | `1..5 * Item` |
 | Nested | Object structure | Separate schema definitions |
+| Derived fields | Correlation analysis | `total: = round(qty * price, 2)` |
+| Ordering | Date/value patterns | `assume end >= start` |
+| Conditionals | Value co-occurrence | `assume if status == "paid" { amount > 0 }` |
 
 ## Testing
 
 Tests are colocated with source files (`*.test.ts`). Run with `npm test`.
 
-Currently 534 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, CLI, and examples.
+Currently 626 tests covering lexer, parser, generator, validator, OpenAPI populator, schema inference, correlation detection, CLI, and examples.
 
 ## Architecture Notes
 
@@ -922,6 +926,7 @@ See `src/plugins/faker.ts`, `src/plugins/issuer.ts`, and `src/plugins/date.ts` f
 - [x] Date arithmetic (`date.days()`, `date.weeks()`, `date.months()`, `date.years()` with `+`/`-` operators)
 - [x] CSV output format (`-f csv`, `--csv-delimiter`, `--csv-arrays`, `--csv-nested`)
 - [x] CSV input for schema inference (`--infer data.csv`, `--collection-name`, `--infer-delimiter`)
+- [x] Correlation detection in inference (derived fields, ordering constraints, conditional constraints)
 
 See TODO.md for planned features.
 
