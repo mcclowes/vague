@@ -17,6 +17,7 @@ src/
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
 ├── plugins/     # Built-in plugins (faker, issuer, date, regex)
+├── spectral/    # OpenAPI linting with Spectral
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -129,6 +130,8 @@ const data = await vague({ seed: 42 })`...`;
 | `-m, --mapping <json>` | Schema mapping |
 | `--infer <file>` | Infer schema from JSON/CSV |
 | `--oas-source/--oas-output` | OpenAPI example population |
+| `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
+| `--lint-verbose` | Show detailed lint results |
 | `--debug` | Enable debug logging |
 | `--plugins <dir>` | Load plugins from directory |
 
@@ -146,6 +149,35 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
 
 # Populate OpenAPI with examples
 node dist/cli.js data.vague --oas-output api.json --oas-source api.json
+```
+
+## OpenAPI Linting (Spectral)
+
+Lint OpenAPI specs before using them with Vague:
+
+```bash
+# Lint an OpenAPI spec
+node dist/cli.js --lint-spec openapi.json
+
+# Lint with verbose output (includes hints)
+node dist/cli.js --lint-spec openapi.yaml --lint-verbose
+
+# Using npm script
+npm run lint:spec openapi.json
+```
+
+Programmatic API:
+
+```typescript
+import { lintOpenAPISpec, SpectralLinter } from 'vague';
+
+// Simple function
+const result = await lintOpenAPISpec('openapi.json');
+
+// Class-based for multiple files
+const linter = new SpectralLinter();
+const result = await linter.lint('openapi.json');
+const result2 = await linter.lintContent(jsonString, 'json');
 ```
 
 ## Schema Inference

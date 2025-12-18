@@ -32,6 +32,7 @@ import {
   enableDebug,
   setTimestamps,
 } from './logging/index.js';
+import { lintOpenAPISpec, formatLintResults } from './spectral/index.js';
 
 // Create CLI logger
 const log = createLogger('cli');
@@ -109,6 +110,10 @@ OpenAPI Example Population:
   --oas-external           Use external file references instead of inline examples
   --oas-example-count <n>  Number of examples per schema (default: 1)
 
+OpenAPI Linting (Spectral):
+  --lint-spec <file>       Lint an OpenAPI spec file with Spectral rules
+  --lint-verbose           Show detailed lint results including hints
+
 Examples:
   vague schema.vague -o output.json -p
   vague schema.vague -s 12345                 # Reproducible output
@@ -134,6 +139,10 @@ Examples:
 
   # Validate data against Vague schema
   vague --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+
+  # Lint an OpenAPI spec with Spectral
+  vague --lint-spec openapi.json
+  vague --lint-spec openapi.yaml --lint-verbose
 
   # Use custom config file
   vague schema.vague -c ./custom-config.js
@@ -203,6 +212,10 @@ Configuration File (vague.config.js):
   const pluginDirs: string[] = [];
   let autoPlugins = true;
   let verbose = false;
+
+  // Spectral linting options
+  let lintSpecFile: string | null = null;
+  let lintVerbose = false;
 
   for (let i = 0; i < args.length; i++) {
     // Handle --infer flag first
@@ -322,6 +335,10 @@ Configuration File (vague.config.js):
       autoPlugins = false;
     } else if (args[i] === '--verbose') {
       verbose = true;
+    } else if (args[i] === '--lint-spec') {
+      lintSpecFile = args[++i];
+    } else if (args[i] === '--lint-verbose') {
+      lintVerbose = true;
     }
   }
 
@@ -394,6 +411,25 @@ Configuration File (vague.config.js):
   }
 
   try {
+    // Handle Spectral linting mode
+    if (lintSpecFile) {
+      console.error(`Linting OpenAPI spec: ${lintSpecFile}`);
+      const lintResult = await lintOpenAPISpec(resolve(lintSpecFile));
+
+      console.error(formatLintResults(lintResult, lintVerbose));
+
+      if (!lintResult.valid) {
+        console.error('\nSpec has linting errors.');
+        process.exit(1);
+      } else if (lintResult.warningCount > 0) {
+        console.error('\nSpec passed with warnings.');
+        process.exit(0);
+      } else {
+        console.error('\nSpec passed linting.');
+        process.exit(0);
+      }
+    }
+
     // Handle schema inference mode
     if (inferFile) {
       const fileContent = readFileSync(resolve(inferFile), 'utf-8');
