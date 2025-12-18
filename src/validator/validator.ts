@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import Ajv from 'ajv';
+import Ajv, { type ErrorObject as AjvErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { readFileSync } from 'node:fs';
@@ -25,26 +24,26 @@ export interface CollectionValidationResult {
   result: ValidationResult;
 }
 
-interface ErrorObject {
-  instancePath: string;
-  message?: string;
-  keyword: string;
-  params: Record<string, unknown>;
-}
+type JsonSchema = Record<string, unknown>;
 
 export class SchemaValidator {
+  // Ajv instance - typed as any due to ESM/CJS interop complexity
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private ajv: any;
-  private schemas: Map<string, object> = new Map();
+  private schemas: Map<string, JsonSchema> = new Map();
   private openApiDoc: OpenAPIV3.Document | null = null;
 
   constructor() {
-    // Handle default export variations
+    // Handle ESM/CJS interop for Ajv
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const AjvConstructor = (Ajv as any).default || Ajv;
     this.ajv = new AjvConstructor({
       allErrors: true,
       strict: false,
       validateFormats: true,
     });
+    // Handle ESM/CJS interop for ajv-formats
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addFormatsFunc = (addFormats as any).default || addFormats;
     addFormatsFunc(this.ajv);
   }
@@ -97,17 +96,17 @@ export class SchemaValidator {
    * Uses a depth limit to prevent stack overflow on deep/circular refs
    */
   private resolveRefs(
-    schema: any,
+    schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject | unknown,
     allSchemas: Record<string, OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject>,
     depth: number = 0
   ): OpenAPIV3.SchemaObject {
     // Limit recursion depth to prevent stack overflow
     if (depth > 10 || !schema || typeof schema !== 'object') {
-      return schema;
+      return schema as OpenAPIV3.SchemaObject;
     }
 
-    if ('$ref' in schema) {
-      const refPath = schema.$ref as string;
+    if ('$ref' in (schema as OpenAPIV3.ReferenceObject)) {
+      const refPath = (schema as OpenAPIV3.ReferenceObject).$ref;
 
       // Extract schema name from #/components/schemas/Name
       const match = refPath.match(/#\/components\/schemas\/(.+)/);
@@ -119,26 +118,42 @@ export class SchemaValidator {
         }
       }
       // Can't resolve, return empty object
-      return {};
+      return {} as OpenAPIV3.SchemaObject;
     }
 
-    const resolved: any = Array.isArray(schema) ? [] : {};
+    // Handle arrays differently from objects
+    if (Array.isArray(schema)) {
+      return schema.map((item) =>
+        this.resolveRefs(
+          item as OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+          allSchemas,
+          depth + 1
+        )
+      ) as unknown as OpenAPIV3.SchemaObject;
+    }
 
-    for (const [key, value] of Object.entries(schema)) {
+    const schemaObj = schema as Record<string, unknown>;
+    const resolved: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(schemaObj)) {
       if (typeof value === 'object' && value !== null) {
-        resolved[key] = this.resolveRefs(value, allSchemas, depth + 1);
+        resolved[key] = this.resolveRefs(
+          value as OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+          allSchemas,
+          depth + 1
+        );
       } else {
         resolved[key] = value;
       }
     }
 
-    return resolved;
+    return resolved as OpenAPIV3.SchemaObject;
   }
 
   /**
    * Load a JSON Schema directly
    */
-  loadSchema(name: string, schema: object): void {
+  loadSchema(name: string, schema: JsonSchema): void {
     this.schemas.set(name, schema);
   }
 
@@ -269,7 +284,7 @@ export class SchemaValidator {
   /**
    * Convert OpenAPI schema to JSON Schema format
    */
-  private openApiToJsonSchema(schema: OpenAPIV3.SchemaObject, name: string): object {
+  private openApiToJsonSchema(schema: OpenAPIV3.SchemaObject, name: string): JsonSchema {
     const jsonSchema: Record<string, unknown> = {
       $id: `#/schemas/${name}`,
       type: schema.type || 'object',
@@ -364,7 +379,7 @@ export class SchemaValidator {
     return prop;
   }
 
-  private formatErrors(errors: ErrorObject[], prefix = ''): ValidationError[] {
+  private formatErrors(errors: AjvErrorObject[], prefix = ''): ValidationError[] {
     return errors.map((err) => ({
       path: prefix + (err.instancePath || ''),
       message: err.message || 'Validation failed',
