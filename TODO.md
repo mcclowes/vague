@@ -17,7 +17,7 @@ Codebase Analysis Summary
   | Issue                           | Location                                   | Recommendation                                                      |
   |---------------------------------|--------------------------------------------|---------------------------------------------------------------------|
   | ~~Generator.ts is 1215 lines~~  | ~~src/interpreter/generator.ts~~           | ✅ Extracted builtins/ modules                                       |
-  | Context lifecycle unclear       | context.ts                                 | Add explicit reset() method, clarify when state clears              |
+  | ~~Context lifecycle unclear~~   | ~~context.ts~~                             | ✅ Added resetContext() and resetContextFull() methods with docs     |
   | Collection iteration duplicated | generator.ts:872-901, predicate.ts:26-78   | Extract shared mapCollectionItems() utility                         |
   | Format detection in 3 places    | generator.ts, faker.ts, format-detector.ts | Unify into format registry                                          |
 
