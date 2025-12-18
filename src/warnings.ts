@@ -6,7 +6,8 @@ export type WarningType =
   | 'UniqueValueExhaustion'
   | 'ConstraintRetryLimit'
   | 'ConstraintEvaluationError'
-  | 'MutationTargetNotFound';
+  | 'MutationTargetNotFound'
+  | 'UnknownFieldInImportedSchema';
 
 export interface VagueWarning {
   type: WarningType;
@@ -51,6 +52,16 @@ export interface ConstraintEvaluationErrorWarning extends VagueWarning {
 export interface MutationTargetNotFoundWarning extends VagueWarning {
   type: 'MutationTargetNotFound';
   schema: string;
+}
+
+/**
+ * Warning for when a schema extends an imported schema but adds fields not in the original
+ */
+export interface UnknownFieldInImportedSchemaWarning extends VagueWarning {
+  type: 'UnknownFieldInImportedSchema';
+  schema: string;
+  field: string;
+  importedFrom: string;
 }
 
 /**
@@ -146,5 +157,22 @@ export function createMutationTargetNotFoundWarning(schema: string): MutationTar
     type: 'MutationTargetNotFound',
     message: `Could not resolve mutation target in schema '${schema}'.`,
     schema,
+  };
+}
+
+/**
+ * Helper to create an UnknownFieldInImportedSchemaWarning
+ */
+export function createUnknownFieldWarning(
+  schema: string,
+  field: string,
+  importedFrom: string
+): UnknownFieldInImportedSchemaWarning {
+  return {
+    type: 'UnknownFieldInImportedSchema',
+    message: `Field '${field}' in schema '${schema}' does not exist in imported schema '${importedFrom}'. This field will be added to the output but is not part of the original OpenAPI schema.`,
+    schema,
+    field,
+    importedFrom,
   };
 }

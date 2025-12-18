@@ -114,6 +114,72 @@ The CLI auto-detects collection-to-schema mappings:
 - Plural to singular: `invoices` → `Invoice`
 - snake_case to PascalCase: `line_items` → `LineItem`
 
+## Data Validation
+
+Validate external JSON data against a Vague schema:
+
+```bash
+# Validate data against Vague schema constraints
+node dist/cli.js --validate-data data.json --schema schema.vague
+
+# With mapping for collection names
+node dist/cli.js --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+```
+
+Options:
+- `--validate-data <file>`: JSON data file to validate
+- `--schema <file>`: Vague schema file with constraints
+
+## TypeScript Generation
+
+Generate TypeScript type definitions from inferred schemas:
+
+```bash
+# Infer schema with TypeScript definitions
+node dist/cli.js --infer data.json -o schema.vague --typescript
+# Outputs: schema.vague and schema.vague.d.ts
+
+# TypeScript only (no .vague file)
+node dist/cli.js --infer data.json -o types.d.ts --ts-only
+```
+
+Options:
+- `--typescript`: Also generate TypeScript definitions
+- `--ts-only`: Generate only TypeScript (no .vague file)
+
+## OpenAPI Linting
+
+Lint OpenAPI specs with Spectral before using them:
+
+```bash
+# Lint an OpenAPI spec
+node dist/cli.js --lint-spec openapi.json
+
+# With verbose output (includes hints)
+node dist/cli.js --lint-spec openapi.yaml --lint-verbose
+```
+
+Options:
+- `--lint-spec <file>`: OpenAPI spec file to lint
+- `--lint-verbose`: Show detailed lint results including hints
+
+## Watch Mode
+
+Regenerate output when input file changes:
+
+```bash
+node dist/cli.js data.vague -o output.json -w
+```
+
+## Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```bash
+node dist/cli.js schema.vague --debug
+node dist/cli.js schema.vague --log-level info
+```
+
 ## Project Commands
 
 ```bash

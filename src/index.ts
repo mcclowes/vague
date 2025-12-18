@@ -7,6 +7,9 @@ export {
   getRegisteredPlugins,
   setSeed,
   getSeed,
+  createContext,
+  resetContext,
+  resetContextFull,
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
@@ -98,6 +101,13 @@ export {
   setTimestamps,
   setColors,
 } from './logging/index.js';
+export {
+  SpectralLinter,
+  lintOpenAPISpec,
+  formatLintResults,
+  type SpectralResult,
+  type LintResult,
+} from './spectral/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';

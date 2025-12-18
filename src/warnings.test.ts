@@ -1,9 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { compile, warningCollector } from './index.js';
+import { writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+
+const TMP_DIR = join(__dirname, '..', '.test-tmp-warnings');
 
 describe('Warnings', () => {
   beforeEach(() => {
     warningCollector.clear();
+    if (!existsSync(TMP_DIR)) {
+      mkdirSync(TMP_DIR, { recursive: true });
+    }
+  });
+
+  afterEach(() => {
+    if (existsSync(TMP_DIR)) {
+      rmSync(TMP_DIR, { recursive: true, force: true });
+    }
   });
 
   describe('UniqueValueExhaustionWarning', () => {
@@ -181,6 +194,115 @@ describe('Warnings', () => {
 
       const constraintWarnings = warningCollector.getWarningsByType('ConstraintRetryLimit');
       expect(constraintWarnings).toEqual([]);
+    });
+  });
+
+  describe('UnknownFieldInImportedSchemaWarning', () => {
+    it('warns when schema adds fields not in imported OpenAPI schema', async () => {
+      const specPath = join(TMP_DIR, 'api.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.0.0',
+          info: { title: 'Test API', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              User: {
+                type: 'object',
+                properties: {
+                  id: { type: 'integer' },
+                  name: { type: 'string' },
+                  email: { type: 'string' },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      const source = `
+        import api from "${specPath}"
+        schema User from api.User {
+          id: int in 1..1000,
+          name: string,
+          unknownField: string,
+          anotherUnknown: int
+        }
+        dataset Test {
+          users: 5 of User
+        }
+      `;
+
+      await compile(source);
+
+      const warnings = warningCollector.getWarningsByType('UnknownFieldInImportedSchema');
+      expect(warnings.length).toBe(2);
+
+      const fieldNames = warnings.map((w) => w.field);
+      expect(fieldNames).toContain('unknownField');
+      expect(fieldNames).toContain('anotherUnknown');
+
+      expect(warnings[0].schema).toBe('User');
+      expect(warnings[0].message).toContain('api.User');
+    });
+
+    it('does not warn when all fields exist in imported schema', async () => {
+      const specPath = join(TMP_DIR, 'api-valid.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.0.0',
+          info: { title: 'Test API', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              Product: {
+                type: 'object',
+                properties: {
+                  id: { type: 'integer' },
+                  name: { type: 'string' },
+                  price: { type: 'number' },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      const source = `
+        import api from "${specPath}"
+        schema Product from api.Product {
+          id: int in 1..1000,
+          name: string,
+          price: decimal in 0.01..999.99
+        }
+        dataset Test {
+          products: 5 of Product
+        }
+      `;
+
+      await compile(source);
+
+      const warnings = warningCollector.getWarningsByType('UnknownFieldInImportedSchema');
+      expect(warnings.length).toBe(0);
+    });
+
+    it('does not warn for schemas without base import', async () => {
+      const source = `
+        schema LocalSchema {
+          id: int,
+          anyFieldName: string
+        }
+        dataset Test {
+          items: 5 of LocalSchema
+        }
+      `;
+
+      await compile(source);
+
+      const warnings = warningCollector.getWarningsByType('UnknownFieldInImportedSchema');
+      expect(warnings.length).toBe(0);
     });
   });
 });

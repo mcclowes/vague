@@ -17,6 +17,7 @@ src/
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
 ├── plugins/     # Built-in plugins (faker, issuer, date, regex)
+├── spectral/    # OpenAPI linting with Spectral
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -89,7 +90,12 @@ Common shorthand generators: `uuid()`, `email()`, `phone()`, `firstName()`, `las
 Full namespace: `faker.person.firstName()`, `faker.internet.email()`, `faker.lorem.paragraph()`, etc.
 
 ### Issuer Plugin (Edge Case Testing)
-Generates problematic but valid values: `issuer.zeroWidth()`, `issuer.homoglyph("admin")`, `issuer.sqlLike()`, `issuer.maxInt()`, `issuer.leapDay()`, `issuer.weirdEmail()`
+Generates problematic but valid values for testing edge cases:
+- Unicode: `issuer.zeroWidth()`, `issuer.homoglyph("admin")`, `issuer.rtl()`, `issuer.emoji()`
+- Strings: `issuer.empty()`, `issuer.long(10000)`, `issuer.sqlLike()`, `issuer.htmlSpecial()`
+- Numbers: `issuer.maxInt()`, `issuer.minInt()`, `issuer.tinyDecimal()`, `issuer.negativeZero()`
+- Dates: `issuer.leapDay()`, `issuer.y2k()`, `issuer.epoch()`, `issuer.farFuture()`
+- Formats: `issuer.weirdEmail()`, `issuer.weirdUrl()`, `issuer.specialUuid()`
 
 ### Dates Plugin
 Day-of-week filtering: `date.weekday(2024, 2025)`, `date.weekend(2024, 2025)`, `date.dayOfWeek(1, 2024, 2025)`
@@ -127,8 +133,16 @@ const data = await vague({ seed: 42 })`...`;
 | `-w, --watch` | Watch input file and regenerate |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping |
+| `--validate-only` | Only validate, don't output data |
 | `--infer <file>` | Infer schema from JSON/CSV |
+| `--collection-name <name>` | Collection name for CSV inference |
+| `--typescript` | Generate TypeScript definitions |
+| `--ts-only` | Generate only TypeScript (no .vague) |
 | `--oas-source/--oas-output` | OpenAPI example population |
+| `--validate-data <file>` | Validate JSON against Vague schema |
+| `--schema <file>` | Schema file for data validation |
+| `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
+| `--lint-verbose` | Show detailed lint results |
 | `--debug` | Enable debug logging |
 | `--plugins <dir>` | Load plugins from directory |
 
@@ -146,6 +160,35 @@ node dist/cli.js data.vague -v openapi.json -m '{"invoices": "Invoice"}'
 
 # Populate OpenAPI with examples
 node dist/cli.js data.vague --oas-output api.json --oas-source api.json
+```
+
+## OpenAPI Linting (Spectral)
+
+Lint OpenAPI specs before using them with Vague:
+
+```bash
+# Lint an OpenAPI spec
+node dist/cli.js --lint-spec openapi.json
+
+# Lint with verbose output (includes hints)
+node dist/cli.js --lint-spec openapi.yaml --lint-verbose
+
+# Using npm script
+npm run lint:spec openapi.json
+```
+
+Programmatic API:
+
+```typescript
+import { lintOpenAPISpec, SpectralLinter } from 'vague';
+
+// Simple function
+const result = await lintOpenAPISpec('openapi.json');
+
+// Class-based for multiple files
+const linter = new SpectralLinter();
+const result = await linter.lint('openapi.json');
+const result2 = await linter.lintContent(jsonString, 'json');
 ```
 
 ## Schema Inference
@@ -179,7 +222,7 @@ Components: `lexer`, `parser`, `generator`, `constraint`, `validator`, `plugin`,
 
 ## Testing
 
-Tests colocated with source (`*.test.ts`). Run with `npm test`. Currently 802 tests.
+Tests colocated with source (`*.test.ts`). Run with `npm test`.
 
 ## Architecture
 

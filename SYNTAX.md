@@ -165,6 +165,10 @@ count: count(items)
 average: avg(items.price)
 lowest: min(items.price)
 highest: max(items.price)
+mid: median(items.price)
+first_item: first(items.price)
+last_item: last(items.price)
+multiplied: product(items.quantity)
 
 # Arithmetic
 tax: total * 0.2
@@ -327,6 +331,27 @@ schema Payment {
 ```
 
 Supported operations: `=` (assign), `+=` (add)
+
+---
+
+## Refine Blocks (Conditional Field Overrides)
+
+```vague
+schema Player {
+  position: "GK" | "DEF" | "MID" | "FWD",
+  goals: int in 0..30,
+  clean_sheets: int in 0..20
+} refine {
+  if position == "GK" {
+    goals: int in 0..2
+  },
+  if position == "FWD" {
+    clean_sheets: int in 0..3
+  }
+}
+```
+
+Refine blocks regenerate specific fields when conditions match, allowing different constraints per variant.
 
 ---
 

@@ -14,4 +14,5 @@ export {
 } from './date.js';
 export { regexPlugin, regexShorthandPlugin } from './regex.js';
 export { graphqlPlugin, graphqlShorthandPlugin } from './graphql.js';
+export { sqlPlugin, sqlShorthandPlugin } from './sql.js';
 export { discoverPlugins, type DiscoverOptions, type DiscoveredPlugin } from './discovery.js';
