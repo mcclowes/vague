@@ -35,6 +35,7 @@ import {
   createConstraintRetryWarning,
   createConstraintEvaluationErrorWarning,
   createMutationTargetNotFoundWarning,
+  createUnknownFieldWarning,
 } from '../warnings.js';
 import {
   isDuration,
@@ -125,6 +126,9 @@ export class Generator {
       imports: this.ctx.importedSchemas.size,
       bindings: this.ctx.bindings.size,
     });
+
+    // Validate schemas that extend imported schemas
+    this.validateSchemaFields();
 
     // Second pass: generate datasets
     const result: Record<string, unknown[]> = {};
@@ -588,6 +592,34 @@ export class Generator {
     }
 
     return fields;
+  }
+
+  /**
+   * Validate that schemas extending imported schemas don't add unknown fields.
+   * This is called once after all schemas are registered, before generation.
+   */
+  private validateSchemaFields(): void {
+    for (const [schemaName, schema] of this.ctx.schemas) {
+      if (!schema.base) continue;
+
+      const [namespace, importedSchemaName] = schema.base.parts;
+      const importedSchemas = this.ctx.importedSchemas.get(namespace);
+      if (!importedSchemas) continue;
+
+      const imported = importedSchemas.get(importedSchemaName);
+      if (!imported) continue;
+
+      // Get the set of field names from the imported schema
+      const importedFieldNames = new Set(imported.fields.map((f) => f.name));
+      const importSource = `${namespace}.${importedSchemaName}`;
+
+      // Check each field in the extending schema
+      for (const field of schema.fields) {
+        if (!importedFieldNames.has(field.name)) {
+          warningCollector.add(createUnknownFieldWarning(schemaName, field.name, importSource));
+        }
+      }
+    }
   }
 
   private generateFromImportedField(field: unknown, fieldName?: string): unknown {
