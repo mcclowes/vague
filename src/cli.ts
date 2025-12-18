@@ -13,6 +13,8 @@ import {
   issuerShorthandPlugin,
   regexPlugin,
   regexShorthandPlugin,
+  graphqlPlugin,
+  graphqlShorthandPlugin,
   discoverPlugins,
 } from './plugins/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
@@ -46,6 +48,8 @@ const builtinPlugins = [
   issuerShorthandPlugin,
   regexPlugin,
   regexShorthandPlugin,
+  graphqlPlugin,
+  graphqlShorthandPlugin,
 ];
 
 interface ValidationMapping {

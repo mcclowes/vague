@@ -41,6 +41,9 @@ export {
   // Regex plugin
   regexPlugin,
   regexShorthandPlugin,
+  // GraphQL plugin
+  graphqlPlugin,
+  graphqlShorthandPlugin,
   // Plugin discovery
   discoverPlugins,
   type DiscoverOptions,
