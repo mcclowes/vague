@@ -10,6 +10,10 @@ count(items)           // Number of items
 avg(items.price)       // Average price
 min(items.price)       // Minimum price
 max(items.price)       // Maximum price
+median(items.price)    // Median value
+first(items.price)     // First item's value
+last(items.price)      // Last item's value
+product(items.qty)     // Product of all values
 ```
 
 ## Decimal Precision
@@ -96,6 +100,56 @@ beta(alpha, beta)
 // Uniform - explicit uniform distribution
 uniform(min, max)
 // Example: uniform(0, 100)
+```
+
+## String Transformations
+
+```vague
+// Case transformations
+uppercase(name)         // "HELLO WORLD"
+lowercase(name)         // "hello world"
+capitalize(name)        // "Hello World"
+
+// Case style conversions
+kebabCase(title)        // "hello-world"
+snakeCase(title)        // "hello_world"
+camelCase(title)        // "helloWorld"
+
+// String manipulation
+trim("  hello  ")       // "hello"
+concat(first, " ", last) // "John Doe"
+substring(name, 0, 5)   // First 5 characters
+replace(name, "a", "b") // Replace occurrences
+length(name)            // String length
+```
+
+## Date Plugin Functions
+
+Day-of-week filtering for realistic business data:
+
+```vague
+// Weekday dates only (Monday-Friday)
+date.weekday(2024, 2025)
+date.weekday("2024-01-01", "2024-12-31")
+
+// Weekend dates only (Saturday-Sunday)
+date.weekend(2024, 2025)
+
+// Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
+date.dayOfWeek(1, 2024, 2025)  // Mondays only
+
+// Shorthand (no namespace)
+weekday(2024, 2025)
+weekend(2024, 2025)
+```
+
+## Ordered Sequences (Cycling Lists)
+
+```vague
+// Cycles through values in order
+pitch: [48, 52, 55, 60]           // 48, 52, 55, 60, 48, 52...
+color: ["red", "green", "blue"]   // red, green, blue, red...
+value: [1+1, 2+2, 3+3]            // 2, 4, 6, 2, 4, 6...
 ```
 
 ## Predicate Functions (Dataset Validation)

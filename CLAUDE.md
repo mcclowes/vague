@@ -90,7 +90,12 @@ Common shorthand generators: `uuid()`, `email()`, `phone()`, `firstName()`, `las
 Full namespace: `faker.person.firstName()`, `faker.internet.email()`, `faker.lorem.paragraph()`, etc.
 
 ### Issuer Plugin (Edge Case Testing)
-Generates problematic but valid values: `issuer.zeroWidth()`, `issuer.homoglyph("admin")`, `issuer.sqlLike()`, `issuer.maxInt()`, `issuer.leapDay()`, `issuer.weirdEmail()`
+Generates problematic but valid values for testing edge cases:
+- Unicode: `issuer.zeroWidth()`, `issuer.homoglyph("admin")`, `issuer.rtl()`, `issuer.emoji()`
+- Strings: `issuer.empty()`, `issuer.long(10000)`, `issuer.sqlLike()`, `issuer.htmlSpecial()`
+- Numbers: `issuer.maxInt()`, `issuer.minInt()`, `issuer.tinyDecimal()`, `issuer.negativeZero()`
+- Dates: `issuer.leapDay()`, `issuer.y2k()`, `issuer.epoch()`, `issuer.farFuture()`
+- Formats: `issuer.weirdEmail()`, `issuer.weirdUrl()`, `issuer.specialUuid()`
 
 ### Dates Plugin
 Day-of-week filtering: `date.weekday(2024, 2025)`, `date.weekend(2024, 2025)`, `date.dayOfWeek(1, 2024, 2025)`
@@ -128,8 +133,14 @@ const data = await vague({ seed: 42 })`...`;
 | `-w, --watch` | Watch input file and regenerate |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping |
+| `--validate-only` | Only validate, don't output data |
 | `--infer <file>` | Infer schema from JSON/CSV |
+| `--collection-name <name>` | Collection name for CSV inference |
+| `--typescript` | Generate TypeScript definitions |
+| `--ts-only` | Generate only TypeScript (no .vague) |
 | `--oas-source/--oas-output` | OpenAPI example population |
+| `--validate-data <file>` | Validate JSON against Vague schema |
+| `--schema <file>` | Schema file for data validation |
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results |
 | `--debug` | Enable debug logging |
@@ -211,7 +222,7 @@ Components: `lexer`, `parser`, `generator`, `constraint`, `validator`, `plugin`,
 
 ## Testing
 
-Tests colocated with source (`*.test.ts`). Run with `npm test`. Currently 802 tests.
+Tests colocated with source (`*.test.ts`). Run with `npm test`.
 
 ## Architecture
 
