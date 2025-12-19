@@ -73,13 +73,13 @@ const FeatureList: FeatureItem[] = [
 
 function Feature({title, emoji, description}: FeatureItem) {
   return (
-    <div className={clsx('col col--4')}>
-      <div className="text--center" style={{fontSize: '3rem', marginBottom: '1rem'}}>
-        {emoji}
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+    <div className={clsx('col col--4', styles.featureCard)}>
+      <div className={styles.featureCardInner}>
+        <div className={styles.featureIcon}>
+          {emoji}
+        </div>
+        <Heading as="h3" className={styles.featureTitle}>{title}</Heading>
+        <p className={styles.featureDescription}>{description}</p>
       </div>
     </div>
   );
@@ -88,7 +88,13 @@ function Feature({title, emoji, description}: FeatureItem) {
 export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
-      <div className="container">
+      <div className={clsx('container', styles.featuresContainer)}>
+        <div className={styles.sectionTitle}>
+          <Heading as="h2">Why Vague?</Heading>
+          <p>
+            Generate realistic test data that respects your constraints and relationships.
+          </p>
+        </div>
         <div className="row">
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />

@@ -1,46 +1,249 @@
 /**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
+ * Vague Homepage Styles
+ * Inspired by the logo's connected nodes and gradient aesthetic
  */
 
+/* ============================================
+   HERO BANNER
+   ============================================ */
+
 .heroBanner {
-  padding: 4rem 0;
+  padding: 6rem 0 5rem;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
+/* Floating node decorations - inspired by the logo */
+.heroBanner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    /* Large node - top left */
+    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.12) 40px, transparent 40px),
+    /* Medium node - top right */
+    radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.08) 25px, transparent 25px),
+    /* Small node - bottom left */
+    radial-gradient(circle at 15% 80%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.06) 15px, transparent 15px),
+    /* Medium node - right side */
+    radial-gradient(circle at 92% 60%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.1) 30px, transparent 30px),
+    /* Small node - bottom center-right */
+    radial-gradient(circle at 75% 85%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.07) 18px, transparent 18px),
+    /* Tiny node - left side */
+    radial-gradient(circle at 5% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.05) 10px, transparent 10px);
+  pointer-events: none;
+  animation: floatNodes 8s ease-in-out infinite;
+}
+
+@keyframes floatNodes {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  25% {
+    transform: translateY(-8px) translateX(4px);
+  }
+  50% {
+    transform: translateY(-4px) translateX(-4px);
+  }
+  75% {
+    transform: translateY(-12px) translateX(2px);
   }
 }
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.heroTitle {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.heroSubtitle {
+  font-size: 1.5rem;
+  opacity: 0.95;
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.5;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 3rem 1.5rem;
+  }
+
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.2rem;
+  }
+
+  .heroBanner::after {
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.1) 25px, transparent 25px),
+      radial-gradient(circle at 90% 15%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.07) 15px, transparent 15px),
+      radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.06) 12px, transparent 12px);
+  }
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
 
 .buttons {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
+
+.primaryButton {
+  background: rgba(255, 255, 255, 0.95);
+  color: #4f46e5;
+  border: none;
+  padding: 0.85rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.primaryButton:hover {
+  background: #ffffff;
+  color: #3730a3;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.secondaryButton {
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.secondaryButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: white;
+  color: white;
+  transform: translateY(-3px);
+}
+
+/* ============================================
+   EXAMPLE SECTION
+   ============================================ */
 
 .example {
-  padding: 4rem 0;
+  padding: 5rem 0;
   background: var(--ifm-background-surface-color);
-}
-
-.example ul {
-  list-style: none;
-  padding-left: 0;
-}
-
-.example ul li {
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
   position: relative;
 }
 
+/* Subtle gradient separator line */
+.example::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 800px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3), transparent);
+}
+
+.exampleContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 3rem;
+}
+
+.exampleText {
+  flex: 1;
+}
+
+.exampleText h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.exampleText p {
+  font-size: 1.15rem;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+}
+
+.exampleCode {
+  flex: 1;
+}
+
+/* Feature list with node-style bullets */
+.example ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.example ul li {
+  margin-bottom: 1.25rem;
+  padding-left: 2rem;
+  position: relative;
+  line-height: 1.6;
+}
+
+/* Node-style bullet points */
 .example ul li::before {
-  content: "→";
+  content: "";
   position: absolute;
   left: 0;
-  color: var(--ifm-color-primary);
+  top: 0.55em;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+/* Connection line between bullets */
+.example ul li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1.4em;
+  width: 2px;
+  height: calc(100% + 0.5rem);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.1));
+}
+
+@media screen and (max-width: 996px) {
+  .example {
+    padding: 3rem 1.5rem;
+  }
+
+  .exampleContent {
+    flex-direction: column;
+  }
+
+  .exampleText h2 {
+    font-size: 1.8rem;
+  }
 }
