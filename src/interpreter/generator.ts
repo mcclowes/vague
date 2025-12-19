@@ -57,8 +57,9 @@ import { GeneratorContext, createContext } from './context.js';
 import {
   registerPlugin,
   getRegisteredPlugins,
-  getPluginRegistry,
   tryPluginGenerator,
+  getGenerator,
+  callGenerator,
   type VaguePlugin,
   type GeneratorFunction,
 } from './plugin.js';
@@ -90,8 +91,13 @@ export class Generator {
   private predicateFunctions: ReturnType<typeof createPredicateFunctions>;
   private uniqueFn: ReturnType<typeof createUniqueFn>;
 
-  constructor(ctx?: GeneratorContext) {
-    this.ctx = ctx ?? createContext();
+  constructor(ctxOrRetryLimits?: GeneratorContext | import('../config/index.js').RetryLimits) {
+    // Support both GeneratorContext and RetryLimits for backwards compatibility
+    if (ctxOrRetryLimits && 'schemas' in ctxOrRetryLimits) {
+      this.ctx = ctxOrRetryLimits;
+    } else {
+      this.ctx = createContext(ctxOrRetryLimits);
+    }
     this.openApiLoader = new OpenAPILoader();
     // Initialize functions that need expression evaluator
     this.predicateFunctions = createPredicateFunctions(this.evaluateExpression.bind(this));
@@ -149,7 +155,7 @@ export class Generator {
   }
 
   private generateDataset(dataset: DatasetDefinition): Record<string, unknown[]> {
-    const maxAttempts = 20;
+    const maxAttempts = this.ctx.retryLimits.dataset;
     const mode = dataset.violating ? 'violating' : 'satisfying';
 
     // Set violating mode in context
@@ -269,7 +275,7 @@ export class Generator {
     schema: SchemaDefinition,
     overrides?: FieldDefinition[]
   ): Record<string, unknown> {
-    const maxAttempts = 100;
+    const maxAttempts = this.ctx.retryLimits.instance;
 
     // Collect private field names for filtering
     const privateFields = this.getPrivateFieldNames(schema, overrides);
@@ -661,13 +667,10 @@ export class Generator {
   private generateStringFromFormat(format: string | undefined, fieldName?: string): unknown {
     // Try format-based generation first
     if (format) {
-      const pluginRegistry = getPluginRegistry();
-      // Look for a plugin generator that matches the format
-      for (const plugin of pluginRegistry.values()) {
-        // Try direct format match (e.g., "uuid" -> uuid generator)
-        if (plugin.generators[format]) {
-          return plugin.generators[format]([], this.ctx);
-        }
+      // Look for a plugin generator that matches the format (uses cache)
+      const formatGenerator = getGenerator(format);
+      if (formatGenerator) {
+        return formatGenerator([], this.ctx);
       }
 
       // Handle common OpenAPI/JSON Schema formats
@@ -767,7 +770,7 @@ export class Generator {
     }
     const usedValues = this.ctx.uniqueValues.get(key)!;
 
-    const maxAttempts = 1000;
+    const maxAttempts = this.ctx.retryLimits.unique;
     for (let i = 0; i < maxAttempts; i++) {
       const value = this.generateFromFieldType(field.fieldType, field.name);
       if (!usedValues.has(value)) {
@@ -841,40 +844,8 @@ export class Generator {
     // Evaluate arguments
     const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg));
 
-    // Try to find generator: "faker.person.firstName" -> plugin "faker", generator "person.firstName"
-    // Or simple: "uuid" -> any plugin with generator "uuid"
-    const parts = name.split('.');
-    const pluginRegistry = getPluginRegistry();
-
-    if (parts.length > 1) {
-      // Qualified name: faker.person.firstName
-      const pluginName = parts[0];
-      const generatorPath = parts.slice(1).join('.');
-
-      const plugin = pluginRegistry.get(pluginName);
-      if (plugin) {
-        const generator = plugin.generators[generatorPath];
-        if (generator) {
-          return generator(evaluatedArgs, this.ctx);
-        }
-        throw new Error(`Generator '${generatorPath}' not found in plugin '${pluginName}'`);
-      }
-      throw new Error(
-        `Plugin '${pluginName}' not registered. Use registerPlugin() to register it.`
-      );
-    }
-
-    // Simple name: uuid - search all plugins
-    for (const plugin of pluginRegistry.values()) {
-      const generator = plugin.generators[name];
-      if (generator) {
-        return generator(evaluatedArgs, this.ctx);
-      }
-    }
-
-    throw new Error(
-      `Generator '${name}' not found. Register a plugin that provides it using registerPlugin().`
-    );
+    // Use cached generator lookup
+    return callGenerator(name, evaluatedArgs, this.ctx);
   }
 
   private generatePrimitive(
@@ -1245,29 +1216,10 @@ export class Generator {
       return this.uniqueFn(args, this.ctx, call);
     }
 
-    // Check plugin calls (callee contains a dot like "dates.weekday")
-    const parts = call.callee.split('.');
-    if (parts.length > 1) {
-      const pluginName = parts[0];
-      const generatorPath = parts.slice(1).join('.');
-      const pluginRegistry = getPluginRegistry();
-
-      const plugin = pluginRegistry.get(pluginName);
-      if (plugin) {
-        const generator = plugin.generators[generatorPath];
-        if (generator) {
-          return generator(args, this.ctx);
-        }
-      }
-    }
-
-    // Try shorthand generators (no namespace prefix)
-    const pluginRegistry = getPluginRegistry();
-    for (const plugin of pluginRegistry.values()) {
-      const generator = plugin.generators[call.callee];
-      if (generator) {
-        return generator(args, this.ctx);
-      }
+    // Try plugin generator lookup (uses cache)
+    const generator = getGenerator(call.callee);
+    if (generator) {
+      return generator(args, this.ctx);
     }
 
     return null;

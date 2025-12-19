@@ -25,8 +25,8 @@ Codebase Analysis Summary
 
   | Issue                       | Location                   | Note                                      |
   |-----------------------------|----------------------------|-------------------------------------------|
-  | Hardcoded retry limits      | generator.ts:105, 199, 633 | 20/100/1000 attempts - not configurable   |
-  | Plugin lookup on every call | generator.ts:706-737       | Scans registry each time                  |
+  | ~~Hardcoded retry limits~~  | ~~generator.ts~~           | ✅ Configurable via `retryLimits` option  |
+  | ~~Plugin lookup on every call~~ | ~~generator.ts~~       | ✅ Added generator cache with invalidation |
   | No constraint caching       | generator.ts:440-467       | Re-evaluates all constraints per instance |
 
 

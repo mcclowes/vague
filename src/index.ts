@@ -10,6 +10,9 @@ export {
   createContext,
   resetContext,
   resetContextFull,
+  clearGeneratorCache,
+  getGenerator,
+  callGenerator,
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
@@ -86,6 +89,8 @@ export {
   type LoggingConfig,
   type LogLevel,
   type LogComponent,
+  type RetryLimits,
+  DEFAULT_RETRY_LIMITS,
   ConfigError,
   PluginLoadError,
 } from './config/index.js';
@@ -116,14 +121,17 @@ import { Parser } from './parser/index.js';
 import { Generator } from './interpreter/index.js';
 import { setSeed } from './interpreter/index.js';
 
-export async function compile(source: string): Promise<Record<string, unknown[]>> {
+export async function compile(
+  source: string,
+  options: VagueOptions = {}
+): Promise<Record<string, unknown[]>> {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
 
   const parser = new Parser(tokens);
   const ast = parser.parse();
 
-  const generator = new Generator();
+  const generator = new Generator(options.retryLimits);
   return generator.generate(ast);
 }
 
@@ -134,8 +142,11 @@ export function parse(source: string) {
   return parser.parse();
 }
 
+import type { RetryLimits } from './config/index.js';
+
 export interface VagueOptions {
   seed?: number;
+  retryLimits?: RetryLimits;
 }
 
 type VagueTaggedTemplate<T> = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
@@ -154,7 +165,7 @@ function createVagueTemplate<T = Record<string, unknown[]>>(
       setSeed(options.seed);
     }
 
-    const result = await compile(source);
+    const result = await compile(source, { retryLimits: options.retryLimits });
 
     // Reset seed after generation to avoid affecting other calls
     if (options.seed !== undefined) {
@@ -197,7 +208,7 @@ export async function fromFile<T = Record<string, unknown[]>>(
     setSeed(options.seed);
   }
 
-  const result = await compile(source);
+  const result = await compile(source, { retryLimits: options.retryLimits });
 
   if (options.seed !== undefined) {
     setSeed(null);

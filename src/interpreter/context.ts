@@ -1,5 +1,6 @@
 import type { SchemaDefinition, Expression } from '../ast/index.js';
 import type { ImportedSchema } from '../openapi/index.js';
+import { type RetryLimits, DEFAULT_RETRY_LIMITS } from '../config/index.js';
 
 /**
  * Context maintained during generation.
@@ -43,12 +44,14 @@ export interface GeneratorContext {
   uniqueValues: Map<string, Set<unknown>>; // Track unique values per field
   sequences: Map<string, number>; // Track sequence counters
   orderedSequenceIndices: Map<string, number>; // Track cycling index for ordered sequences
+  retryLimits: Required<RetryLimits>; // Configurable retry limits
 }
 
 /**
  * Create a fresh generator context with all state initialized to empty.
+ * @param retryLimits Optional custom retry limits
  */
-export function createContext(): GeneratorContext {
+export function createContext(retryLimits?: RetryLimits): GeneratorContext {
   return {
     schemas: new Map(),
     importedSchemas: new Map(),
@@ -57,6 +60,7 @@ export function createContext(): GeneratorContext {
     uniqueValues: new Map(),
     sequences: new Map(),
     orderedSequenceIndices: new Map(),
+    retryLimits: { ...DEFAULT_RETRY_LIMITS, ...retryLimits },
   };
 }
 

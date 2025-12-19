@@ -9,6 +9,7 @@ export {
   type GeneratorFunction,
 } from './generator.js';
 export { createContext, resetContext, resetContextFull } from './context.js';
+export { clearGeneratorCache, getGenerator, callGenerator } from './plugin.js';
 export {
   MarkovChain,
   CharMarkov,
