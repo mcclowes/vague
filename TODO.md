@@ -19,7 +19,7 @@ Codebase Analysis Summary
   | ~~Generator.ts is 1215 lines~~  | ~~src/interpreter/generator.ts~~           | ✅ Extracted builtins/ modules                                       |
   | ~~Context lifecycle unclear~~   | ~~context.ts~~                             | ✅ Added resetContext() and resetContextFull() methods with docs     |
   | ~~Collection iteration duplicated~~ | ~~generator.ts, predicate.ts~~         | ✅ Extracted mapWithContext, filterWithContext, everyWithContext, someWithContext |
-  | Format detection in 3 places    | generator.ts, faker.ts, format-detector.ts | Unify into format registry                                          |
+  | ~~Format detection in 3 places~~ | ~~generator.ts, faker.ts, format-detector.ts~~ | ✅ Unified into format-registry.ts                                   |
 
   Performance (Low Priority)
 

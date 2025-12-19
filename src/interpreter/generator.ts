@@ -51,7 +51,6 @@ import {
   generateText,
 } from './markov.js';
 import { random, randomInt } from './random.js';
-import { randomUUID } from 'node:crypto';
 
 // Import refactored modules
 import { GeneratorContext, createContext } from './context.js';
@@ -76,6 +75,11 @@ import {
   filterWithContext,
 } from './builtins/index.js';
 import { createLogger } from '../logging/index.js';
+import {
+  isKnownFormat,
+  getPluginGeneratorForFormat,
+  getFallbackForFormat,
+} from '../format-registry.js';
 
 // Create loggers for different components
 const generatorLog = createLogger('generator');
@@ -664,70 +668,45 @@ export class Generator {
   }
 
   /**
-   * Generate a string value based on OpenAPI format hint
+   * Generate a string value based on OpenAPI format hint.
+   * Uses the unified format registry for consistency with schema inference.
    */
   private generateStringFromFormat(format: string | undefined, fieldName?: string): unknown {
     // Try format-based generation first
     if (format) {
-      // Look for a plugin generator that matches the format (uses cache)
+      // Look for a plugin generator that matches the format directly (uses cache)
       const formatGenerator = getGenerator(format);
       if (formatGenerator) {
         return formatGenerator([], this.ctx);
       }
 
-      // Handle common OpenAPI/JSON Schema formats
+      // Handle date formats specially (they use internal generator methods)
       switch (format) {
-        case 'uuid':
-          return tryPluginGenerator('uuid', this.ctx) ?? randomUUID();
-        case 'email':
-          return tryPluginGenerator('email', this.ctx) ?? `user${randomInt(1, 9999)}@example.com`;
-        case 'phone':
-        case 'phone-number':
-          return (
-            tryPluginGenerator('phone', this.ctx) ??
-            `+1${randomInt(200, 999)}${randomInt(100, 999)}${randomInt(1000, 9999)}`
-          );
-        case 'uri':
-        case 'url':
-          return tryPluginGenerator('url', this.ctx) ?? `https://example.com/${randomInt(1, 9999)}`;
-        case 'hostname':
-          return `host${randomInt(1, 999)}.example.com`;
-        case 'ipv4':
-          return `${randomInt(1, 255)}.${randomInt(0, 255)}.${randomInt(0, 255)}.${randomInt(1, 254)}`;
-        case 'ipv6':
-          return (
-            tryPluginGenerator('internet.ipv6', this.ctx) ??
-            Array.from({ length: 8 }, () => randomInt(0, 65535).toString(16).padStart(4, '0')).join(
-              ':'
-            )
-          );
         case 'date':
           // YYYY-MM-DD format
           return this.generateRandomDate();
         case 'date-time':
           // ISO 8601 format
           return this.generateRandomDateTime();
-        case 'time':
-          // HH:MM:SS format
-          return `${String(randomInt(0, 23)).padStart(2, '0')}:${String(randomInt(0, 59)).padStart(2, '0')}:${String(randomInt(0, 59)).padStart(2, '0')}`;
-        case 'byte':
-          // Base64 encoded string
-          return Buffer.from(Array.from({ length: 16 }, () => randomInt(0, 255))).toString(
-            'base64'
-          );
-        case 'binary':
-          return Array.from({ length: 16 }, () =>
-            randomInt(0, 255).toString(16).padStart(2, '0')
-          ).join('');
-        case 'password':
-          return (
-            tryPluginGenerator('internet.password', this.ctx) ?? `Pass${randomInt(1000, 9999)}!`
-          );
-        case 'iban':
-          return (
-            tryPluginGenerator('iban', this.ctx) ??
-            `GB${randomInt(10, 99)}MOCK${randomInt(10000000, 99999999)}`
-          );
+      }
+
+      // Use the unified format registry
+      if (isKnownFormat(format)) {
+        // Try plugin generator first
+        const pluginName = getPluginGeneratorForFormat(format);
+        if (pluginName) {
+          const result = tryPluginGenerator(pluginName, this.ctx);
+          // Note: tryPluginGenerator returns undefined (not null) when not found
+          if (result !== undefined) {
+            return result;
+          }
+        }
+
+        // Use fallback from registry
+        const fallback = getFallbackForFormat(format);
+        if (fallback) {
+          return fallback();
+        }
       }
     }
 
