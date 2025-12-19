@@ -197,6 +197,39 @@ discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 
 ---
 
+## Match Expressions
+
+Pattern matching for cleaner multi-way branching:
+
+```vague
+# Map values to display text
+display_status: match status {
+  "pending" => "Awaiting shipment",
+  "shipped" => "On the way",
+  "delivered" => "Complete"
+}
+
+# Match on numeric values
+label: match stars {
+  1 => "terrible",
+  2 => "poor",
+  3 => "average",
+  4 => "good",
+  5 => "excellent"
+}
+
+# Match with computed results
+final_price: match tier {
+  "basic" => base_price,
+  "standard" => base_price * 1.5,
+  "premium" => base_price * 2
+}
+```
+
+> **Note:** If no arm matches, the result is `null`.
+
+---
+
 ## String Transformations
 
 ```vague

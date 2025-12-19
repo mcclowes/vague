@@ -37,7 +37,7 @@ Codebase Analysis Summary
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 - [ ] Explore other keywords for fields, like unique
-- [ ] 'Match' syntax
+- [x] **Match expressions** - Pattern matching: `match status { "pending" => "Awaiting", "shipped" => "On way" }`
 - [ ] Logging functionality generally
 - [x] **Cardinality syntax** - Changed from `1599 * Schema` to `1599 of Schema` to avoid conflation with multiplication
 

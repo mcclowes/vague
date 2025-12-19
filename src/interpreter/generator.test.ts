@@ -1691,6 +1691,126 @@ describe('Generator', () => {
     });
   });
 
+  describe('match expressions', () => {
+    it('evaluates simple match expression', async () => {
+      const source = `
+        schema Order {
+          status: "pending" | "shipped" | "delivered",
+          display_status: match status {
+            "pending" => "Awaiting shipment",
+            "shipped" => "On the way",
+            "delivered" => "Complete"
+          }
+        }
+
+        dataset TestData {
+          orders: 30 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { status: string; display_status: string }[];
+      for (const order of orders) {
+        if (order.status === 'pending') {
+          expect(order.display_status).toBe('Awaiting shipment');
+        } else if (order.status === 'shipped') {
+          expect(order.display_status).toBe('On the way');
+        } else {
+          expect(order.display_status).toBe('Complete');
+        }
+      }
+    });
+
+    it('match with numeric values', async () => {
+      const source = `
+        schema Rating {
+          stars: 1 | 2 | 3 | 4 | 5,
+          label: match stars {
+            1 => "terrible",
+            2 => "poor",
+            3 => "average",
+            4 => "good",
+            5 => "excellent"
+          }
+        }
+
+        dataset TestData {
+          ratings: 50 of Rating
+        }
+      `;
+
+      const result = await compile(source);
+
+      const ratings = result.ratings as { stars: number; label: string }[];
+      const labels = ['terrible', 'poor', 'average', 'good', 'excellent'];
+      for (const rating of ratings) {
+        expect(rating.label).toBe(labels[rating.stars - 1]);
+      }
+    });
+
+    it('match returns null for unmatched values', async () => {
+      const source = `
+        schema Item {
+          code: "A" | "B" | "X",
+          description: match code {
+            "A" => "Alpha",
+            "B" => "Beta"
+          }
+        }
+
+        dataset TestData {
+          items: 30 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { code: string; description: string | null }[];
+      for (const item of items) {
+        if (item.code === 'A') {
+          expect(item.description).toBe('Alpha');
+        } else if (item.code === 'B') {
+          expect(item.description).toBe('Beta');
+        } else {
+          expect(item.description).toBeNull();
+        }
+      }
+    });
+
+    it('match with computed result expressions', async () => {
+      const source = `
+        schema Product {
+          tier: "basic" | "premium",
+          base_price: int in 10..100,
+          final_price: match tier {
+            "basic" => base_price,
+            "premium" => base_price * 2
+          }
+        }
+
+        dataset TestData {
+          products: 20 of Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      const products = result.products as {
+        tier: string;
+        base_price: number;
+        final_price: number;
+      }[];
+      for (const product of products) {
+        if (product.tier === 'basic') {
+          expect(product.final_price).toBe(product.base_price);
+        } else {
+          expect(product.final_price).toBe(product.base_price * 2);
+        }
+      }
+    });
+  });
+
   describe('dynamic cardinality', () => {
     it('supports simple dynamic cardinality with ternary', async () => {
       const source = `

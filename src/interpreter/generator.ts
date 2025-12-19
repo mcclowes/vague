@@ -27,6 +27,7 @@ import {
   QualifiedName,
   TernaryExpression,
   OrderedSequenceType,
+  MatchExpression,
 } from '../ast/index.js';
 import { OpenAPILoader } from '../openapi/index.js';
 import {
@@ -1146,6 +1147,19 @@ export class Generator {
         return condition
           ? this.evaluateExpression(ternary.consequent)
           : this.evaluateExpression(ternary.alternate);
+      }
+
+      case 'MatchExpression': {
+        const matchExpr = expr as MatchExpression;
+        const value = this.evaluateExpression(matchExpr.value);
+        for (const arm of matchExpr.arms) {
+          const pattern = this.evaluateExpression(arm.pattern);
+          if (value === pattern) {
+            return this.evaluateExpression(arm.result);
+          }
+        }
+        // No match found - return null
+        return null;
       }
 
       case 'UnaryExpression': {

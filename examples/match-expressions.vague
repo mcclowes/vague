@@ -1,0 +1,59 @@
+// Match expressions - pattern matching for cleaner branching
+
+schema Order {
+  status: "pending" | "shipped" | "delivered" | "cancelled",
+
+  // Match expression maps status to display text
+  display_status: match status {
+    "pending" => "Awaiting shipment",
+    "shipped" => "On the way",
+    "delivered" => "Complete",
+    "cancelled" => "Order cancelled"
+  },
+
+  // Match can return different types
+  can_cancel: match status {
+    "pending" => true,
+    "shipped" => false,
+    "delivered" => false,
+    "cancelled" => false
+  }
+}
+
+schema Rating {
+  stars: 1 | 2 | 3 | 4 | 5,
+
+  // Match on numeric values
+  sentiment: match stars {
+    1 => "terrible",
+    2 => "poor",
+    3 => "average",
+    4 => "good",
+    5 => "excellent"
+  }
+}
+
+schema Product {
+  tier: "basic" | "standard" | "premium",
+  base_price: int in 50..200,
+
+  // Match with computed results
+  final_price: match tier {
+    "basic" => base_price,
+    "standard" => round(base_price * 1.5, 2),
+    "premium" => base_price * 2
+  },
+
+  // Match for feature flags
+  support_level: match tier {
+    "basic" => "email",
+    "standard" => "chat",
+    "premium" => "phone"
+  }
+}
+
+dataset TestData {
+  orders: 20 of Order,
+  ratings: 30 of Rating,
+  products: 15 of Product
+}
