@@ -33,22 +33,23 @@ function HomepageHeader() {
   const {siteConfig} = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
-      <div className="container">
-        <Heading as="h1" className="hero__title">
+      <div className={clsx('container', styles.heroContent)}>
+        <Heading as="h1" className={clsx('hero__title', styles.heroTitle)}>
           {siteConfig.title}
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
+          {siteConfig.tagline}
+        </p>
         <div className={styles.buttons}>
           <Link
-            className="button button--secondary button--lg"
+            className={clsx('button button--lg', styles.primaryButton)}
             to="/docs">
             Get Started
           </Link>
           <Link
-            className="button button--outline button--lg"
-            style={{marginLeft: '1rem', color: 'white', borderColor: 'white'}}
+            className={clsx('button button--lg', styles.secondaryButton)}
             href="https://github.com/mcclowes/vague">
-            GitHub
+            View on GitHub
           </Link>
         </div>
       </div>
@@ -61,7 +62,7 @@ function HomepageExample() {
     <section className={styles.example}>
       <div className="container">
         <div className="row">
-          <div className="col col--6">
+          <div className={clsx('col col--6', styles.exampleText)}>
             <Heading as="h2">Declarative Data Generation</Heading>
             <p>
               Describe the shape of valid data — structure, constraints,
@@ -74,7 +75,7 @@ function HomepageExample() {
               <li><strong>Computed fields:</strong> <code>total: sum(line_items.amount)</code></li>
             </ul>
           </div>
-          <div className="col col--6">
+          <div className={clsx('col col--6', styles.exampleCode)}>
             <CodeBlock language="vague" title="example.vague">
               {exampleCode}
             </CodeBlock>

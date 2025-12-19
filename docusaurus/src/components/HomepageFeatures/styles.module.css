@@ -1,11 +1,194 @@
+/**
+ * Homepage Features - Node-inspired card design
+ */
+
+/* ============================================
+   FEATURES SECTION
+   ============================================ */
+
 .features {
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
-  width: 100%;
+  padding: 5rem 0;
+  background: var(--ifm-background-color);
+  position: relative;
 }
 
-.featureSvg {
-  height: 200px;
-  width: 200px;
+/* Subtle background pattern - scattered nodes */
+.features::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 5% 15%, rgba(99, 102, 241, 0.04) 0%, rgba(99, 102, 241, 0.04) 60px, transparent 60px),
+    radial-gradient(circle at 95% 85%, rgba(168, 85, 247, 0.03) 0%, rgba(168, 85, 247, 0.03) 80px, transparent 80px),
+    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100px, transparent 100px);
+  pointer-events: none;
+}
+
+.featuresContainer {
+  position: relative;
+  z-index: 1;
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.sectionTitle h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sectionTitle p {
+  font-size: 1.15rem;
+  color: var(--ifm-font-color-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   FEATURE CARDS
+   ============================================ */
+
+.featureCard {
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.featureCardInner {
+  background: var(--ifm-background-surface-color);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  height: 100%;
+  position: relative;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  overflow: hidden;
+}
+
+/* Gradient border effect on hover */
+.featureCardInner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.featureCardInner:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(99, 102, 241, 0.12);
+  border-color: transparent;
+}
+
+.featureCardInner:hover::before {
+  opacity: 1;
+}
+
+/* Dark mode adjustments */
+:global([data-theme='dark']) .featureCardInner {
+  background: rgba(26, 22, 37, 0.8);
+  border-color: rgba(129, 140, 248, 0.15);
+}
+
+:global([data-theme='dark']) .featureCardInner:hover {
+  box-shadow: 0 20px 50px rgba(129, 140, 248, 0.08);
+}
+
+/* ============================================
+   FEATURE ICON
+   ============================================ */
+
+.featureIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin: 0 auto 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+/* Node-style decoration */
+.featureIcon::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.featureCardInner:hover .featureIcon::after {
+  opacity: 0.2;
+}
+
+.featureCardInner:hover .featureIcon {
+  transform: scale(1.05);
+}
+
+/* ============================================
+   FEATURE CONTENT
+   ============================================ */
+
+.featureTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  color: var(--ifm-heading-color);
+}
+
+.featureDescription {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ifm-font-color-secondary);
+  text-align: center;
+  margin: 0;
+}
+
+.featureDescription code {
+  font-size: 0.85rem;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media screen and (max-width: 996px) {
+  .features {
+    padding: 3rem 0;
+  }
+
+  .featureCard {
+    padding: 1rem;
+  }
+
+  .sectionTitle h2 {
+    font-size: 1.8rem;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .featureCardInner {
+    padding: 1.5rem 1.25rem;
+  }
 }
