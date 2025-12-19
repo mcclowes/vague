@@ -70,6 +70,13 @@ tax: round(subtotal * 0.2, 2)
 // Ternary expressions
 status: amount_paid >= total ? "paid" : "pending"
 
+// Match expressions (pattern matching)
+display: match status {
+  "pending" => "Awaiting",
+  "shipped" => "On the way",
+  "delivered" => "Complete"
+}
+
 // Conditional fields
 companyNumber: string when type == "business"
 

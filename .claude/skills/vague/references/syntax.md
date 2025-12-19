@@ -173,6 +173,49 @@ schema Order {
 }
 ```
 
+## Match Expressions
+
+Pattern matching for cleaner multi-way branching:
+
+```vague
+schema Order {
+  status: "pending" | "shipped" | "delivered",
+
+  // Map values to display text
+  display_status: match status {
+    "pending" => "Awaiting shipment",
+    "shipped" => "On the way",
+    "delivered" => "Complete"
+  }
+}
+
+schema Rating {
+  stars: 1 | 2 | 3 | 4 | 5,
+
+  // Match on numeric values
+  sentiment: match stars {
+    1 => "terrible",
+    2 => "poor",
+    3 => "average",
+    4 => "good",
+    5 => "excellent"
+  }
+}
+
+schema Product {
+  tier: "basic" | "premium",
+  base_price: int in 50..200,
+
+  // Match with computed results
+  final_price: match tier {
+    "basic" => base_price,
+    "premium" => base_price * 2
+  }
+}
+```
+
+If no arm matches, the result is `null`.
+
 ## Dynamic Cardinality
 
 ```vague

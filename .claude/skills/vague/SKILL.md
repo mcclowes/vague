@@ -32,6 +32,7 @@ dataset TestData {
 - **Computed**: `total: sum(items.amount)`, `median()`, `first()`, `last()`, `product()`
 - **Constraints**: `assume due_date >= issued_date`
 - **Refine**: `} refine { if type == "A" { field: int in 1..10 } }`
+- **Match**: `match status { "a" => "Alpha", "b" => "Beta" }`
 - **References**: `any of companies where .active == true`
 - **Parent ref**: `= ^parent_field`
 - **Nullable**: `string?` or `string | null`

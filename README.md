@@ -184,6 +184,19 @@ status: amount_paid >= total ? "paid" : "pending"
 grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 ```
 
+### Match Expressions
+
+```vague
+// Pattern matching for multi-way branching
+display: match status {
+  "pending" => "Awaiting shipment",
+  "shipped" => "On the way",
+  "delivered" => "Complete"
+}
+
+// Returns null if no pattern matches
+```
+
 ### Conditional Fields
 
 ```vague
