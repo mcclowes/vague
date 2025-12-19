@@ -11,8 +11,8 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://mcclowes.github.io',
-  baseUrl: '/vague/',
+  url: 'https://vague-docs.vercel.app',
+  baseUrl: '/',
 
   organizationName: 'mcclowes',
   projectName: 'vague',
