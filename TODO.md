@@ -91,7 +91,7 @@ Codebase Analysis Summary
 
 - [ ] **Type safety in generator** - Reduce `unknown` and `any` usage
 - [ ] **Error recovery in parser** - Continue parsing after errors
-- [ ] **Modular parser** - Split into statements, expressions, primaries, functions (like Lea)
+- [x] **Modular parser** - Split into statements, expressions, primaries (base.ts, primaries.ts, expressions.ts, types.ts, statements.ts, parser.ts)
 
 ## Inspired by Lea
 
