@@ -1,0 +1,110 @@
+/**
+ * Vague Documentation Theme
+ */
+
+/* Primary color palette - purple/violet theme */
+:root {
+  --ifm-color-primary: #6366f1;
+  --ifm-color-primary-dark: #4f46e5;
+  --ifm-color-primary-darker: #4338ca;
+  --ifm-color-primary-darkest: #3730a3;
+  --ifm-color-primary-light: #818cf8;
+  --ifm-color-primary-lighter: #a5b4fc;
+  --ifm-color-primary-lightest: #c7d2fe;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(99, 102, 241, 0.1);
+  --ifm-font-family-base: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ifm-heading-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Dark mode palette */
+[data-theme='dark'] {
+  --ifm-color-primary: #818cf8;
+  --ifm-color-primary-dark: #6366f1;
+  --ifm-color-primary-darker: #4f46e5;
+  --ifm-color-primary-darkest: #4338ca;
+  --ifm-color-primary-light: #a5b4fc;
+  --ifm-color-primary-lighter: #c7d2fe;
+  --ifm-color-primary-lightest: #e0e7ff;
+  --docusaurus-highlighted-code-line-bg: rgba(129, 140, 248, 0.2);
+}
+
+/* Hero banner styling */
+.hero--primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+}
+
+[data-theme='dark'] .hero--primary {
+  background: linear-gradient(135deg, #3730a3 0%, #5b21b6 50%, #7c3aed 100%);
+}
+
+/* Code block styling */
+.prism-code {
+  font-size: 0.9rem;
+}
+
+/* Better inline code */
+code {
+  background-color: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+}
+
+[data-theme='dark'] code {
+  background-color: rgba(129, 140, 248, 0.15);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+/* Table styling */
+table {
+  display: table;
+  width: 100%;
+}
+
+table thead tr {
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+[data-theme='dark'] table thead tr {
+  background-color: rgba(129, 140, 248, 0.15);
+}
+
+/* Sidebar improvements */
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* Footer styling */
+.footer--dark {
+  background-color: #1e1b4b;
+}
+
+/* Admonition styling */
+.admonition {
+  border-radius: 8px;
+}
+
+/* Homepage example section */
+.example {
+  padding: 4rem 0;
+  background: var(--ifm-background-surface-color);
+}
+
+.example ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.example ul li {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.example ul li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--ifm-color-primary);
+}

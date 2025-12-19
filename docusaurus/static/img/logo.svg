@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Abstract representation of data nodes with connections -->
+  <circle cx="30" cy="30" r="12" fill="url(#grad)" opacity="0.9"/>
+  <circle cx="70" cy="30" r="8" fill="url(#grad)" opacity="0.7"/>
+  <circle cx="50" cy="60" r="15" fill="url(#grad)" opacity="0.95"/>
+  <circle cx="25" cy="75" r="6" fill="url(#grad)" opacity="0.6"/>
+  <circle cx="80" cy="70" r="10" fill="url(#grad)" opacity="0.8"/>
+  <!-- Connection lines representing relationships -->
+  <line x1="30" y1="42" x2="50" y2="45" stroke="url(#grad)" stroke-width="2" opacity="0.4"/>
+  <line x1="70" y1="38" x2="50" y2="45" stroke="url(#grad)" stroke-width="2" opacity="0.4"/>
+  <line x1="50" y1="75" x2="25" y2="75" stroke="url(#grad)" stroke-width="2" opacity="0.4"/>
+  <line x1="50" y1="75" x2="80" y2="70" stroke="url(#grad)" stroke-width="2" opacity="0.4"/>
+</svg>
