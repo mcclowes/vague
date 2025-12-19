@@ -72,6 +72,7 @@ import {
   dateFunctions,
   stringFunctions,
   sequenceFunctions,
+  filterWithContext,
 } from './builtins/index.js';
 import { createLogger } from '../logging/index.js';
 
@@ -1108,13 +1109,9 @@ export class Generator {
           if (items && items.length > 0) {
             // Apply where clause filter if present
             if (anyOf.condition) {
-              items = items.filter((item) => {
-                const oldCurrent = this.ctx.current;
-                this.ctx.current = item as Record<string, unknown>;
-                const result = this.evaluateExpression(anyOf.condition!);
-                this.ctx.current = oldCurrent;
-                return Boolean(result);
-              });
+              items = filterWithContext(items, this.ctx, () =>
+                Boolean(this.evaluateExpression(anyOf.condition!))
+              ) as Record<string, unknown>[];
             }
             if (items.length > 0) {
               return items[Math.floor(random() * items.length)];

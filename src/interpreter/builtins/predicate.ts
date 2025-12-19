@@ -1,5 +1,6 @@
 import type { GeneratorContext } from '../context.js';
 import type { Expression, CallExpression } from '../../ast/index.js';
+import { everyWithContext, someWithContext } from './collection.js';
 
 /**
  * Type for expression evaluator function passed from generator
@@ -21,19 +22,7 @@ export function createPredicateFunctions(evaluateExpression: ExpressionEvaluator
       const predicate = callExpr.arguments[1]; // Get the raw AST node
       if (!Array.isArray(arr) || !predicate) return true;
 
-      const oldCurrent = context.current;
-      try {
-        for (const item of arr) {
-          context.current = item as Record<string, unknown>;
-          const result = evaluateExpression(predicate);
-          if (!result) {
-            return false;
-          }
-        }
-        return true;
-      } finally {
-        context.current = oldCurrent;
-      }
+      return everyWithContext(arr, context, () => Boolean(evaluateExpression(predicate)));
     },
 
     /**
@@ -44,19 +33,7 @@ export function createPredicateFunctions(evaluateExpression: ExpressionEvaluator
       const predicate = callExpr.arguments[1];
       if (!Array.isArray(arr) || !predicate) return false;
 
-      const oldCurrent = context.current;
-      try {
-        for (const item of arr) {
-          context.current = item as Record<string, unknown>;
-          const result = evaluateExpression(predicate);
-          if (result) {
-            return true;
-          }
-        }
-        return false;
-      } finally {
-        context.current = oldCurrent;
-      }
+      return someWithContext(arr, context, () => Boolean(evaluateExpression(predicate)));
     },
 
     /**
@@ -67,19 +44,7 @@ export function createPredicateFunctions(evaluateExpression: ExpressionEvaluator
       const predicate = callExpr.arguments[1];
       if (!Array.isArray(arr) || !predicate) return true;
 
-      const oldCurrent = context.current;
-      try {
-        for (const item of arr) {
-          context.current = item as Record<string, unknown>;
-          const result = evaluateExpression(predicate);
-          if (result) {
-            return false;
-          }
-        }
-        return true;
-      } finally {
-        context.current = oldCurrent;
-      }
+      return !someWithContext(arr, context, () => Boolean(evaluateExpression(predicate)));
     },
   };
 }
