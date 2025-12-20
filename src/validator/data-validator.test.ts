@@ -231,4 +231,280 @@ describe('DataValidator', () => {
       expect(validator.validateRecord('Payment', { method: 'crypto' }, 0)).toHaveLength(1);
     });
   });
+
+  describe('validateDatasetLevelConstraints', () => {
+    it('validates sum constraints', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Invoice {
+          total: decimal
+        }
+
+        dataset TestData {
+          invoices: 10 of Invoice,
+
+          validate {
+            sum(invoices.total) >= 1000
+          }
+        }
+      `);
+
+      // Data that satisfies the constraint
+      const validData = {
+        invoices: [{ total: 500 }, { total: 600 }],
+      };
+      const validResult = validator.validateDatasetLevelConstraints('TestData', validData);
+      expect(validResult.valid).toBe(true);
+      expect(validResult.errors).toHaveLength(0);
+
+      // Data that violates the constraint
+      const invalidData = {
+        invoices: [{ total: 100 }, { total: 200 }],
+      };
+      const invalidResult = validator.validateDatasetLevelConstraints('TestData', invalidData);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.errors).toHaveLength(1);
+      expect(invalidResult.errors[0].message).toContain('sum(invoices.total) >= 1000');
+    });
+
+    it('validates count constraints', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Order {
+          id: int
+        }
+
+        schema Shipment {
+          id: int
+        }
+
+        dataset Logistics {
+          orders: 20 of Order,
+          shipments: 10 of Shipment,
+
+          validate {
+            count(shipments) <= count(orders)
+          }
+        }
+      `);
+
+      // Valid: fewer shipments than orders
+      const validData = {
+        orders: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        shipments: [{ id: 1 }, { id: 2 }],
+      };
+      expect(validator.validateDatasetLevelConstraints('Logistics', validData).valid).toBe(true);
+
+      // Invalid: more shipments than orders
+      const invalidData = {
+        orders: [{ id: 1 }],
+        shipments: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      };
+      const result = validator.validateDatasetLevelConstraints('Logistics', invalidData);
+      expect(result.valid).toBe(false);
+      expect(result.errors[0].message).toContain('count(shipments) <= count(orders)');
+    });
+
+    it('validates all() predicate', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Product {
+          price: decimal,
+          stock: int
+        }
+
+        dataset Inventory {
+          products: 50 of Product,
+
+          validate {
+            all(products, .price > 0),
+            all(products, .stock >= 0)
+          }
+        }
+      `);
+
+      // Valid: all products have positive price and non-negative stock
+      const validData = {
+        products: [
+          { price: 10, stock: 5 },
+          { price: 20, stock: 0 },
+          { price: 5, stock: 100 },
+        ],
+      };
+      expect(validator.validateDatasetLevelConstraints('Inventory', validData).valid).toBe(true);
+
+      // Invalid: one product has zero price
+      const invalidData = {
+        products: [
+          { price: 10, stock: 5 },
+          { price: 0, stock: 10 }, // Invalid price
+          { price: 5, stock: 100 },
+        ],
+      };
+      const result = validator.validateDatasetLevelConstraints('Inventory', invalidData);
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it('validates some() predicate', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Invoice {
+          status: string,
+          amount: decimal
+        }
+
+        dataset Sales {
+          invoices: 100 of Invoice,
+
+          validate {
+            some(invoices, .status == "paid"),
+            some(invoices, .amount > 1000)
+          }
+        }
+      `);
+
+      // Valid: at least one paid invoice and one large invoice
+      const validData = {
+        invoices: [
+          { status: 'draft', amount: 100 },
+          { status: 'paid', amount: 2000 },
+          { status: 'sent', amount: 500 },
+        ],
+      };
+      expect(validator.validateDatasetLevelConstraints('Sales', validData).valid).toBe(true);
+
+      // Invalid: no paid invoices
+      const invalidData = {
+        invoices: [
+          { status: 'draft', amount: 2000 },
+          { status: 'sent', amount: 1500 },
+        ],
+      };
+      const result = validator.validateDatasetLevelConstraints('Sales', invalidData);
+      expect(result.valid).toBe(false);
+    });
+
+    it('returns valid for dataset without validation block', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Item {
+          name: string
+        }
+
+        dataset Simple {
+          items: 10 of Item
+        }
+      `);
+
+      const data = {
+        items: [{ name: 'foo' }, { name: 'bar' }],
+      };
+
+      const result = validator.validateDatasetLevelConstraints('Simple', data);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('returns error for unknown dataset', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`schema Item { name: string }`);
+
+      const result = validator.validateDatasetLevelConstraints('Unknown', { items: [] });
+      expect(result.valid).toBe(false);
+      expect(result.errors[0].message).toContain('Dataset "Unknown" not found');
+    });
+  });
+
+  describe('validateFull', () => {
+    it('validates both record and dataset-level constraints', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Invoice {
+          amount: decimal,
+          assume amount > 0
+        }
+
+        dataset TestData {
+          invoices: 10 of Invoice,
+
+          validate {
+            sum(invoices.amount) >= 1000
+          }
+        }
+      `);
+
+      // Valid: records valid and sum >= 1000
+      const validData = {
+        invoices: [{ amount: 500 }, { amount: 600 }],
+      };
+      const validResult = validator.validateFull(validData, { invoices: 'Invoice' }, 'TestData');
+      expect(validResult.valid).toBe(true);
+      expect(validResult.datasetLevelValidation?.valid).toBe(true);
+
+      // Invalid records: negative amount
+      const invalidRecordsData = {
+        invoices: [{ amount: 500 }, { amount: -100 }],
+      };
+      const invalidRecordsResult = validator.validateFull(
+        invalidRecordsData,
+        { invoices: 'Invoice' },
+        'TestData'
+      );
+      expect(invalidRecordsResult.valid).toBe(false);
+      expect(invalidRecordsResult.totalFailed).toBe(1);
+
+      // Invalid dataset: sum < 1000
+      const invalidDatasetData = {
+        invoices: [{ amount: 100 }, { amount: 200 }],
+      };
+      const invalidDatasetResult = validator.validateFull(
+        invalidDatasetData,
+        { invoices: 'Invoice' },
+        'TestData'
+      );
+      expect(invalidDatasetResult.valid).toBe(false);
+      expect(invalidDatasetResult.datasetLevelValidation?.valid).toBe(false);
+    });
+
+    it('works without dataset name (no dataset-level validation)', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Invoice {
+          amount: decimal,
+          assume amount > 0
+        }
+      `);
+
+      const data = {
+        invoices: [{ amount: 100 }, { amount: 200 }],
+      };
+
+      const result = validator.validateFull(data, { invoices: 'Invoice' });
+      expect(result.valid).toBe(true);
+      expect(result.datasetLevelValidation).toBeUndefined();
+    });
+  });
+
+  describe('getDatasetNames', () => {
+    it('returns loaded dataset names', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Item { name: string }
+
+        dataset TestA {
+          items: 10 of Item
+        }
+
+        dataset TestB {
+          items: 20 of Item
+        }
+      `);
+
+      const datasets = validator.getDatasetNames();
+      expect(datasets).toContain('TestA');
+      expect(datasets).toContain('TestB');
+      expect(datasets).toHaveLength(2);
+    });
+  });
 });

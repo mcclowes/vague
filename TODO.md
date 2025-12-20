@@ -75,7 +75,7 @@ Codebase Analysis Summary
 - [x] **Data ingestion validation** - `vague --validate-data data.json --schema schema.vague` to validate real data against Vague schemas
 - [x] **Reuse constraint engine** - Run `assume` constraints as assertions on external data
 - [x] **Error reporting** - Report which records fail which constraints with clear messages
-- [ ] **Dataset-level validation** - Run `validate { }` blocks on external data (aggregate constraints)
+- [x] **Dataset-level validation** - Run `validate { }` blocks on external data (aggregate constraints)
 
 ## Code quality and organisation
 
