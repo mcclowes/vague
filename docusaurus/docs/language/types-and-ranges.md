@@ -89,7 +89,7 @@ id: unique int in 1000..9999    // No duplicate IDs
 code: unique "A" | "B" | "C"    // No duplicate codes
 ```
 
-Vague will retry generation if a duplicate is produced (up to the retry limit).
+Vague retries generation when a duplicate occurs (up to the retry limit).
 
 ## Private Fields
 

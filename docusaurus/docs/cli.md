@@ -15,6 +15,8 @@ vague <file.vague> [options]
 
 ## Output Options
 
+Control where and how Vague writes generated data:
+
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
@@ -34,6 +36,8 @@ vague data.vague -f csv -o data.csv
 
 ## Reproducibility
 
+Generate consistent output across runs:
+
 | Option | Description |
 |--------|-------------|
 | `-s, --seed <number>` | Seed for reproducible generation |
@@ -48,6 +52,8 @@ vague data.vague -o output.json -w
 ```
 
 ## CSV Options
+
+Configure CSV output formatting:
 
 | Option | Description |
 |--------|-------------|
@@ -66,6 +72,8 @@ vague data.vague -f csv --csv-no-header
 
 ## OpenAPI Validation
 
+Validate generated data against an OpenAPI specification:
+
 | Option | Description |
 |--------|-------------|
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
@@ -81,6 +89,8 @@ vague data.vague -v openapi.json --validate-only
 ```
 
 ## OpenAPI Example Population
+
+Populate OpenAPI specs with generated examples:
 
 | Option | Description |
 |--------|-------------|
@@ -99,6 +109,8 @@ vague data.vague --oas-source api.json --oas-output api.json --oas-example-count
 
 ## OpenAPI Linting
 
+Lint OpenAPI specs using Spectral:
+
 | Option | Description |
 |--------|-------------|
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
@@ -113,6 +125,8 @@ vague --lint-spec openapi.yaml --lint-verbose
 ```
 
 ## Schema Inference
+
+Reverse-engineer Vague schemas from existing data:
 
 | Option | Description |
 |--------|-------------|
@@ -131,6 +145,8 @@ vague --infer data.csv --collection-name employees
 
 ## Data Validation
 
+Validate external JSON data against Vague schema constraints:
+
 | Option | Description |
 |--------|-------------|
 | `--validate-data <file>` | Validate JSON against Vague schema |
@@ -142,6 +158,8 @@ vague --validate-data data.json --schema schema.vague
 ```
 
 ## TypeScript Generation
+
+Generate TypeScript type definitions from schemas:
 
 | Option | Description |
 |--------|-------------|
@@ -158,6 +176,8 @@ vague --infer data.json --ts-only
 
 ## Plugins
 
+Load custom generator plugins:
+
 | Option | Description |
 |--------|-------------|
 | `--plugins <dir>` | Load plugins from directory |
@@ -172,6 +192,8 @@ vague data.vague --no-auto-plugins --plugins ./plugins
 ```
 
 ## Debugging
+
+Enable detailed logging for troubleshooting:
 
 | Option | Description |
 |--------|-------------|

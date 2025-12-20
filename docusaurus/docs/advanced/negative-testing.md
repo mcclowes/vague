@@ -168,16 +168,16 @@ dataset EdgeCases {
 
 ## Limitations
 
-1. **All-or-nothing** — Violating applies to entire dataset, not individual fields
-2. **Best effort** — Not guaranteed to violate every constraint
-3. **Retry limits** — Generation still respects max retries
+1. **All-or-nothing.** Violating applies to entire dataset, not individual fields.
+2. **Best effort.** Not guaranteed to violate every constraint.
+3. **Retry limits.** Generation still respects max retries.
 
 ## Best Practices
 
-1. **Test specific violations** — Create focused violating datasets for each constraint
-2. **Document expected violations** — Comment what should fail
-3. **Separate concerns** — Keep valid and invalid data in separate datasets
-4. **Combine approaches** — Use with Issuer plugin for comprehensive testing
+1. **Test specific violations.** Create focused violating datasets for each constraint.
+2. **Document expected violations.** Comment what should fail.
+3. **Separate concerns.** Keep valid and invalid data in separate datasets.
+4. **Combine approaches.** Use with Issuer plugin for comprehensive testing.
 
 ## See Also
 

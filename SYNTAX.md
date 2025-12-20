@@ -2,8 +2,6 @@
 
 Quick reference for all Vague language syntax.
 
----
-
 ## Primitives
 
 ```vague
@@ -14,8 +12,6 @@ active: boolean       # true or false
 joined: date          # ISO date (YYYY-MM-DD)
 ```
 
----
-
 ## Ranges
 
 ```vague
@@ -23,8 +19,6 @@ age: int in 18..65              # Integer range
 price: decimal in 0.01..999.99  # Decimal range
 founded: date in 2000..2023     # Date range (years)
 ```
-
----
 
 ## Superposition (Random Choice)
 
@@ -44,16 +38,12 @@ amount: int in 10..500 | invoice.total
 amount: 0.7: int in 10..500 | 0.3: invoice.total
 ```
 
----
-
 ## Nullable Fields
 
 ```vague
 nickname: string?        # Preferred: shorthand syntax
 notes: string | null     # Alternative: explicit null
 ```
-
----
 
 ## Private Fields
 
@@ -69,8 +59,6 @@ schema Person {
 internal_id: unique private int in 1..10000
 ```
 
----
-
 ## Ordered Sequences (Cycling Lists)
 
 ```vague
@@ -79,8 +67,6 @@ pitch: [48, 52, 55, 60]           # C-E-G-C arpeggio
 color: ["red", "green", "blue"]   # Cycles: red, green, blue, red...
 value: [1+1, 2+2, 3+3]            # Cycles: 2, 4, 6, 2, 4, 6...
 ```
-
----
 
 ## Collections (Cardinality)
 
@@ -91,8 +77,6 @@ items: 1..5 of LineItem        # 1 to 5 (random)
 # Dynamic cardinality
 items: (size == "large" ? 5..10 : 1..3) of LineItem
 ```
-
----
 
 ## Unique Values
 
@@ -120,8 +104,6 @@ assume not discount > 40
 assume status == "active" and verified == true
 ```
 
----
-
 ## Cross-Record References
 
 ```vague
@@ -137,8 +119,6 @@ charge: any of charges where .status == "succeeded" and .amount > 0
 
 > **Note:** In `where` clauses, `.field` refers to the current item's field.
 
----
-
 ## Parent References
 
 ```vague
@@ -153,8 +133,6 @@ schema Invoice {
 ```
 
 > **Note:** `^field` accesses a field from the parent schema.
-
----
 
 ## Computed Fields
 
@@ -180,8 +158,6 @@ floored: floor(value, 1)
 ceiled: ceil(value, 0)
 ```
 
----
-
 ## Ternary Expressions
 
 ```vague
@@ -194,8 +170,6 @@ grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 # With logical operators
 discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 ```
-
----
 
 ## Match Expressions
 
@@ -228,8 +202,6 @@ final_price: match tier {
 
 > **Note:** If no arm matches, the result is `null`.
 
----
-
 ## String Transformations
 
 ```vague
@@ -250,8 +222,6 @@ part: substring(name, 0, 5)    # First 5 chars
 replaced: replace(s, "a", "b")
 len: length(name)
 ```
-
----
 
 ## Generators (Semantic Data)
 
@@ -296,8 +266,6 @@ meeting: weekday(2024, 2025)
 party: weekend(2024, 2025)
 ```
 
----
-
 ## Statistical Distributions
 
 ```vague
@@ -320,8 +288,6 @@ conversion_rate: beta(2, 5)
 random_value: uniform(0, 100)
 ```
 
----
-
 ## Date Functions
 
 ```vague
@@ -333,8 +299,6 @@ timestamp: datetime(2020, 2024)      # Random in year range
 event_date: dateBetween("2023-01-01", "2023-12-31")
 formatted: formatDate(now(), "YYYY-MM-DD HH:mm")
 ```
-
----
 
 ## Sequential Generation
 
@@ -349,8 +313,6 @@ order_num: sequenceInt("orders", 100)
 prev_amount: previous("amount")
 ```
 
----
-
 ## Side Effects (then blocks)
 
 ```vague
@@ -364,8 +326,6 @@ schema Payment {
 ```
 
 Supported operations: `=` (assign), `+=` (add)
-
----
 
 ## Refine Blocks (Conditional Field Overrides)
 
@@ -386,8 +346,6 @@ schema Player {
 
 Refine blocks regenerate specific fields when conditions match, allowing different constraints per variant.
 
----
-
 ## Dataset Definition
 
 ```vague
@@ -396,8 +354,6 @@ dataset TestData {
   invoices: 500 of Invoice
 }
 ```
-
----
 
 ## Dataset Validation
 
@@ -419,8 +375,6 @@ dataset TestData {
 }
 ```
 
----
-
 ## Negative Testing (Violating Data)
 
 ```vague
@@ -435,8 +389,6 @@ dataset Invalid violating {
 }
 ```
 
----
-
 ## OpenAPI Import
 
 ```vague
@@ -447,8 +399,6 @@ schema Pet from petstore.Pet {
   age: int in 1..15
 }
 ```
-
----
 
 ## Schema Definition
 
@@ -463,8 +413,6 @@ schema Invoice {
   assume amount > 0
 }
 ```
-
----
 
 ## Complete Example
 
@@ -517,8 +465,6 @@ dataset TestData {
   }
 }
 ```
-
----
 
 ## CLI Quick Reference
 

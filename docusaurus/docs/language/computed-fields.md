@@ -5,6 +5,8 @@ title: Computed Fields
 
 # Computed Fields
 
+Use computed fields when you need values derived from other fields—totals, averages, conditional statuses, or any value that depends on generated data.
+
 Computed fields derive values from other fields using expressions, aggregates, and arithmetic.
 
 ## Arithmetic Expressions

@@ -5,6 +5,8 @@ title: Constraints
 
 # Constraints
 
+Use constraints when generated data must satisfy business rules—dates that follow a sequence, amounts that must be positive, or conditional requirements based on status.
+
 Constraints define rules that generated data must satisfy. Vague uses rejection sampling: it generates candidate values and discards those that violate constraints (up to a retry limit).
 
 ## Simple Constraints
@@ -160,7 +162,7 @@ schema Good {
 
 ## Best Practices
 
-1. **Keep constraints simple** — Complex constraints increase retry rates
-2. **Use generators when possible** — `regex()` is better than `assume matches()`
-3. **Consider constraint order** — Earlier fields are generated first
-4. **Test with small datasets** — Catch constraint issues early
+1. **Keep constraints simple.** Complex constraints increase retry rates.
+2. **Use generators when possible.** `regex()` is better than `assume matches()`.
+3. **Consider constraint order.** Earlier fields are generated first.
+4. **Test with small datasets.** Catch constraint issues early.

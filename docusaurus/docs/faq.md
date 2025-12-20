@@ -1,3 +1,8 @@
+---
+sidebar_position: 16
+title: FAQ & Troubleshooting
+---
+
 # FAQ & Troubleshooting
 
 Common questions and solutions when working with Vague.
@@ -6,7 +11,7 @@ Common questions and solutions when working with Vague.
 
 ### "Max retries exceeded" error
 
-Vague uses rejection sampling for constraints—it generates values and retries if constraints aren't satisfied. After 100 attempts, it gives up.
+Vague uses rejection sampling for constraints—it generates values and retries when constraints fail. After 100 attempts, it gives up.
 
 **Causes:**
 - Constraints that are mathematically impossible
