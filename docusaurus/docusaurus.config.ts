@@ -50,7 +50,7 @@ const config: Config = {
       title: 'Vague',
       logo: {
         alt: 'Vague Logo',
-        src: 'img/logo.svg',
+        src: 'img/logo.png',
       },
       items: [
         {
@@ -58,6 +58,11 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           position: 'left',
           label: 'Documentation',
+        },
+        {
+          href: 'https://vague-playground.vercel.app',
+          label: 'Playground',
+          position: 'left',
         },
         {
           href: 'https://www.npmjs.com/package/vague-lang',
