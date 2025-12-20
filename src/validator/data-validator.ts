@@ -42,6 +42,20 @@ export interface DatasetValidationResult {
   totalFailed: number;
 }
 
+export interface DatasetLevelError {
+  constraint: string;
+  message: string;
+}
+
+export interface DatasetLevelValidationResult {
+  valid: boolean;
+  errors: DatasetLevelError[];
+}
+
+export interface FullDatasetValidationResult extends DatasetValidationResult {
+  datasetLevelValidation?: DatasetLevelValidationResult;
+}
+
 /**
  * Validates data against Vague schema constraints
  */
@@ -74,6 +88,13 @@ export class DataValidator {
    */
   getSchemaNames(): string[] {
     return Array.from(this.schemas.keys());
+  }
+
+  /**
+   * Get all loaded dataset names
+   */
+  getDatasetNames(): string[] {
+    return Array.from(this.datasets.keys());
   }
 
   /**
@@ -178,6 +199,97 @@ export class DataValidator {
       collections,
       totalRecords,
       totalFailed,
+    };
+  }
+
+  /**
+   * Validate dataset-level constraints from a validate { } block
+   * These are aggregate constraints that apply to the entire dataset, like:
+   * - sum(invoices.total) >= 100000
+   * - all(invoices, .amount_paid <= .total)
+   * - some(invoices, .status == "paid")
+   */
+  validateDatasetLevelConstraints(
+    datasetName: string,
+    data: Record<string, unknown[]>
+  ): DatasetLevelValidationResult {
+    const dataset = this.datasets.get(datasetName);
+    if (!dataset) {
+      return {
+        valid: false,
+        errors: [
+          {
+            constraint: 'dataset',
+            message: `Dataset "${datasetName}" not found`,
+          },
+        ],
+      };
+    }
+
+    if (!dataset.validation || dataset.validation.validations.length === 0) {
+      // No validation block - all data passes
+      return { valid: true, errors: [] };
+    }
+
+    const errors: DatasetLevelError[] = [];
+
+    // Create a context with all collections
+    const ctx = createContext();
+    for (const [name, items] of Object.entries(data)) {
+      ctx.collections.set(name, items);
+    }
+
+    // Create a generator instance for expression evaluation
+    const generator = new Generator(ctx);
+
+    // Evaluate each validation expression
+    for (const constraint of dataset.validation.validations) {
+      try {
+        const result = generator.evaluateExpression(constraint);
+        if (!result) {
+          errors.push({
+            constraint: this.expressionToString(constraint),
+            message: `Dataset constraint failed: ${this.expressionToString(constraint)}`,
+          });
+        }
+      } catch (err) {
+        errors.push({
+          constraint: this.expressionToString(constraint),
+          message: `Error evaluating dataset constraint: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Full validation: validates records against schema constraints AND
+   * validates dataset-level constraints from validate { } blocks
+   */
+  validateFull(
+    data: Record<string, unknown[]>,
+    mapping: Record<string, string>,
+    datasetName?: string
+  ): FullDatasetValidationResult {
+    // First validate record-level constraints
+    const result = this.validateDataset(data, mapping);
+
+    // Then validate dataset-level constraints if a dataset name is provided
+    let datasetLevelValidation: DatasetLevelValidationResult | undefined;
+    if (datasetName) {
+      datasetLevelValidation = this.validateDatasetLevelConstraints(datasetName, data);
+    }
+
+    const allValid = result.valid && (!datasetLevelValidation || datasetLevelValidation.valid);
+
+    return {
+      ...result,
+      valid: allValid,
+      datasetLevelValidation,
     };
   }
 

@@ -107,6 +107,7 @@ Schema Inference:
 Data Validation:
   --validate-data <file>   Validate JSON data against a Vague schema
   --schema <file>          Vague schema file for validation
+  --dataset <name>         Dataset name for validate {} block constraints
 
 OpenAPI Example Population:
   --oas-output <file>      Write OpenAPI spec with examples to file
@@ -143,6 +144,7 @@ Examples:
 
   # Validate data against Vague schema
   vague --validate-data data.json --schema schema.vague -m '{"invoices": "Invoice"}'
+  vague --validate-data data.json --schema schema.vague --dataset TestData  # Include validate {} block
 
   # Lint an OpenAPI spec with Spectral
   vague --lint-spec openapi.json
@@ -203,6 +205,7 @@ Configuration File (vague.config.js):
   // Data validation options
   let validateDataFile: string | null = null;
   let schemaFile: string | null = null;
+  let validationDatasetName: string | null = null;
 
   // Config options
   let configFile: string | null = null;
@@ -318,6 +321,8 @@ Configuration File (vague.config.js):
       validateDataFile = args[++i];
     } else if (args[i] === '--schema') {
       schemaFile = args[++i];
+    } else if (args[i] === '--dataset') {
+      validationDatasetName = args[++i];
     } else if (args[i] === '-c' || args[i] === '--config') {
       configFile = args[++i];
     } else if (args[i] === '--no-config') {
@@ -575,7 +580,21 @@ Configuration File (vague.config.js):
         }
       }
 
-      const result = validator.validateDataset(data, schemaMapping);
+      // Auto-detect dataset name if not provided and only one exists
+      const datasets = validator.getDatasetNames();
+      if (!validationDatasetName && datasets.length === 1) {
+        validationDatasetName = datasets[0];
+        console.error(`Auto-detected dataset: ${validationDatasetName}`);
+      } else if (!validationDatasetName && datasets.length > 1) {
+        console.error(`Available datasets: ${datasets.join(', ')}`);
+        console.error(`Use --dataset to specify which dataset's validate {} block to check`);
+      }
+
+      const result = validator.validateFull(
+        data,
+        schemaMapping,
+        validationDatasetName ?? undefined
+      );
 
       // Output results
       let hasErrors = false;
@@ -601,6 +620,19 @@ Configuration File (vague.config.js):
           }
           if (collResult.errors.length > 5) {
             console.error(`  ... and ${collResult.errors.length - 5} more errors`);
+          }
+        }
+      }
+
+      // Output dataset-level validation results
+      if (result.datasetLevelValidation) {
+        if (result.datasetLevelValidation.valid) {
+          console.error(`✓ Dataset constraints (validate {} block) - all satisfied`);
+        } else {
+          hasErrors = true;
+          console.error(`✗ Dataset constraints (validate {} block) - failed`);
+          for (const err of result.datasetLevelValidation.errors) {
+            console.error(`  ${err.message}`);
           }
         }
       }
