@@ -211,4 +211,4 @@ vague schema.vague -o output.json
 
 - Check the [GitHub Issues](https://github.com/mcclowes/vague/issues) for similar problems
 - Use `--debug` flag for detailed logging: `vague schema.vague --debug`
-- Try the [Playground](https://vague-playground.vercel.app) to test schemas interactively
+- Try the [Playground](http://vague.playground.mcclowes.com/) to test schemas interactively

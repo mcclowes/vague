@@ -60,7 +60,7 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://vague-playground.vercel.app',
+          href: 'http://vague.playground.mcclowes.com/',
           label: 'Playground',
           position: 'left',
         },
