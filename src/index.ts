@@ -50,6 +50,9 @@ export {
   // GraphQL plugin
   graphqlPlugin,
   graphqlShorthandPlugin,
+  // HTTP plugin
+  httpPlugin,
+  httpShorthandPlugin,
   // Plugin discovery
   discoverPlugins,
   type DiscoverOptions,
@@ -72,6 +75,14 @@ export {
   type CsvOptions,
   type CsvParseOptions,
 } from './csv/index.js';
+export {
+  datasetToNdjson,
+  datasetToNdjsonByCollection,
+  parseNdjson,
+  parseNdjsonWithCollections,
+  recordToNdjsonLine,
+  type NdjsonOptions,
+} from './ndjson/index.js';
 export {
   DataValidator,
   type ValidationError as DataValidationError,

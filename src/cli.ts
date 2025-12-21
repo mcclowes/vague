@@ -15,8 +15,11 @@ import {
   regexShorthandPlugin,
   graphqlPlugin,
   graphqlShorthandPlugin,
+  httpPlugin,
+  httpShorthandPlugin,
   discoverPlugins,
 } from './plugins/index.js';
+import { datasetToNdjson } from './ndjson/index.js';
 import { OpenAPIExamplePopulator } from './openapi/example-populator.js';
 import { inferSchema, inferSchemaWithTypeScript } from './infer/index.js';
 import {
@@ -51,6 +54,8 @@ const builtinPlugins = [
   regexShorthandPlugin,
   graphqlPlugin,
   graphqlShorthandPlugin,
+  httpPlugin,
+  httpShorthandPlugin,
 ];
 
 interface ValidationMapping {
@@ -71,7 +76,7 @@ Usage:
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
-  -f, --format <fmt>       Output format: json (default), csv
+  -f, --format <fmt>       Output format: json (default), csv, ndjson
   -p, --pretty             Pretty-print JSON output
   -s, --seed <number>      Seed for reproducible random generation
   -w, --watch              Watch input file and regenerate on changes
@@ -176,7 +181,7 @@ Configuration File (vague.config.js):
 
   let inputFile: string | null = null;
   let outputFile: string | null = null;
-  let outputFormat: 'json' | 'csv' = 'json';
+  let outputFormat: 'json' | 'csv' | 'ndjson' = 'json';
   let pretty = false;
   let seed: number | null = null;
   let validateSpec: string | null = null;
@@ -240,8 +245,8 @@ Configuration File (vague.config.js):
       outputFile = args[++i];
     } else if (args[i] === '-f' || args[i] === '--format') {
       const fmt = args[++i];
-      if (fmt !== 'json' && fmt !== 'csv') {
-        console.error('Error: Format must be "json" or "csv"');
+      if (fmt !== 'json' && fmt !== 'csv' && fmt !== 'ndjson') {
+        console.error('Error: Format must be "json", "csv", or "ndjson"');
         process.exit(1);
       }
       outputFormat = fmt;
@@ -785,6 +790,16 @@ Configuration File (vague.config.js):
           } else {
             // stdout: use single CSV format with section markers
             console.log(datasetToSingleCSV(result as Record<string, unknown[]>, csvOptions));
+          }
+        } else if (outputFormat === 'ndjson') {
+          // NDJSON output (newline-delimited JSON)
+          const ndjson = datasetToNdjson(result as Record<string, unknown[]>);
+
+          if (outputFile) {
+            writeFileSync(resolve(outputFile), ndjson);
+            console.error(`NDJSON output written to ${outputFile}`);
+          } else {
+            console.log(ndjson);
           }
         } else {
           // JSON output

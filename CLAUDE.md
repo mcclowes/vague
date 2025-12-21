@@ -111,6 +111,16 @@ Day-of-week filtering: `date.weekday(2024, 2025)`, `date.weekend(2024, 2025)`, `
 Pattern generation: `regex("[A-Z]{3}-[0-9]{4}")`, `alphanumeric(32)`, `digits(6)`, `semver()`
 Pattern validation: `assume matches("^[A-Z]{3}", code)`
 
+### HTTP Plugin
+Generators for HTTP testing and webhook payloads:
+- Methods: `http.method()` - weighted HTTP methods (GET, POST, PUT, etc.)
+- Status: `http.statusCode()`, `http.statusText()`, `http.successCode()`, `http.clientErrorCode()`, `http.serverErrorCode()`
+- Headers: `http.contentType()`, `http.userAgent()`, `http.accept()`, `http.cacheControl()`
+- CORS: `http.corsOrigin()`, `http.corsMethods()`, `http.corsHeaders()`
+- Auth: `http.bearerToken()`, `http.basicAuth()`, `http.apiKey()`
+- Webhooks: `http.webhookEvent()` - common webhook event types
+- Environment: `env("VAR_NAME")`, `env("VAR_NAME", "default")` - read environment variables
+
 ## TypeScript API
 
 ```typescript
@@ -134,7 +144,7 @@ const data = await vague({ seed: 42 })`...`;
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
-| `-f, --format <fmt>` | Output format: `json`, `csv` |
+| `-f, --format <fmt>` | Output format: `json`, `csv`, `ndjson` |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
 | `-w, --watch` | Watch input file and regenerate |
