@@ -8,6 +8,24 @@ import { warningCollector, createUniqueExhaustionWarning } from '../../warnings.
 export type ExpressionEvaluator = (expr: Expression) => unknown;
 
 /**
+ * Pre-computed powers of 10 for common decimal precisions (0-10).
+ * Avoids repeated Math.pow() calls in hot paths.
+ */
+const POWER_OF_10: number[] = [
+  1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000, 10000000000,
+];
+
+/**
+ * Get power of 10 with caching for common values.
+ */
+function getPowerOf10(decimals: number): number {
+  if (decimals >= 0 && decimals < POWER_OF_10.length) {
+    return POWER_OF_10[decimals];
+  }
+  return Math.pow(10, decimals);
+}
+
+/**
  * Math function handlers for round, floor, ceil
  */
 export const mathFunctions = {
@@ -17,7 +35,7 @@ export const mathFunctions = {
   round(args: unknown[], _context: GeneratorContext): number {
     const value = args[0] as number;
     const decimals = (args[1] as number) ?? 0;
-    const factor = Math.pow(10, decimals);
+    const factor = getPowerOf10(decimals);
     return Math.round(value * factor) / factor;
   },
 
@@ -27,7 +45,7 @@ export const mathFunctions = {
   floor(args: unknown[], _context: GeneratorContext): number {
     const value = args[0] as number;
     const decimals = (args[1] as number) ?? 0;
-    const factor = Math.pow(10, decimals);
+    const factor = getPowerOf10(decimals);
     return Math.floor(value * factor) / factor;
   },
 
@@ -37,7 +55,7 @@ export const mathFunctions = {
   ceil(args: unknown[], _context: GeneratorContext): number {
     const value = args[0] as number;
     const decimals = (args[1] as number) ?? 0;
-    const factor = Math.pow(10, decimals);
+    const factor = getPowerOf10(decimals);
     return Math.ceil(value * factor) / factor;
   },
 };

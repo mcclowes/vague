@@ -85,6 +85,9 @@ import {
 const generatorLog = createLogger('generator');
 const constraintLog = createLogger('constraint');
 
+// Pre-computed Set for primitive type checks (faster than array.includes in hot paths)
+const PRIMITIVE_TYPES = new Set(['string', 'int', 'decimal', 'boolean', 'date']);
+
 // Re-export for external use
 export { setSeed, getSeed } from './random.js';
 export { registerPlugin, getRegisteredPlugins };
@@ -1033,7 +1036,7 @@ export class Generator {
       case 'Identifier': {
         const name = (expr as { name: string }).name;
         // Check if it's a primitive type name (for superposition like "string | null")
-        if (['string', 'int', 'decimal', 'boolean', 'date'].includes(name)) {
+        if (PRIMITIVE_TYPES.has(name)) {
           return this.generatePrimitive(name as 'string' | 'int' | 'decimal' | 'boolean' | 'date');
         }
         // Check let bindings (e.g., let teamNames = "A" | "B" | "C")
