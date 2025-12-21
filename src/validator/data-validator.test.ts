@@ -212,8 +212,8 @@ describe('DataValidator', () => {
       // Second invalid
       expect(validator.validateRecord('Order', { quantity: 5, price: 0 }, 0)).toHaveLength(1);
 
-      // Both invalid
-      expect(validator.validateRecord('Order', { quantity: 0, price: 0 }, 0)).toHaveLength(1);
+      // Both invalid - now reports both failures separately
+      expect(validator.validateRecord('Order', { quantity: 0, price: 0 }, 0)).toHaveLength(2);
     });
 
     it('validates or constraints', () => {
@@ -229,6 +229,137 @@ describe('DataValidator', () => {
       expect(validator.validateRecord('Payment', { method: 'cash' }, 0)).toHaveLength(0);
       expect(validator.validateRecord('Payment', { method: 'card' }, 0)).toHaveLength(0);
       expect(validator.validateRecord('Payment', { method: 'crypto' }, 0)).toHaveLength(1);
+    });
+  });
+
+  describe('granular error reporting', () => {
+    it('reports all failing parts of nested and expressions', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Order {
+          a: int,
+          b: int,
+          c: int,
+
+          assume a > 0 and b > 0 and c > 0
+        }
+      `);
+
+      // All three fail - should get 3 errors
+      const errors = validator.validateRecord('Order', { a: -1, b: -2, c: -3 }, 0);
+      expect(errors).toHaveLength(3);
+      expect(errors.map((e) => e.constraint)).toContain('a > 0');
+      expect(errors.map((e) => e.constraint)).toContain('b > 0');
+      expect(errors.map((e) => e.constraint)).toContain('c > 0');
+    });
+
+    it('only reports failing parts, not passing parts', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Order {
+          a: int,
+          b: int,
+          c: int,
+
+          assume a > 0 and b > 0 and c > 0
+        }
+      `);
+
+      // Only 'a' fails
+      const errors1 = validator.validateRecord('Order', { a: -1, b: 5, c: 10 }, 0);
+      expect(errors1).toHaveLength(1);
+      expect(errors1[0].constraint).toBe('a > 0');
+
+      // 'a' and 'c' fail
+      const errors2 = validator.validateRecord('Order', { a: -1, b: 5, c: -3 }, 0);
+      expect(errors2).toHaveLength(2);
+      expect(errors2.map((e) => e.constraint)).toContain('a > 0');
+      expect(errors2.map((e) => e.constraint)).toContain('c > 0');
+    });
+
+    it('does not break down or expressions', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Payment {
+          method: string,
+
+          assume method == "cash" or method == "card" or method == "check"
+        }
+      `);
+
+      // 'or' expression fails as a whole
+      const errors = validator.validateRecord('Payment', { method: 'crypto' }, 0);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].constraint).toBe(
+        'method == "cash" or method == "card" or method == "check"'
+      );
+    });
+
+    it('reports errors from multiple assume clauses', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Invoice {
+          amount: int,
+          quantity: int,
+          status: string,
+
+          assume amount > 0
+          assume quantity >= 1
+          assume status == "draft" or status == "paid"
+        }
+      `);
+
+      // All three assume clauses fail
+      const errors = validator.validateRecord(
+        'Invoice',
+        { amount: -10, quantity: 0, status: 'invalid' },
+        0
+      );
+      expect(errors).toHaveLength(3);
+    });
+
+    it('reports all errors across multiple records in a collection', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Item {
+          price: int,
+          stock: int,
+
+          assume price > 0 and stock >= 0
+        }
+      `);
+
+      const records = [
+        { price: -10, stock: -5 }, // 2 errors
+        { price: 100, stock: 5 }, // 0 errors
+        { price: -20, stock: 10 }, // 1 error
+      ];
+
+      const result = validator.validateCollection('Item', records);
+      expect(result.valid).toBe(false);
+      expect(result.recordsFailed).toBe(2);
+      expect(result.errors).toHaveLength(3); // 2 + 0 + 1 = 3 total errors
+    });
+
+    it('includes relevant field values in error details', () => {
+      const validator = new DataValidator();
+      validator.loadSchema(`
+        schema Order {
+          amount: int,
+          quantity: int,
+
+          assume amount > 0 and quantity >= 1
+        }
+      `);
+
+      const errors = validator.validateRecord('Order', { amount: -50, quantity: 0 }, 0);
+      expect(errors).toHaveLength(2);
+
+      const amountError = errors.find((e) => e.constraint === 'amount > 0');
+      expect(amountError?.value).toEqual({ amount: -50 });
+
+      const quantityError = errors.find((e) => e.constraint === 'quantity >= 1');
+      expect(quantityError?.value).toEqual({ quantity: 0 });
     });
   });
 
