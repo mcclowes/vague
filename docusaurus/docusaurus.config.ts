@@ -24,6 +24,30 @@ const config: Config = {
     locales: ['en'],
   },
 
+  headTags: [
+    {
+      tagName: 'meta',
+      attributes: {
+        name: 'keywords',
+        content: 'vague, test data, data generation, mock data, fixtures, TypeScript, declarative, OpenAPI, JSON Schema, faker, testing',
+      },
+    },
+    {
+      tagName: 'meta',
+      attributes: {
+        name: 'author',
+        content: 'Max Clayton Clowes',
+      },
+    },
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'canonical',
+        href: 'https://vague-docs.vercel.app',
+      },
+    },
+  ],
+
   presets: [
     [
       'classic',
@@ -36,12 +60,28 @@ const config: Config = {
         theme: {
           customCss: './src/css/custom.css',
         },
+        sitemap: {
+          lastmod: 'date',
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/tags/**'],
+          filename: 'sitemap.xml',
+        },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
     image: 'img/vague-social-card.png',
+    metadata: [
+      {name: 'description', content: 'Vague is a declarative language for generating realistic test data. Create mock data, fixtures, and test datasets with superposition, constraints, and cross-references.'},
+      {name: 'og:title', content: 'Vague - Declarative Test Data Generation'},
+      {name: 'og:description', content: 'A declarative language for generating realistic test data with TypeScript/JavaScript integration, OpenAPI support, and powerful constraint systems.'},
+      {name: 'og:type', content: 'website'},
+      {name: 'twitter:card', content: 'summary_large_image'},
+      {name: 'twitter:title', content: 'Vague - Declarative Test Data Generation'},
+      {name: 'twitter:description', content: 'Generate realistic test data with a declarative language. Supports TypeScript, OpenAPI, constraints, and more.'},
+    ],
     colorMode: {
       defaultMode: 'light',
       respectPrefersColorScheme: true,
