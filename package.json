@@ -1,6 +1,6 @@
 {
   "name": "vague-lang",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "A declarative language for generating realistic test data",
   "type": "module",
   "main": "dist/index.js",
@@ -39,7 +39,9 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "lint:spec": "node dist/cli.js --lint-spec",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prepublishOnly": "npm run build && npm run test:run",
+    "release": "npm run build && npm run test:run && npm publish"
   },
   "lint-staged": {
     "src/**/*.ts": [
