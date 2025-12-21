@@ -14,10 +14,12 @@ src/
 ├── openapi/     # OpenAPI schema import support
 ├── infer/       # Schema inference from JSON data
 ├── csv/         # CSV input/output formatting
+├── ndjson/      # NDJSON (newline-delimited JSON) formatting
 ├── config/      # Configuration file loading (vague.config.js)
 ├── logging/     # Logging utilities with levels and components
-├── plugins/     # Built-in plugins (faker, issuer, date, regex)
+├── plugins/     # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
 ├── spectral/    # OpenAPI linting with Spectral
+├── cli/         # CLI handlers and argument parsing
 ├── index.ts     # Library exports
 └── cli.ts       # CLI entry point
 examples/        # Example .vague files
@@ -120,6 +122,21 @@ Generators for HTTP testing and webhook payloads:
 - Auth: `http.bearerToken()`, `http.basicAuth()`, `http.apiKey()`
 - Webhooks: `http.webhookEvent()` - common webhook event types
 - Environment: `env("VAR_NAME")`, `env("VAR_NAME", "default")` - read environment variables
+
+### SQL Plugin
+Generators for SQL-related test data:
+- Identifiers: `sql.tableName()`, `sql.columnName()`, `sql.schemaName()`, `sql.identifier()`, `sql.alias()`
+- Values: `sql.string()`, `sql.dateValue()`, `sql.timestamp()`, `sql.nullValue()`, `sql.boolean()`
+- Queries: `sql.selectQuery()`, `sql.insertQuery()`, `sql.updateQuery()`, `sql.deleteQuery()`
+- Clauses: `sql.whereClause()`, `sql.orderByClause()`, `sql.joinClause()`
+- Errors: `sql.error()`, `sql.errorCode()`
+
+### GraphQL Plugin
+Generators for GraphQL-related test data:
+- Identifiers: `graphql.fieldName()`, `graphql.typeName()`, `graphql.operationName()`, `graphql.enumValue()`
+- Operations: `graphql.query()`, `graphql.mutation()`, `graphql.subscription()`, `graphql.fragment()`
+- Errors: `graphql.error()`, `graphql.errorCode()`
+- Shorthand (prefixed): `gqlQuery()`, `gqlMutation()`, `gqlTypeName()`, etc.
 
 ## TypeScript API
 
@@ -250,8 +267,9 @@ Tests colocated with source (`*.test.ts`). Run with `npm test`.
 
 ## Plugin System
 
+### Generator Plugins
 ```typescript
-import { VaguePlugin, registerPlugin } from 'vague';
+import { VaguePlugin, registerPlugin, unregisterPlugin } from 'vague';
 
 const myPlugin: VaguePlugin = {
   name: 'custom',
@@ -261,7 +279,33 @@ const myPlugin: VaguePlugin = {
   },
 };
 registerPlugin(myPlugin);
+// Later: unregisterPlugin('custom');
 ```
+
+### Language Extension Plugins (Advanced)
+Plugins can extend the Vague language itself with custom keywords and statements:
+
+```typescript
+import { VaguePlugin, registerPlugin, type ParserContext } from 'vague';
+
+const aliasPlugin: VaguePlugin = {
+  name: 'alias',
+  keywords: [{ keyword: 'alias', tokenType: 'ALIAS' }],
+  statements: {
+    ALIAS: (ctx: ParserContext) => {
+      ctx.advance(); // consume 'alias'
+      const name = ctx.consume('IDENTIFIER', 'Expected name');
+      ctx.consume('EQUALS', "Expected '='");
+      const value = ctx.parseExpression();
+      return { type: 'LetStatement', name: name.value, value };
+    },
+  },
+};
+registerPlugin(aliasPlugin);
+// Now: alias x = 42  → equivalent to: let x = 42
+```
+
+`ParserContext` provides: `peek()`, `check()`, `consume()`, `match()`, `advance()`, `isAtEnd()`, `error()`, `parseExpression()`
 
 Config file (`vague.config.js`):
 ```javascript

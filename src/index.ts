@@ -73,6 +73,9 @@ export {
   // HTTP plugin
   httpPlugin,
   httpShorthandPlugin,
+  // SQL plugin
+  sqlPlugin,
+  sqlShorthandPlugin,
   // Plugin discovery
   discoverPlugins,
   type DiscoverOptions,
