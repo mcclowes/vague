@@ -63,29 +63,30 @@ export class Lexer {
     const startColumn = this.column;
     this.advance(); // consume opening quote
 
-    let value = '';
+    // Use array for efficient string building (avoids O(n²) concatenation)
+    const chars: string[] = [];
     while (!this.isAtEnd() && this.peek() !== '"') {
       if (this.peek() === '\\') {
         this.advance();
         const escaped = this.advance();
         switch (escaped) {
           case 'n':
-            value += '\n';
+            chars.push('\n');
             break;
           case 't':
-            value += '\t';
+            chars.push('\t');
             break;
           case '\\':
-            value += '\\';
+            chars.push('\\');
             break;
           case '"':
-            value += '"';
+            chars.push('"');
             break;
           default:
-            value += escaped;
+            chars.push(escaped);
         }
       } else {
-        value += this.advance();
+        chars.push(this.advance());
       }
     }
 
@@ -96,7 +97,7 @@ export class Lexer {
     this.advance(); // consume closing quote
     return {
       type: TokenType.STRING,
-      value,
+      value: chars.join(''),
       line: this.line,
       column: startColumn,
     };
@@ -104,22 +105,23 @@ export class Lexer {
 
   private readNumber(): Token {
     const startColumn = this.column;
-    let value = '';
+    // Use array for efficient string building
+    const chars: string[] = [];
 
     while (this.isDigit(this.peek())) {
-      value += this.advance();
+      chars.push(this.advance());
     }
 
     // Handle decimals
     if (this.peek() === '.' && this.isDigit(this.peekNext())) {
-      value += this.advance(); // consume '.'
+      chars.push(this.advance()); // consume '.'
       while (this.isDigit(this.peek())) {
-        value += this.advance();
+        chars.push(this.advance());
       }
     }
 
     // Handle underscores in numbers (e.g., 100_000)
-    value = value.replace(/_/g, '');
+    const value = chars.join('').replace(/_/g, '');
 
     return {
       type: TokenType.NUMBER,
@@ -131,12 +133,14 @@ export class Lexer {
 
   private readIdentifier(): Token {
     const startColumn = this.column;
-    let value = '';
+    // Use array for efficient string building
+    const chars: string[] = [];
 
     while (this.isAlphaNumeric(this.peek()) || this.peek() === '_') {
-      value += this.advance();
+      chars.push(this.advance());
     }
 
+    const value = chars.join('');
     const type = KEYWORDS[value] ?? TokenType.IDENTIFIER;
     return { type, value, line: this.line, column: startColumn };
   }

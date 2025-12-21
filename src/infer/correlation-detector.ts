@@ -124,6 +124,39 @@ export function detectCorrelations(
 }
 
 /**
+ * Pre-compute field types by sampling from records once.
+ * Much faster than calling .find() for each field.
+ */
+function classifyFieldTypes(
+  records: Record<string, unknown>[],
+  fieldNames: string[]
+): { numericFields: string[]; dateFields: string[] } {
+  const numericFields: string[] = [];
+  const dateFields: string[] = [];
+  const classified = new Set<string>();
+
+  // Sample first few records to classify all fields at once
+  const sampleSize = Math.min(10, records.length);
+  for (let i = 0; i < sampleSize && classified.size < fieldNames.length; i++) {
+    const record = records[i];
+    for (const name of fieldNames) {
+      if (classified.has(name)) continue;
+      const value = record[name];
+      if (value === null || value === undefined) continue;
+
+      classified.add(name);
+      if (typeof value === 'number') {
+        numericFields.push(name);
+      } else if (isDateString(value)) {
+        dateFields.push(name);
+      }
+    }
+  }
+
+  return { numericFields, dateFields };
+}
+
+/**
  * Detect ordering constraints: fieldA <= fieldB, fieldA < fieldB, etc.
  * Only compares fields of the same type (dates with dates, amounts with amounts)
  */
@@ -134,21 +167,8 @@ function detectOrderingConstraints(
 ): OrderingConstraint[] {
   const constraints: OrderingConstraint[] = [];
 
-  // Separate numeric fields and date fields
-  const numericFields: string[] = [];
-  const dateFields: string[] = [];
-
-  for (const name of fieldNames) {
-    const sample = records.find((r) => r[name] !== null && r[name] !== undefined);
-    if (!sample) continue;
-    const value = sample[name];
-
-    if (typeof value === 'number') {
-      numericFields.push(name);
-    } else if (isDateString(value)) {
-      dateFields.push(name);
-    }
-  }
+  // Classify fields once (avoids O(n*m) find operations)
+  const { numericFields, dateFields } = classifyFieldTypes(records, fieldNames);
 
   // Only compare dates with dates (most meaningful ordering constraints)
   for (let i = 0; i < dateFields.length; i++) {
@@ -323,11 +343,8 @@ function detectDerivedFields(
 ): DerivedConstraint[] {
   const allCandidates: DerivedConstraint[] = [];
 
-  // Get numeric fields only
-  const numericFields = fieldNames.filter((name) => {
-    const sample = records.find((r) => r[name] !== null && r[name] !== undefined);
-    return sample && typeof sample[name] === 'number';
-  });
+  // Get numeric fields only (uses optimized classification)
+  const { numericFields } = classifyFieldTypes(records, fieldNames);
 
   // Check for multiplication relationships: C = A * B (highest priority)
   for (const targetField of numericFields) {
@@ -444,7 +461,7 @@ function detectDerivedFields(
     // Only check if we haven't found a pairwise relationship for this target
     const hasPairwise = allCandidates.some((c) => c.targetField === targetField);
     if (!hasPairwise && numericFields.length >= 4) {
-      for (let i = 0; i < numericFields.length; i++) {
+      outer: for (let i = 0; i < numericFields.length; i++) {
         if (numericFields[i] === targetField) continue;
         for (let j = i + 1; j < numericFields.length; j++) {
           if (numericFields[j] === targetField) continue;
@@ -471,6 +488,7 @@ function detectDerivedFields(
                 sourceFields: [fieldA, fieldB, fieldC],
                 confidence: result.confidence + 0.03, // Small boost for 3-term
               });
+              break outer; // Early exit - found a 3-term match for this target
             }
           }
         }
