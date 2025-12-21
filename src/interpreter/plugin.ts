@@ -1,4 +1,8 @@
 import type { GeneratorContext } from './context.js';
+import type { Statement, Expression } from '../ast/index.js';
+import type { Token } from '../lexer/index.js';
+import { registerKeyword, unregisterKeyword } from '../lexer/index.js';
+import { registerStatementParser, unregisterStatementParser } from '../parser/index.js';
 import { createLogger } from '../logging/index.js';
 
 const pluginLog = createLogger('plugin');
@@ -10,11 +14,55 @@ const pluginLog = createLogger('plugin');
 export type GeneratorFunction = (args: unknown[], context: GeneratorContext) => unknown;
 
 /**
- * A plugin that provides custom generators.
+ * Parser context provided to statement parsers.
+ * This is a subset of parser functionality that plugins can use.
+ */
+export interface ParserContext {
+  /** Peek at current token without consuming */
+  peek(): Token;
+  /** Check if current token matches type */
+  check(type: string): boolean;
+  /** Consume a token of expected type, or throw */
+  consume(type: string, message: string): Token;
+  /** Match and consume if current token matches type */
+  match(type: string): boolean;
+  /** Advance to next token, returning current */
+  advance(): Token;
+  /** Check if at end of input */
+  isAtEnd(): boolean;
+  /** Create a parse error */
+  error(message: string): Error;
+  /** Parse an expression (delegates to core parser) */
+  parseExpression(): Expression;
+}
+
+/**
+ * A function that parses a custom statement type.
+ * Called when the registered token type is encountered.
+ */
+export type StatementParserFunction = (ctx: ParserContext) => Statement;
+
+/**
+ * Custom keyword/token definition for a plugin.
+ */
+export interface PluginKeyword {
+  /** The keyword string (e.g., 'mission', 'fetch') */
+  keyword: string;
+  /** The token type name (e.g., 'MISSION', 'FETCH') */
+  tokenType: string;
+}
+
+/**
+ * A plugin that provides custom generators and/or language extensions.
  */
 export interface VaguePlugin {
   name: string;
-  generators: Record<string, GeneratorFunction>;
+  /** Custom generator functions */
+  generators?: Record<string, GeneratorFunction>;
+  /** Custom keywords to register with the lexer */
+  keywords?: PluginKeyword[];
+  /** Custom statement parsers, keyed by token type */
+  statements?: Record<string, StatementParserFunction>;
 }
 
 // Global plugin registry
@@ -34,15 +82,58 @@ export function clearGeneratorCache(): void {
 }
 
 /**
- * Register a plugin with the generator
+ * Register a plugin with all its extensions (generators, keywords, statements).
  */
 export function registerPlugin(plugin: VaguePlugin): void {
   pluginRegistry.set(plugin.name, plugin);
   clearGeneratorCache(); // Invalidate cache when plugins change
+
+  // Register keywords with the lexer
+  if (plugin.keywords) {
+    for (const kw of plugin.keywords) {
+      registerKeyword(kw.keyword, kw.tokenType);
+    }
+  }
+
+  // Register statement parsers
+  if (plugin.statements) {
+    for (const [tokenType, parser] of Object.entries(plugin.statements)) {
+      registerStatementParser(tokenType, parser);
+    }
+  }
+
   pluginLog.debug('Plugin registered', {
     name: plugin.name,
-    generators: Object.keys(plugin.generators).length,
+    generators: Object.keys(plugin.generators ?? {}).length,
+    keywords: plugin.keywords?.length ?? 0,
+    statements: Object.keys(plugin.statements ?? {}).length,
   });
+}
+
+/**
+ * Unregister a plugin and all its extensions.
+ */
+export function unregisterPlugin(name: string): void {
+  const plugin = pluginRegistry.get(name);
+  if (!plugin) return;
+
+  // Unregister keywords
+  if (plugin.keywords) {
+    for (const kw of plugin.keywords) {
+      unregisterKeyword(kw.keyword);
+    }
+  }
+
+  // Unregister statement parsers
+  if (plugin.statements) {
+    for (const tokenType of Object.keys(plugin.statements)) {
+      unregisterStatementParser(tokenType);
+    }
+  }
+
+  pluginRegistry.delete(name);
+  clearGeneratorCache();
+  pluginLog.debug('Plugin unregistered', { name });
 }
 
 /**
@@ -78,14 +169,14 @@ function lookupGenerator(
     const pluginName = parts[0];
     const generatorPath = parts.slice(1).join('.');
     const plugin = pluginRegistry.get(pluginName);
-    if (plugin?.generators[generatorPath]) {
+    if (plugin?.generators?.[generatorPath]) {
       const result = { plugin, generator: plugin.generators[generatorPath] };
       generatorCache.set(name, result);
       return result;
     }
     // Also check faker plugin with full path
     const fakerPlugin = pluginRegistry.get('faker');
-    if (fakerPlugin?.generators[name]) {
+    if (fakerPlugin?.generators?.[name]) {
       const result = { plugin: fakerPlugin, generator: fakerPlugin.generators[name] };
       generatorCache.set(name, result);
       return result;
@@ -94,7 +185,7 @@ function lookupGenerator(
 
   // Simple name - search all plugins
   for (const plugin of pluginRegistry.values()) {
-    if (plugin.generators[name]) {
+    if (plugin.generators?.[name]) {
       const result = { plugin, generator: plugin.generators[name] };
       generatorCache.set(name, result);
       return result;

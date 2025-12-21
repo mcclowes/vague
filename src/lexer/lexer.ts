@@ -1,4 +1,4 @@
-import { Token, TokenType, KEYWORDS } from './tokens.js';
+import { Token, TokenType, lookupKeyword } from './tokens.js';
 
 export class Lexer {
   private source: string;
@@ -141,7 +141,8 @@ export class Lexer {
     }
 
     const value = chars.join('');
-    const type = KEYWORDS[value] ?? TokenType.IDENTIFIER;
+    // lookupKeyword checks both built-in and plugin-registered keywords
+    const type = lookupKeyword(value) ?? TokenType.IDENTIFIER;
     return { type, value, line: this.line, column: startColumn };
   }
 
@@ -153,6 +154,7 @@ export class Lexer {
     const twoCharOps: Record<string, TokenType> = {
       '..': TokenType.DOTDOT,
       '=>': TokenType.ARROW,
+      '->': TokenType.RIGHT_ARROW,
       '==': TokenType.DOUBLE_EQUALS,
       '+=': TokenType.PLUS_EQUALS,
       '<=': TokenType.LTE,

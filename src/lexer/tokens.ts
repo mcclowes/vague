@@ -48,6 +48,7 @@ export enum TokenType {
   DOUBLE_EQUALS = 'DOUBLE_EQUALS', // ==
   PLUS_EQUALS = 'PLUS_EQUALS', // +=
   ARROW = 'ARROW', // =>
+  RIGHT_ARROW = 'RIGHT_ARROW', // ->
   PLUS = 'PLUS', // +
   MINUS = 'MINUS', // -
   STAR = 'STAR', // *
@@ -77,7 +78,7 @@ export enum TokenType {
 }
 
 export interface Token {
-  type: TokenType;
+  type: TokenType | string; // TokenType for built-in, string for plugin keywords
   value: string;
   line: number;
   column: number;
@@ -119,3 +120,45 @@ export const KEYWORDS: Record<string, TokenType> = {
   decimal: TokenType.DECIMAL,
   date: TokenType.DATE,
 };
+
+/**
+ * Runtime keyword registry for plugin-registered keywords.
+ * Maps keyword string -> token type string.
+ */
+const pluginKeywords: Map<string, string> = new Map();
+
+/**
+ * Register a keyword at runtime (for plugins).
+ * @param keyword The keyword string (e.g., 'mission', 'fetch')
+ * @param tokenType The token type name (e.g., 'MISSION', 'FETCH')
+ */
+export function registerKeyword(keyword: string, tokenType: string): void {
+  pluginKeywords.set(keyword, tokenType);
+}
+
+/**
+ * Unregister a keyword (for cleanup/testing).
+ */
+export function unregisterKeyword(keyword: string): void {
+  pluginKeywords.delete(keyword);
+}
+
+/**
+ * Clear all plugin keywords (for cleanup/testing).
+ */
+export function clearPluginKeywords(): void {
+  pluginKeywords.clear();
+}
+
+/**
+ * Look up a keyword, checking both built-in and plugin-registered keywords.
+ * Returns the token type string if found, undefined otherwise.
+ */
+export function lookupKeyword(keyword: string): string | undefined {
+  // Check built-in keywords first
+  if (keyword in KEYWORDS) {
+    return KEYWORDS[keyword];
+  }
+  // Check plugin keywords
+  return pluginKeywords.get(keyword);
+}

@@ -1,9 +1,26 @@
-export { Lexer, Token, TokenType } from './lexer/index.js';
-export { Parser } from './parser/index.js';
+export {
+  Lexer,
+  Token,
+  TokenType,
+  registerKeyword,
+  unregisterKeyword,
+  clearPluginKeywords,
+} from './lexer/index.js';
+export {
+  Parser,
+  ParserBase,
+  ExpressionParser,
+  TypeParser,
+  StatementParser,
+  registerStatementParser,
+  unregisterStatementParser,
+  clearStatementParsers,
+} from './parser/index.js';
 export * from './ast/index.js';
 export {
   Generator,
   registerPlugin,
+  unregisterPlugin,
   getRegisteredPlugins,
   setSeed,
   getSeed,
@@ -16,6 +33,9 @@ export {
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
+  type ParserContext,
+  type StatementParserFunction,
+  type PluginKeyword,
 } from './interpreter/index.js';
 export {
   warningCollector,

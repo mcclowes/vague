@@ -16,11 +16,11 @@ export class ParserBase {
     return this.tokens[this.pos];
   }
 
-  protected check(type: TokenType): boolean {
+  protected check(type: TokenType | string): boolean {
     return !this.isAtEnd() && this.peek().type === type;
   }
 
-  protected match(type: TokenType): boolean {
+  protected match(type: TokenType | string): boolean {
     if (this.check(type)) {
       this.advance();
       return true;
@@ -33,7 +33,7 @@ export class ParserBase {
     return this.tokens[this.pos - 1];
   }
 
-  protected consume(type: TokenType, message: string): Token {
+  protected consume(type: TokenType | string, message: string): Token {
     if (this.check(type)) return this.advance();
     throw this.error(message);
   }

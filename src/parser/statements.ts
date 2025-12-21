@@ -24,6 +24,43 @@ import {
   Mutation,
 } from '../ast/index.js';
 import { TypeParser } from './types.js';
+import type { ParserContext, StatementParserFunction } from '../interpreter/plugin.js';
+
+/**
+ * Registry for plugin-provided statement parsers.
+ * Maps token type string -> parser function.
+ */
+const statementParsers: Map<string, StatementParserFunction> = new Map();
+
+/**
+ * Register a statement parser for a token type.
+ * @param tokenType The token type that triggers this parser (e.g., 'MISSION', 'FETCH')
+ * @param parser The parser function to call
+ */
+export function registerStatementParser(tokenType: string, parser: StatementParserFunction): void {
+  statementParsers.set(tokenType, parser);
+}
+
+/**
+ * Unregister a statement parser (for cleanup/testing).
+ */
+export function unregisterStatementParser(tokenType: string): void {
+  statementParsers.delete(tokenType);
+}
+
+/**
+ * Clear all plugin statement parsers (for cleanup/testing).
+ */
+export function clearStatementParsers(): void {
+  statementParsers.clear();
+}
+
+/**
+ * Get all registered statement parsers (for internal use).
+ */
+export function getStatementParsers(): Map<string, StatementParserFunction> {
+  return statementParsers;
+}
 
 /**
  * Statement parser - handles top-level statements:
@@ -33,6 +70,7 @@ import { TypeParser } from './types.js';
  * - context definitions
  * - distribution definitions
  * - dataset definitions
+ * - plugin-provided statements
  */
 export class StatementParser extends TypeParser {
   // ============================================
@@ -40,6 +78,7 @@ export class StatementParser extends TypeParser {
   // ============================================
 
   parseStatement(): Statement | null {
+    // Check built-in statements first
     if (this.check(TokenType.IMPORT)) return this.parseImport();
     if (this.check(TokenType.LET)) return this.parseLet();
     if (this.check(TokenType.SCHEMA)) return this.parseSchema();
@@ -47,7 +86,31 @@ export class StatementParser extends TypeParser {
     if (this.check(TokenType.DISTRIBUTION)) return this.parseDistribution();
     if (this.check(TokenType.DATASET)) return this.parseDataset();
 
+    // Check for plugin-provided statement parsers
+    const tokenType = this.peek().type;
+    const pluginParser = statementParsers.get(tokenType);
+    if (pluginParser) {
+      return pluginParser(this.createParserContext());
+    }
+
     throw this.error(`Unexpected token: ${this.peek().value}`);
+  }
+
+  /**
+   * Create a ParserContext for plugin statement parsers.
+   * Provides a safe subset of parser functionality.
+   */
+  protected createParserContext(): ParserContext {
+    return {
+      peek: () => this.peek(),
+      check: (type: string) => this.check(type),
+      consume: (type: string, message: string) => this.consume(type, message),
+      match: (type: string) => this.match(type),
+      advance: () => this.advance(),
+      isAtEnd: () => this.isAtEnd(),
+      error: (message: string) => this.error(message),
+      parseExpression: () => this.parseExpression(),
+    };
   }
 
   // ============================================

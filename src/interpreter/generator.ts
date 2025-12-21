@@ -56,12 +56,16 @@ import { random, randomInt } from './random.js';
 import { GeneratorContext, createContext } from './context.js';
 import {
   registerPlugin,
+  unregisterPlugin,
   getRegisteredPlugins,
   tryPluginGenerator,
   getGenerator,
   callGenerator,
   type VaguePlugin,
   type GeneratorFunction,
+  type ParserContext,
+  type StatementParserFunction,
+  type PluginKeyword,
 } from './plugin.js';
 import {
   aggregateFunctions,
@@ -90,8 +94,14 @@ const PRIMITIVE_TYPES = new Set(['string', 'int', 'decimal', 'boolean', 'date'])
 
 // Re-export for external use
 export { setSeed, getSeed } from './random.js';
-export { registerPlugin, getRegisteredPlugins };
-export type { VaguePlugin, GeneratorFunction };
+export { registerPlugin, unregisterPlugin, getRegisteredPlugins };
+export type {
+  VaguePlugin,
+  GeneratorFunction,
+  ParserContext,
+  StatementParserFunction,
+  PluginKeyword,
+};
 export type { GeneratorContext };
 
 export class Generator {
