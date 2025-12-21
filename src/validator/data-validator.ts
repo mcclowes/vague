@@ -16,6 +16,7 @@ import {
   UnaryExpression,
   CallExpression,
   Literal,
+  LogicalExpression,
 } from '../ast/nodes.js';
 import { createContext } from '../interpreter/context.js';
 import { Generator } from '../interpreter/generator.js';
@@ -331,24 +332,72 @@ export class DataValidator {
 
       // Check all constraints in the clause
       for (const constraint of assume.constraints) {
-        try {
-          const result = generator.evaluateExpression(constraint);
-          if (!result) {
-            errors.push({
-              record: recordIndex,
-              constraint: this.expressionToString(constraint),
-              message: `Constraint failed: ${this.expressionToString(constraint)}`,
-              value: this.getRelevantValues(constraint, record),
-            });
-          }
-        } catch (err) {
-          errors.push({
-            record: recordIndex,
-            constraint: this.expressionToString(constraint),
-            message: `Error evaluating constraint: ${err instanceof Error ? err.message : String(err)}`,
-          });
-        }
+        // Collect all failing parts of the constraint (handles compound 'and' expressions)
+        const constraintErrors = this.checkConstraintRecursive(
+          constraint,
+          generator,
+          record,
+          recordIndex
+        );
+        errors.push(...constraintErrors);
       }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Recursively check a constraint, breaking down compound 'and' expressions
+   * to report all individual failures.
+   */
+  private checkConstraintRecursive(
+    constraint: Expression,
+    generator: Generator,
+    record: Record<string, unknown>,
+    recordIndex: number
+  ): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    // First, check if this is a compound 'and' expression
+    if (constraint.type === 'LogicalExpression') {
+      const logical = constraint as LogicalExpression;
+      if (logical.operator === 'and') {
+        // For 'and' expressions, check both sides independently
+        // This way, if both sides fail, we report both errors
+        const leftErrors = this.checkConstraintRecursive(
+          logical.left,
+          generator,
+          record,
+          recordIndex
+        );
+        const rightErrors = this.checkConstraintRecursive(
+          logical.right,
+          generator,
+          record,
+          recordIndex
+        );
+        errors.push(...leftErrors, ...rightErrors);
+        return errors;
+      }
+    }
+
+    // For non-compound expressions or 'or' expressions, evaluate as a whole
+    try {
+      const result = generator.evaluateExpression(constraint);
+      if (!result) {
+        errors.push({
+          record: recordIndex,
+          constraint: this.expressionToString(constraint),
+          message: `Constraint failed: ${this.expressionToString(constraint)}`,
+          value: this.getRelevantValues(constraint, record),
+        });
+      }
+    } catch (err) {
+      errors.push({
+        record: recordIndex,
+        constraint: this.expressionToString(constraint),
+        message: `Error evaluating constraint: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
 
     return errors;
