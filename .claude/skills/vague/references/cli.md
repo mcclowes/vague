@@ -16,6 +16,9 @@ node dist/cli.js <file.vague> --seed 123
 # JSON output (default)
 node dist/cli.js data.vague -o output.json
 
+# Pretty-printed JSON
+node dist/cli.js data.vague -p -o output.json
+
 # CSV output
 node dist/cli.js data.vague -f csv -o output.csv
 
@@ -24,10 +27,13 @@ node dist/cli.js data.vague -f csv --csv-delimiter ";" -o output.csv
 
 # CSV without header row
 node dist/cli.js data.vague -f csv --csv-no-header -o output.csv
+
+# NDJSON output (newline-delimited JSON)
+node dist/cli.js data.vague -f ndjson -o output.ndjson
 ```
 
-CSV Options:
-- `-f, --format <fmt>`: Output format (`json` or `csv`)
+Format Options:
+- `-f, --format <fmt>`: Output format (`json`, `csv`, or `ndjson`)
 - `--csv-delimiter <char>`: Field delimiter (default: `,`)
 - `--csv-no-header`: Omit header row
 - `--csv-arrays <mode>`: Array handling (`json`, `first`, `count`)

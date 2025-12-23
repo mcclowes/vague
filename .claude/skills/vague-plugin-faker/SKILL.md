@@ -25,7 +25,7 @@ schema User {
 
 ## Common Shorthand Generators
 
-`uuid()`, `email()`, `phone()`, `firstName()`, `lastName()`, `fullName()`, `companyName()`, `city()`, `country()`, `countryCode()`, `zipCode()`, `streetAddress()`, `url()`, `avatar()`, `iban()`, `currencyCode()`, `pastDate()`, `futureDate()`, `sentence()`, `paragraph()`
+`uuid()`, `email()`, `phone()`, `firstName()`, `lastName()`, `fullName()`, `companyName()`, `city()`, `country()`, `countryCode()`, `zipCode()`, `streetAddress()`, `url()`, `avatar()`, `iban()`, `currencyCode()`, `pastDate()`, `futureDate()`, `recentDate()`, `sentence()`, `paragraph()`
 
 ## Full Namespace Example
 

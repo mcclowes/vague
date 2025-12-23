@@ -117,3 +117,117 @@ Auto-discovery paths:
 - `./plugins/`
 - `./vague-plugins/`
 - `node_modules/vague-plugin-*`
+
+### Date Plugin
+
+Day-of-week filtering for realistic business data:
+
+```vague
+// Weekday dates only (Monday-Friday)
+meeting: date.weekday(2024, 2025)
+
+// Weekend dates only (Saturday-Sunday)
+party: date.weekend(2024, 2025)
+
+// Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
+monday: date.dayOfWeek(1, 2024, 2025)
+
+// Shorthand (no namespace)
+weekday(2024, 2025)
+weekend(2024, 2025)
+```
+
+### HTTP Plugin
+
+Generate HTTP-related test data for API testing and webhooks:
+
+```vague
+// Methods and status codes
+method: http.method()                 // Weighted HTTP methods
+status: http.statusCode()             // Realistic status codes
+text: http.statusText(404)            // "Not Found"
+
+// Headers
+content: http.contentType()           // MIME types
+agent: http.userAgent()               // Browser/bot user agents
+accept: http.accept()                 // Accept header values
+cache: http.cacheControl()            // Cache-Control directives
+
+// CORS
+origin: http.corsOrigin()
+methods: http.corsMethods()
+headers: http.corsHeaders()
+
+// Authorization
+bearer: http.bearerToken()            // "Bearer abc123..."
+basic: http.basicAuth()               // "Basic dXNlcjpwYXNz"
+key: http.apiKey()                    // "sk_live_abc123..."
+
+// Webhooks
+event: http.webhookEvent()            // "payment.succeeded", etc.
+
+// Environment variables
+api_url: env("API_URL")               // Read from environment
+api_key: env("API_KEY", "default")    // With default value
+```
+
+### SQL Plugin
+
+Generate SQL-related test data for database testing:
+
+```vague
+// Identifiers
+table: sql.tableName()                // "users", "order_items"
+column: sql.columnName()              // "created_at", "user_id"
+schema: sql.schemaName()              // "public", "analytics"
+
+// Quoted identifiers
+quoted: sql.quoted("user")            // "\"user\"" (ANSI)
+mysql: sql.quoted("user", "mysql")    // "`user`"
+
+// SQL values
+str: sql.string("O'Brien")            // "'O''Brien'"
+date: sql.dateValue("2024-01-15")     // "DATE '2024-01-15'"
+ts: sql.timestamp()                   // "TIMESTAMP '...'"
+null: sql.nullValue()                 // "NULL"
+bool: sql.boolean(true)               // "TRUE"
+
+// Connection strings
+conn: sql.connectionString("postgres")
+
+// Query fragments
+select: sql.select()                  // SELECT statement
+where: sql.whereClause()              // WHERE clause
+order: sql.orderBy()                  // ORDER BY clause
+join: sql.join("left")                // JOIN clause
+
+// Placeholders
+param: sql.placeholder("postgres", 1) // "$1"
+```
+
+### GraphQL Plugin
+
+Generate GraphQL-related test data:
+
+```vague
+// Identifiers
+field: graphql.fieldName()            // "id", "createdAt"
+type: graphql.typeName()              // "User", "OrderPayload"
+op: graphql.operationName()           // "GetUser", "CreateOrder"
+enum: graphql.enumValue()             // "ACTIVE", "PENDING"
+
+// Operations
+query: graphql.query()                // Full query string
+mutation: graphql.mutation()          // Full mutation string
+subscription: graphql.subscription()
+fragment: graphql.fragment()
+
+// Errors
+error: graphql.error()                // Full error object
+code: graphql.errorCode()             // "UNAUTHENTICATED", etc.
+
+// Shorthand (prefixed with 'gql')
+gqlQuery()
+gqlMutation()
+gqlTypeName()
+```
