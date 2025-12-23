@@ -1,5 +1,6 @@
 import type { GeneratorContext } from '../context.js';
 import { random } from '../random.js';
+import { toNumber, toString } from '../../utils/type-guards.js';
 
 /**
  * Date function handlers
@@ -35,7 +36,7 @@ export const dateFunctions = {
     } else if (typeof minArg === 'number') {
       minDate = new Date(minArg, 0, 1);
     } else {
-      minDate = new Date(minArg as string);
+      minDate = new Date(toString(minArg, ''));
     }
 
     if (maxArg === undefined) {
@@ -43,7 +44,7 @@ export const dateFunctions = {
     } else if (typeof maxArg === 'number') {
       maxDate = new Date(maxArg, 11, 31, 23, 59, 59);
     } else {
-      maxDate = new Date(maxArg as string);
+      maxDate = new Date(toString(maxArg, ''));
     }
 
     const date = new Date(minDate.getTime() + random() * (maxDate.getTime() - minDate.getTime()));
@@ -54,7 +55,7 @@ export const dateFunctions = {
    * daysAgo(n) - date n days in the past
    */
   daysAgo(args: unknown[], _context: GeneratorContext): string {
-    const days = (args[0] as number) ?? 0;
+    const days = toNumber(args[0], 0);
     const date = new Date();
     date.setDate(date.getDate() - days);
     return date.toISOString().split('T')[0];
@@ -64,7 +65,7 @@ export const dateFunctions = {
    * daysFromNow(n) - date n days in the future
    */
   daysFromNow(args: unknown[], _context: GeneratorContext): string {
-    const days = (args[0] as number) ?? 0;
+    const days = toNumber(args[0], 0);
     const date = new Date();
     date.setDate(date.getDate() + days);
     return date.toISOString().split('T')[0];
@@ -87,7 +88,7 @@ export const dateFunctions = {
     } else if (typeof startArg === 'number') {
       startDate = new Date(startArg, 0, 1);
     } else {
-      startDate = new Date(startArg as string);
+      startDate = new Date(toString(startArg, ''));
     }
 
     if (endArg === 'today') {
@@ -96,7 +97,7 @@ export const dateFunctions = {
     } else if (typeof endArg === 'number') {
       endDate = new Date(endArg, 11, 31);
     } else {
-      endDate = new Date(endArg as string);
+      endDate = new Date(toString(endArg, ''));
     }
 
     const date = new Date(
@@ -111,8 +112,8 @@ export const dateFunctions = {
    * Uses UTC for consistency with ISO date strings
    */
   formatDate(args: unknown[], _context: GeneratorContext): string {
-    const dateStr = args[0] as string;
-    const format = (args[1] as string) ?? 'YYYY-MM-DD';
+    const dateStr = toString(args[0], '');
+    const format = toString(args[1], 'YYYY-MM-DD');
     const date = new Date(dateStr);
 
     const year = date.getUTCFullYear();

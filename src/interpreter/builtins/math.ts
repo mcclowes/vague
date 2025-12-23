@@ -1,6 +1,7 @@
 import type { GeneratorContext } from '../context.js';
 import type { CallExpression, Expression } from '../../ast/index.js';
 import { warningCollector, createUniqueExhaustionWarning } from '../../warnings.js';
+import { toNumber, toString } from '../../utils/type-guards.js';
 
 /**
  * Type for expression evaluator function passed from generator
@@ -33,8 +34,8 @@ export const mathFunctions = {
    * round(value, decimals?) - round to specified decimal places (default 0)
    */
   round(args: unknown[], _context: GeneratorContext): number {
-    const value = args[0] as number;
-    const decimals = (args[1] as number) ?? 0;
+    const value = toNumber(args[0], 0);
+    const decimals = toNumber(args[1], 0);
     const factor = getPowerOf10(decimals);
     return Math.round(value * factor) / factor;
   },
@@ -43,8 +44,8 @@ export const mathFunctions = {
    * floor(value, decimals?) - floor to specified decimal places (default 0)
    */
   floor(args: unknown[], _context: GeneratorContext): number {
-    const value = args[0] as number;
-    const decimals = (args[1] as number) ?? 0;
+    const value = toNumber(args[0], 0);
+    const decimals = toNumber(args[1], 0);
     const factor = getPowerOf10(decimals);
     return Math.floor(value * factor) / factor;
   },
@@ -53,8 +54,8 @@ export const mathFunctions = {
    * ceil(value, decimals?) - ceil to specified decimal places (default 0)
    */
   ceil(args: unknown[], _context: GeneratorContext): number {
-    const value = args[0] as number;
-    const decimals = (args[1] as number) ?? 0;
+    const value = toNumber(args[0], 0);
+    const decimals = toNumber(args[1], 0);
     const factor = getPowerOf10(decimals);
     return Math.ceil(value * factor) / factor;
   },
@@ -75,7 +76,7 @@ export function createUniqueFn(evaluateExpression: ExpressionEvaluator) {
     context: GeneratorContext,
     callExpr: CallExpression
   ): unknown {
-    const key = args[0] as string;
+    const key = toString(args[0], 'unique');
     const generatorExpr = callExpr.arguments[1];
 
     if (!context.uniqueValues.has(key)) {

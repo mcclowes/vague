@@ -1,4 +1,5 @@
 import type { GeneratorContext } from '../context.js';
+import { toNumber, toNumberOrUndefined } from '../../utils/type-guards.js';
 
 /**
  * String transformation function handlers
@@ -87,8 +88,8 @@ export const stringFunctions = {
    */
   substring(args: unknown[], _context: GeneratorContext): string {
     const str = args[0];
-    const start = (args[1] as number) ?? 0;
-    const end = args[2] as number | undefined;
+    const start = toNumber(args[1], 0);
+    const end = toNumberOrUndefined(args[2]);
     if (str == null) return '';
     return end !== undefined ? String(str).substring(start, end) : String(str).substring(start);
   },

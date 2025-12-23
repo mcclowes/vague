@@ -24,6 +24,7 @@ import {
   getPluginGeneratorForFormat,
   getFallbackForFormat,
 } from '../format-registry.js';
+import { asNumber, isRecord, getProperty } from '../utils/type-guards.js';
 
 export interface FieldGeneratorDeps {
   evaluateExpression: (expr: Expression) => unknown;
@@ -144,9 +145,9 @@ export class FieldGenerator {
    * Generate a value within a range
    */
   generateInRange(type: string, min?: Expression, max?: Expression, precision?: number): unknown {
-    const minVal = min ? (this.deps.evaluateExpression(min) as number) : 0;
+    const minVal = min ? asNumber(this.deps.evaluateExpression(min)) : 0;
     const maxVal = max
-      ? (this.deps.evaluateExpression(max) as number)
+      ? asNumber(this.deps.evaluateExpression(max))
       : FieldGenerator.DEFAULT_PRIMITIVE_MAX;
 
     if (type === 'int') {
@@ -181,8 +182,8 @@ export class FieldGenerator {
       if (typeof result === 'number') {
         count = Math.floor(result);
       } else if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
-        const min = result.min as number;
-        const max = result.max as number;
+        const min = asNumber((result as { min: unknown }).min);
+        const max = asNumber((result as { max: unknown }).max);
         count = Math.floor(this.ctx.rng.random() * (max - min + 1)) + min;
       } else {
         throw new Error(
@@ -306,8 +307,8 @@ export class FieldGenerator {
 
     // If result is a range object, pick a random value from it
     if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
-      const min = result.min as number;
-      const max = result.max as number;
+      const min = asNumber((result as { min: unknown }).min);
+      const max = asNumber((result as { max: unknown }).max);
       return this.ctx.rng.randomInt(min, max);
     }
 
@@ -356,8 +357,9 @@ export class FieldGenerator {
       let value: unknown = this.ctx.collections.get(first);
       if (rest.length === 0) return value;
       for (const part of rest) {
-        if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
-          value = (value as Record<string, unknown>)[part];
+        const prop = isRecord(value) ? getProperty(value, part) : undefined;
+        if (prop !== undefined) {
+          value = prop;
         } else {
           return null;
         }
@@ -369,8 +371,9 @@ export class FieldGenerator {
     if (this.ctx.current && first in this.ctx.current) {
       let value: unknown = this.ctx.current;
       for (const part of parts) {
-        if (value && typeof value === 'object' && part in (value as Record<string, unknown>)) {
-          value = (value as Record<string, unknown>)[part];
+        const prop = isRecord(value) ? getProperty(value, part) : undefined;
+        if (prop !== undefined) {
+          value = prop;
         } else {
           return null;
         }

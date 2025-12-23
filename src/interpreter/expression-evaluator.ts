@@ -22,7 +22,7 @@ import {
   subtractDurationFromDate,
   type Duration,
 } from '../plugins/date.js';
-import { isRecord, isArray, getProperty } from '../utils/type-guards.js';
+import { isRecord, isArray, getProperty, asNumber } from '../utils/type-guards.js';
 import { GeneratorContext } from './context.js';
 import { getGenerator } from './plugin.js';
 import {
@@ -100,8 +100,8 @@ export class ExpressionEvaluator {
 
       case 'RangeExpression': {
         const range = expr as RangeExpression;
-        const min = range.min ? (this.evaluate(range.min) as number) : 0;
-        const max = range.max ? (this.evaluate(range.max) as number) : 100;
+        const min = range.min ? asNumber(this.evaluate(range.min)) : 0;
+        const max = range.max ? asNumber(this.evaluate(range.max)) : 100;
         // Return range object - caller can use it as bounds or pick a random value
         return { min, max };
       }
@@ -183,7 +183,7 @@ export class ExpressionEvaluator {
 
       case 'UnaryExpression': {
         const unary = expr as UnaryExpression;
-        const operand = this.evaluate(unary.operand) as number;
+        const operand = asNumber(this.evaluate(unary.operand));
         if (unary.operator === '-') {
           return -operand;
         }
@@ -268,8 +268,8 @@ export class ExpressionEvaluator {
 
     // If result is a range object, pick a random value from it
     if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
-      const min = result.min as number;
-      const max = result.max as number;
+      const min = asNumber((result as { min: unknown }).min);
+      const max = asNumber((result as { max: unknown }).max);
       return Math.floor(this.ctx.rng.random() * (max - min + 1)) + min;
     }
 
@@ -401,32 +401,45 @@ export class ExpressionEvaluator {
         if (isDuration(left) && typeof right === 'string') {
           return addDurationToDate(right, left as Duration);
         }
-        return (left as number) + (right as number);
+        return asNumber(left) + asNumber(right);
       case '-':
         // Date arithmetic: date string - Duration = new date string
         if (typeof left === 'string' && isDuration(right)) {
           return subtractDurationFromDate(left, right as Duration);
         }
-        return (left as number) - (right as number);
+        return asNumber(left) - asNumber(right);
       case '*':
-        return (left as number) * (right as number);
+        return asNumber(left) * asNumber(right);
       case '/': {
-        const divisor = right as number;
+        const divisor = asNumber(right);
         if (divisor === 0) {
           throw new Error('Division by zero');
         }
-        return (left as number) / divisor;
+        return asNumber(left) / divisor;
       }
       case '==':
         return left === right;
       case '<':
-        return (left as number) < (right as number);
+        // Support both numeric and string (date) comparisons
+        if (typeof left === 'string' && typeof right === 'string') {
+          return left < right;
+        }
+        return asNumber(left) < asNumber(right);
       case '>':
-        return (left as number) > (right as number);
+        if (typeof left === 'string' && typeof right === 'string') {
+          return left > right;
+        }
+        return asNumber(left) > asNumber(right);
       case '<=':
-        return (left as number) <= (right as number);
+        if (typeof left === 'string' && typeof right === 'string') {
+          return left <= right;
+        }
+        return asNumber(left) <= asNumber(right);
       case '>=':
-        return (left as number) >= (right as number);
+        if (typeof left === 'string' && typeof right === 'string') {
+          return left >= right;
+        }
+        return asNumber(left) >= asNumber(right);
       default:
         throw new Error(
           `Unknown binary operator: '${expr.operator}'. ` +

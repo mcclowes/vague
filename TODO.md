@@ -8,9 +8,11 @@ Codebase Analysis Summary
 
   | Issue                            | Location                                              | Impact                                              |
   |----------------------------------|-------------------------------------------------------|-----------------------------------------------------|
-  | Excessive type assertions        | generator.ts:307-310, 876, 897, predicate.ts:27,50,73 | Silent type coercion defeats TypeScript safety      |
+  | ~~Excessive type assertions~~    | ~~generator.ts, predicate.ts, builtins/~~             | ✅ Added type-guards.ts with safe coercion helpers  |
   | ~~Silent failures via console.warn~~ | ~~generator.ts~~                                 | ✅ All warnings use warningCollector |
-  | any types in validator           | validator.ts:1, 36, 100                               | Lost type info for OpenAPI handling                 |
+  | ~~Global mutable random state~~  | ~~random.ts~~                                        | ✅ Context-based SeededRandom per compilation       |
+  | ~~Silent null returns~~          | ~~expression-evaluator.ts, field-generator.ts~~      | ✅ Throws errors for unknown types/functions        |
+  | any types in validator           | validator.ts:30-47                                    | ESM/CJS interop with Ajv library requires `any`     |
 
   Architectural Issues (Medium Priority)
 
@@ -20,6 +22,7 @@ Codebase Analysis Summary
   | ~~Context lifecycle unclear~~   | ~~context.ts~~                             | ✅ Added resetContext() and resetContextFull() methods with docs     |
   | ~~Collection iteration duplicated~~ | ~~generator.ts, predicate.ts~~         | ✅ Extracted mapWithContext, filterWithContext, everyWithContext, someWithContext |
   | ~~Format detection in 3 places~~ | ~~generator.ts, faker.ts, format-detector.ts~~ | ✅ Unified into format-registry.ts                                   |
+  | ~~Magic numbers scattered~~      | ~~Various files~~                          | ✅ Extracted to named constants (DEFAULT_PRIMITIVE_MAX, etc.)        |
 
   Performance (Low Priority)
 
@@ -97,7 +100,7 @@ Codebase Analysis Summary
 
 - [ ] **Richer builtins** - Expand beyond 9 aggregate functions (Lea has 60+)
 - [ ] **REPL** - Interactive mode for experimenting with schemas
-- [ ] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
+- [x] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
 
 ## Ideas to explore
 
@@ -183,3 +186,7 @@ in an OAS, we can see validation warnings defined. These are too human readable 
 - [x] **CSV inference** - `--infer data.csv` with `--infer-delimiter` and `--collection-name` options
 - [x] **Date arithmetic** - `date.days()`, `date.weeks()`, `date.months()`, `date.years()` duration functions with `+`/`-` operators
 - [x] **Plugin discovery** - Auto-load plugins from `./plugins/`, `./vague-plugins/`, and `node_modules/vague-plugin-*`
+- [x] **Strict mode** - `compile(source, { strict: true })` throws `ConstraintSatisfactionError` instead of returning invalid data
+- [x] **Context-based seeding** - Each `compile()` call gets its own RNG instance, enabling safe concurrent compilations
+- [x] **Optional field probability** - `compile(source, { optionalFieldProbability: 0.5 })` controls inclusion of optional fields
+- [x] **Exhaustiveness checking** - TypeScript `never` checks in switch statements catch unhandled cases at compile time
