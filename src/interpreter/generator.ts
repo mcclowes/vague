@@ -1,63 +1,17 @@
-import {
-  Program,
-  SchemaDefinition,
-  DatasetDefinition,
-  CollectionDefinition,
-  FieldDefinition,
-  Expression,
-  Literal,
-  SuperpositionExpression,
-  RangeExpression,
-  CallExpression,
-  BinaryExpression,
-  UnaryExpression,
-  ParentReference,
-  AnyOfExpression,
-  LogicalExpression,
-  NotExpression,
-  AssumeClause,
-  FieldType,
-  Cardinality,
-  DynamicCardinality,
-  GeneratorType,
-  ValidationBlock,
-  RefineBlock,
-  ThenBlock,
-  Mutation,
-  QualifiedName,
-  TernaryExpression,
-  OrderedSequenceType,
-  MatchExpression,
-} from '../ast/index.js';
+/**
+ * Generator - Main entry point for data generation
+ *
+ * This module orchestrates the generation process by coordinating:
+ * - ExpressionEvaluator: Evaluates AST expressions to runtime values
+ * - FieldGenerator: Generates individual field values
+ * - InstanceGenerator: Generates schema instances with constraints
+ * - DatasetGenerator: Generates datasets and collections
+ */
+import { Program, SchemaDefinition, Expression } from '../ast/index.js';
 import { OpenAPILoader } from '../openapi/index.js';
-import {
-  warningCollector,
-  createUniqueExhaustionWarning,
-  createConstraintRetryWarning,
-  createConstraintEvaluationErrorWarning,
-  createMutationTargetNotFoundWarning,
-  createUnknownFieldWarning,
-} from '../warnings.js';
-import {
-  isDuration,
-  addDurationToDate,
-  subtractDurationFromDate,
-  type Duration,
-} from '../plugins/date.js';
-import {
-  generateCompanyName,
-  generatePersonName,
-  generateProductName,
-  generateText,
-} from './markov.js';
-import { random, randomInt } from './random.js';
-import {
-  isRecord,
-  isFiniteNumber,
-  isArray,
-  getProperty,
-  setProperty,
-} from '../utils/type-guards.js';
+import { warningCollector, createUnknownFieldWarning } from '../warnings.js';
+import { random } from './random.js';
+import { isRecord, getProperty } from '../utils/type-guards.js';
 
 // Import refactored modules
 import { GeneratorContext, createContext } from './context.js';
@@ -65,39 +19,19 @@ import {
   registerPlugin,
   unregisterPlugin,
   getRegisteredPlugins,
-  tryPluginGenerator,
-  getGenerator,
-  callGenerator,
   type VaguePlugin,
   type GeneratorFunction,
   type ParserContext,
   type StatementParserFunction,
   type PluginKeyword,
 } from './plugin.js';
-import {
-  aggregateFunctions,
-  createPredicateFunctions,
-  mathFunctions,
-  createUniqueFn,
-  distributionFunctions,
-  dateFunctions,
-  stringFunctions,
-  sequenceFunctions,
-  filterWithContext,
-} from './builtins/index.js';
+import { ExpressionEvaluator } from './expression-evaluator.js';
+import { FieldGenerator } from './field-generator.js';
+import { InstanceGenerator } from './instance-generator.js';
+import { DatasetGenerator } from './dataset-generator.js';
 import { createLogger } from '../logging/index.js';
-import {
-  isKnownFormat,
-  getPluginGeneratorForFormat,
-  getFallbackForFormat,
-} from '../format-registry.js';
 
-// Create loggers for different components
 const generatorLog = createLogger('generator');
-const constraintLog = createLogger('constraint');
-
-// Pre-computed Set for primitive type checks (faster than array.includes in hot paths)
-const PRIMITIVE_TYPES = new Set(['string', 'int', 'decimal', 'boolean', 'date']);
 
 // Re-export for external use
 export { setSeed, getSeed } from './random.js';
@@ -111,11 +45,18 @@ export type {
 };
 export type { GeneratorContext };
 
+/**
+ * Main Generator class - orchestrates data generation from AST
+ */
 export class Generator {
   private ctx: GeneratorContext;
   private openApiLoader: OpenAPILoader;
-  private predicateFunctions: ReturnType<typeof createPredicateFunctions>;
-  private uniqueFn: ReturnType<typeof createUniqueFn>;
+
+  // Sub-generators (lazily initialized)
+  private expressionEvaluator!: ExpressionEvaluator;
+  private fieldGenerator!: FieldGenerator;
+  private instanceGenerator!: InstanceGenerator;
+  private datasetGenerator!: DatasetGenerator;
 
   constructor(ctxOrRetryLimits?: GeneratorContext | import('../config/index.js').RetryLimits) {
     // Support both GeneratorContext and RetryLimits for backwards compatibility
@@ -125,13 +66,52 @@ export class Generator {
       this.ctx = createContext(ctxOrRetryLimits);
     }
     this.openApiLoader = new OpenAPILoader();
-    // Initialize functions that need expression evaluator
-    this.predicateFunctions = createPredicateFunctions(this.evaluateExpression.bind(this));
-    this.uniqueFn = createUniqueFn(this.evaluateExpression.bind(this));
+
+    // Initialize sub-generators with their dependencies
+    this.initializeSubGenerators();
   }
 
+  private initializeSubGenerators(): void {
+    // ExpressionEvaluator needs generatePrimitive and resolveFromObject
+    this.expressionEvaluator = new ExpressionEvaluator(this.ctx, {
+      generatePrimitive: (type, fieldName, precision) => {
+        return this.fieldGenerator.generatePrimitive(type, fieldName, precision);
+      },
+      resolveFromObject: (obj, parts) => this.resolveFromObject(obj, parts),
+    });
+
+    // FieldGenerator needs evaluateExpression, generateInstance, and getSchema
+    this.fieldGenerator = new FieldGenerator(this.ctx, {
+      evaluateExpression: (expr) => this.expressionEvaluator.evaluate(expr),
+      generateInstance: (schema, overrides) =>
+        this.instanceGenerator.generate(schema as SchemaDefinition, overrides),
+      getSchema: (name) => this.ctx.schemas.get(name),
+    });
+
+    // InstanceGenerator needs various field/expression methods
+    this.instanceGenerator = new InstanceGenerator(this.ctx, {
+      evaluateExpression: (expr) => this.expressionEvaluator.evaluate(expr),
+      evaluateCondition: (cond, inst) => this.expressionEvaluator.evaluateCondition(cond, inst),
+      generateField: (field, baseField) => this.fieldGenerator.generate(field, baseField),
+      generateFromFieldType: (ft, fn) => this.fieldGenerator.generateFromFieldType(ft, fn),
+      getBaseFields: (schema) => this.getBaseFields(schema),
+      generateFromImportedField: (field, name) => this.generateFromImportedField(field, name),
+    });
+
+    // DatasetGenerator needs expression evaluation and instance generation
+    this.datasetGenerator = new DatasetGenerator(this.ctx, {
+      evaluateExpression: (expr) => this.expressionEvaluator.evaluate(expr),
+      generateInstance: (schema, overrides) => this.instanceGenerator.generate(schema, overrides),
+      getSchema: (name) => this.ctx.schemas.get(name),
+      resolveCardinality: (card) => this.fieldGenerator.resolveCardinality(card),
+    });
+  }
+
+  /**
+   * Generate data from a parsed AST program
+   */
   async generate(program: Program): Promise<Record<string, unknown[]>> {
-    // Clear warnings from any previous compilation to prevent leakage
+    // Clear warnings from any previous compilation
     warningCollector.clear();
 
     generatorLog.debug('Starting generation', { statements: program.statements.length });
@@ -175,7 +155,7 @@ export class Generator {
           collections: stmt.collections.length,
           violating: stmt.violating ?? false,
         });
-        const data = this.generateDataset(stmt);
+        const data = this.datasetGenerator.generate(stmt);
         Object.assign(result, data);
       }
     }
@@ -183,589 +163,16 @@ export class Generator {
     return result;
   }
 
-  private generateDataset(dataset: DatasetDefinition): Record<string, unknown[]> {
-    const maxAttempts = this.ctx.retryLimits.dataset;
-    const mode = dataset.violating ? 'violating' : 'satisfying';
-
-    // Set violating mode in context
-    this.ctx.violating = dataset.violating;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) {
-        constraintLog.debug('Retrying dataset generation', {
-          dataset: dataset.name,
-          attempt: attempt + 1,
-          maxAttempts,
-          mode,
-        });
-      }
-
-      const result: Record<string, unknown[]> = {};
-
-      // Generate all collections
-      for (const collection of dataset.collections) {
-        const items = this.generateCollection(collection);
-        result[collection.name] = items;
-        this.ctx.collections.set(collection.name, items);
-      }
-
-      // Check dataset-level constraints
-      // In violating mode, we want constraints to FAIL (inverted logic)
-      const constraintsPass =
-        !dataset.validation || this.validateDatasetConstraints(dataset.validation, result);
-      if (dataset.violating ? !constraintsPass : constraintsPass) {
-        generatorLog.debug('Dataset generated successfully', {
-          dataset: dataset.name,
-          attempts: attempt + 1,
-          collections: Object.keys(result).length,
-        });
-        return result;
-      }
-
-      constraintLog.debug('Dataset constraints not satisfied', {
-        dataset: dataset.name,
-        attempt: attempt + 1,
-        constraintsPass,
-        violatingMode: dataset.violating,
-      });
-
-      // Clear collections for retry
-      for (const collection of dataset.collections) {
-        this.ctx.collections.delete(collection.name);
-      }
-    }
-
-    // Fallback: return last attempt with warning
-    constraintLog.warn(`Could not generate ${mode} data for dataset`, {
-      dataset: dataset.name,
-      maxAttempts,
-      mode,
-    });
-    warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, undefined, dataset.name));
-    const result: Record<string, unknown[]> = {};
-    for (const collection of dataset.collections) {
-      const items = this.generateCollection(collection);
-      result[collection.name] = items;
-      this.ctx.collections.set(collection.name, items);
-    }
-    return result;
-  }
-
-  private validateDatasetConstraints(
-    validation: ValidationBlock,
-    data: Record<string, unknown[]>
-  ): boolean {
-    // Store all collections in context for expression evaluation
-    for (const [name, items] of Object.entries(data)) {
-      this.ctx.collections.set(name, items);
-    }
-
-    // Evaluate each validation expression
-    for (const constraint of validation.validations) {
-      try {
-        const result = this.evaluateExpression(constraint);
-        if (!result) {
-          return false;
-        }
-      } catch (error) {
-        // Log constraint evaluation failures for debugging
-        const message = error instanceof Error ? error.message : String(error);
-        warningCollector.add(createConstraintEvaluationErrorWarning(message));
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private generateCollection(collection: CollectionDefinition): unknown[] {
-    const count = this.resolveCardinality(collection.cardinality);
-    const items: unknown[] = [];
-
-    const schema = this.ctx.schemas.get(collection.schemaRef);
-    if (!schema) {
-      throw new Error(`Unknown schema: ${collection.schemaRef}`);
-    }
-
-    // Clear previous for new collection
-    this.ctx.previous = undefined;
-
-    for (let i = 0; i < count; i++) {
-      const item = this.generateInstance(schema, collection.overrides);
-      items.push(item);
-      // Track previous for sequential coherence
-      this.ctx.previous = item;
-    }
-
-    return items;
-  }
-
-  private generateInstance(
-    schema: SchemaDefinition,
-    overrides?: FieldDefinition[]
-  ): Record<string, unknown> {
-    const maxAttempts = this.ctx.retryLimits.instance;
-
-    // Collect private field names for filtering
-    const privateFields = this.getPrivateFieldNames(schema, overrides);
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const instance = this.generateInstanceAttempt(schema, overrides);
-
-      // If no constraints, execute then block and return
-      if (!schema.assumes || schema.assumes.length === 0) {
-        this.executeThenBlock(schema.thenBlock, instance);
-        return this.stripPrivateFields(instance, privateFields);
-      }
-
-      // Check all constraints
-      // In violating mode, we want constraints to FAIL (inverted logic)
-      const constraintsPass = this.validateConstraints(schema.assumes, instance);
-      if (this.ctx.violating ? !constraintsPass : constraintsPass) {
-        this.executeThenBlock(schema.thenBlock, instance);
-        return this.stripPrivateFields(instance, privateFields);
-      }
-    }
-
-    // If we couldn't generate desired data, return last attempt with warning
-    const mode = this.ctx.violating ? 'violating' : 'satisfying';
-    warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, schema.name));
-    const instance = this.generateInstanceAttempt(schema, overrides);
-    this.executeThenBlock(schema.thenBlock, instance);
-    return this.stripPrivateFields(instance, privateFields);
-  }
-
-  private getPrivateFieldNames(
-    schema: SchemaDefinition,
-    overrides?: FieldDefinition[]
-  ): Set<string> {
-    const privateFields = new Set<string>();
-
-    for (const field of schema.fields) {
-      if (field.private) {
-        privateFields.add(field.name);
-      }
-    }
-
-    if (overrides) {
-      for (const field of overrides) {
-        if (field.private) {
-          privateFields.add(field.name);
-        }
-      }
-    }
-
-    return privateFields;
-  }
-
-  private stripPrivateFields(
-    instance: Record<string, unknown>,
-    privateFields: Set<string>
-  ): Record<string, unknown> {
-    if (privateFields.size === 0) {
-      return instance;
-    }
-
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(instance)) {
-      if (!privateFields.has(key)) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-
-  private executeThenBlock(
-    thenBlock: ThenBlock | undefined,
-    instance: Record<string, unknown>
-  ): void {
-    if (!thenBlock) return;
-
-    const oldCurrent = this.ctx.current;
-    this.ctx.current = instance;
-
-    try {
-      for (const mutation of thenBlock.mutations) {
-        this.executeMutation(mutation, instance);
-      }
-    } finally {
-      this.ctx.current = oldCurrent;
-    }
-  }
-
-  private executeMutation(mutation: Mutation, instance: Record<string, unknown>): void {
-    // Resolve the target path to get the object and final field name
-    const { target: targetObj, field: fieldName } = this.resolveMutationTarget(
-      mutation.target,
-      instance
-    );
-
-    if (!targetObj || !fieldName) {
-      warningCollector.add(
-        createMutationTargetNotFoundWarning(this.ctx.currentSchemaName || 'unknown')
-      );
-      return;
-    }
-
-    // Evaluate the value expression
-    const value = this.evaluateExpression(mutation.value);
-
-    // Apply the mutation safely using type guards
-    if (!isRecord(targetObj)) {
-      warningCollector.add(
-        createMutationTargetNotFoundWarning(this.ctx.currentSchemaName || 'unknown')
-      );
-      return;
-    }
-
-    if (mutation.operator === '+=') {
-      const current = getProperty(targetObj, fieldName);
-      if (isFiniteNumber(current) && isFiniteNumber(value)) {
-        setProperty(targetObj, fieldName, current + value);
-      } else {
-        // Fallback: set directly even if types don't match
-        setProperty(targetObj, fieldName, value);
-      }
-    } else {
-      setProperty(targetObj, fieldName, value);
-    }
-  }
-
-  private resolveMutationTarget(
-    expr: Expression,
-    instance: Record<string, unknown>
-  ): { target: unknown; field: string | null } {
-    // Handle qualified names like invoice.status
-    if (expr.type === 'QualifiedName') {
-      const parts = (expr as QualifiedName).parts;
-      if (parts.length < 2) {
-        return { target: null, field: null };
-      }
-
-      // First part is a field on the instance (e.g., "invoice")
-      let target: unknown = getProperty(instance, parts[0]);
-
-      // Navigate through intermediate parts
-      for (let i = 1; i < parts.length - 1; i++) {
-        if (isRecord(target)) {
-          target = getProperty(target, parts[i]);
-        } else {
-          return { target: null, field: null };
-        }
-      }
-
-      return { target, field: parts[parts.length - 1] };
-    }
-
-    // Handle binary expression with dot operator: invoice.status
-    if (expr.type === 'BinaryExpression' && (expr as BinaryExpression).operator === '.') {
-      const binExpr = expr as BinaryExpression;
-
-      // Get the base object
-      let target: unknown;
-      if (binExpr.left.type === 'Identifier') {
-        target = getProperty(instance, (binExpr.left as { name: string }).name);
-      } else if (binExpr.left.type === 'BinaryExpression') {
-        // Nested: invoice.customer.name - resolve left side first
-        const nested = this.resolveMutationTarget(binExpr.left, instance);
-        if (isRecord(nested.target) && nested.field) {
-          target = getProperty(nested.target, nested.field);
-        }
-      }
-
-      // Get the field name
-      if (binExpr.right.type === 'Identifier') {
-        return { target, field: (binExpr.right as { name: string }).name };
-      }
-    }
-
-    return { target: null, field: null };
+  /**
+   * Evaluate an expression (public API for plugins/tests)
+   */
+  public evaluateExpression(expr: Expression): unknown {
+    return this.expressionEvaluator.evaluate(expr);
   }
 
   /**
-   * Extract field names referenced in an expression.
-   * Used for dependency analysis of computed fields.
+   * Get base fields from an imported schema
    */
-  private extractFieldDependencies(expr: Expression, allFieldNames: Set<string>): Set<string> {
-    const deps = new Set<string>();
-
-    const visit = (e: Expression): void => {
-      switch (e.type) {
-        case 'Identifier': {
-          const name = (e as { name: string }).name;
-          if (allFieldNames.has(name)) {
-            deps.add(name);
-          }
-          break;
-        }
-        case 'QualifiedName': {
-          const parts = (e as QualifiedName).parts;
-          if (parts.length > 0 && allFieldNames.has(parts[0])) {
-            deps.add(parts[0]);
-          }
-          break;
-        }
-        case 'BinaryExpression': {
-          const bin = e as BinaryExpression;
-          visit(bin.left);
-          visit(bin.right);
-          break;
-        }
-        case 'UnaryExpression': {
-          visit((e as UnaryExpression).operand);
-          break;
-        }
-        case 'CallExpression': {
-          for (const arg of (e as CallExpression).arguments) {
-            visit(arg);
-          }
-          break;
-        }
-        case 'TernaryExpression': {
-          const tern = e as TernaryExpression;
-          visit(tern.condition);
-          visit(tern.consequent);
-          visit(tern.alternate);
-          break;
-        }
-        case 'LogicalExpression': {
-          const log = e as LogicalExpression;
-          visit(log.left);
-          visit(log.right);
-          break;
-        }
-        case 'NotExpression': {
-          visit((e as NotExpression).operand);
-          break;
-        }
-        // Other expression types don't contain field references
-      }
-    };
-
-    visit(expr);
-    return deps;
-  }
-
-  /**
-   * Topologically sort computed fields based on their dependencies.
-   * Throws an error if a circular dependency is detected.
-   */
-  private sortComputedFields(
-    computedFields: [string, FieldDefinition][],
-    allFieldNames: Set<string>
-  ): [string, FieldDefinition][] {
-    // Build dependency graph
-    const deps = new Map<string, Set<string>>();
-    const fieldMap = new Map<string, FieldDefinition>();
-
-    for (const [name, field] of computedFields) {
-      fieldMap.set(name, field);
-      if (field.distribution) {
-        deps.set(name, this.extractFieldDependencies(field.distribution, allFieldNames));
-      } else {
-        deps.set(name, new Set());
-      }
-    }
-
-    // Kahn's algorithm for topological sort
-    const sorted: [string, FieldDefinition][] = [];
-    const inDegree = new Map<string, number>();
-    const computedNames = new Set(computedFields.map(([n]) => n));
-
-    // Initialize in-degrees (only count deps on OTHER computed fields)
-    for (const [name] of computedFields) {
-      let count = 0;
-      for (const dep of deps.get(name)!) {
-        if (computedNames.has(dep)) {
-          count++;
-        }
-      }
-      inDegree.set(name, count);
-    }
-
-    // Find fields with no dependencies on other computed fields
-    const queue: string[] = [];
-    for (const [name, degree] of inDegree) {
-      if (degree === 0) {
-        queue.push(name);
-      }
-    }
-
-    while (queue.length > 0) {
-      const name = queue.shift()!;
-      sorted.push([name, fieldMap.get(name)!]);
-
-      // Reduce in-degree for fields that depend on this one
-      for (const [other, otherDeps] of deps) {
-        if (otherDeps.has(name) && computedNames.has(other)) {
-          const newDegree = inDegree.get(other)! - 1;
-          inDegree.set(other, newDegree);
-          if (newDegree === 0) {
-            queue.push(other);
-          }
-        }
-      }
-    }
-
-    // Check for circular dependencies
-    if (sorted.length !== computedFields.length) {
-      const remaining = computedFields
-        .filter(([n]) => !sorted.some(([s]) => s === n))
-        .map(([n]) => n);
-      throw new Error(
-        `Circular dependency detected among computed fields: ${remaining.join(', ')}. ` +
-          `Check that computed fields don't reference each other in a cycle.`
-      );
-    }
-
-    return sorted;
-  }
-
-  private generateInstanceAttempt(
-    schema: SchemaDefinition,
-    overrides?: FieldDefinition[]
-  ): Record<string, unknown> {
-    const instance: Record<string, unknown> = {};
-    this.ctx.current = instance;
-    this.ctx.currentSchemaName = schema.name;
-
-    // Get base schema fields if extending an imported schema
-    const baseFields = this.getBaseFields(schema);
-
-    // Merge schema fields with overrides
-    const fields = new Map<string, FieldDefinition>();
-    for (const field of schema.fields) {
-      fields.set(field.name, field);
-    }
-    if (overrides) {
-      for (const field of overrides) {
-        fields.set(field.name, field);
-      }
-    }
-
-    // All field names for dependency detection
-    const allFieldNames = new Set(fields.keys());
-
-    // Categorize fields by generation order:
-    // 1. Simple fields (non-collection, non-computed) - generated first
-    // 2. Collection fields - generated second (so parent refs work)
-    // 3. Computed fields - generated last (may reference collections), topologically sorted
-    const collectionFields: [string, FieldDefinition][] = [];
-    const computedFields: [string, FieldDefinition][] = [];
-
-    for (const [name, field] of fields) {
-      // Skip conditional fields if condition not met
-      if (field.condition && !this.evaluateCondition(field.condition, instance)) {
-        continue;
-      }
-
-      // Skip optional fields sometimes
-      if (field.optional && random() > 0.7) {
-        continue;
-      }
-
-      // Defer computed fields until after collections
-      if (field.computed) {
-        computedFields.push([name, field]);
-        continue;
-      }
-
-      // Defer collection fields
-      if (field.fieldType.type === 'CollectionType') {
-        collectionFields.push([name, field]);
-        continue;
-      }
-
-      instance[name] = this.generateField(field, baseFields.get(name));
-    }
-
-    // Generate collection fields (nested schemas can reference parent)
-    for (const [name, field] of collectionFields) {
-      instance[name] = this.generateField(field, baseFields.get(name));
-    }
-
-    // Sort computed fields by dependencies and generate in order
-    // This ensures fields are generated after their dependencies
-    const sortedComputedFields = this.sortComputedFields(computedFields, allFieldNames);
-    for (const [name, field] of sortedComputedFields) {
-      instance[name] = this.generateField(field, baseFields.get(name));
-    }
-
-    // Apply refine block - regenerate fields based on conditions
-    if (schema.refineBlock) {
-      this.applyRefineBlock(schema.refineBlock, instance);
-    }
-
-    // Fill in any base fields we haven't covered
-    for (const [name, baseField] of baseFields) {
-      if (!(name in instance)) {
-        instance[name] = this.generateFromImportedField(baseField, name);
-      }
-    }
-
-    return instance;
-  }
-
-  private applyRefineBlock(refineBlock: RefineBlock, instance: Record<string, unknown>): void {
-    const oldCurrent = this.ctx.current;
-    this.ctx.current = instance;
-
-    try {
-      for (const refinement of refineBlock.refinements) {
-        // Check if the condition is met
-        const conditionMet = Boolean(this.evaluateExpression(refinement.condition));
-        if (!conditionMet) {
-          continue;
-        }
-
-        // Regenerate the fields specified in this refinement
-        for (const field of refinement.fields) {
-          // Handle unique fields - need to remove old value from used set first
-          if (field.unique) {
-            const key = `${this.ctx.currentSchemaName}.${field.name}`;
-            const usedValues = this.ctx.uniqueValues.get(key);
-            if (usedValues && field.name in instance) {
-              usedValues.delete(instance[field.name]);
-            }
-          }
-
-          instance[field.name] = this.generateField(field, undefined);
-        }
-      }
-    } finally {
-      this.ctx.current = oldCurrent;
-    }
-  }
-
-  private validateConstraints(assumes: AssumeClause[], instance: Record<string, unknown>): boolean {
-    const oldCurrent = this.ctx.current;
-    this.ctx.current = instance;
-
-    try {
-      for (const assume of assumes) {
-        // Check if conditional constraint applies
-        if (assume.condition) {
-          const conditionMet = Boolean(this.evaluateExpression(assume.condition));
-          if (!conditionMet) {
-            // Condition not met, skip these constraints
-            continue;
-          }
-        }
-
-        // All constraints in the clause must be true
-        for (const constraint of assume.constraints) {
-          const result = this.evaluateExpression(constraint);
-          if (!result) {
-            return false;
-          }
-        }
-      }
-      return true;
-    } finally {
-      this.ctx.current = oldCurrent;
-    }
-  }
-
   private getBaseFields(schema: SchemaDefinition): Map<string, unknown> {
     const fields = new Map();
 
@@ -786,8 +193,7 @@ export class Generator {
   }
 
   /**
-   * Validate that schemas extending imported schemas don't add unknown fields.
-   * This is called once after all schemas are registered, before generation.
+   * Validate that schemas extending imported schemas don't add unknown fields
    */
   private validateSchemaFields(): void {
     for (const [schemaName, schema] of this.ctx.schemas) {
@@ -800,11 +206,9 @@ export class Generator {
       const imported = importedSchemas.get(importedSchemaName);
       if (!imported) continue;
 
-      // Get the set of field names from the imported schema
       const importedFieldNames = new Set(imported.fields.map((f) => f.name));
       const importSource = `${namespace}.${importedSchemaName}`;
 
-      // Check each field in the extending schema
       for (const field of schema.fields) {
         if (!importedFieldNames.has(field.name)) {
           warningCollector.add(createUnknownFieldWarning(schemaName, field.name, importSource));
@@ -813,14 +217,17 @@ export class Generator {
     }
   }
 
+  /**
+   * Generate a value for an imported field
+   */
   private generateFromImportedField(field: unknown, fieldName?: string): unknown {
-    // Basic type generation for imported fields
     const f = field as {
       type: { kind: string; type?: string };
       enum?: unknown[];
       name?: string;
       format?: string;
     };
+
     if (f.enum && f.enum.length > 0) {
       return f.enum[Math.floor(random() * f.enum.length)];
     }
@@ -829,7 +236,7 @@ export class Generator {
       case 'primitive':
         switch (f.type.type) {
           case 'string':
-            return this.generateStringFromFormat(f.format, fieldName ?? f.name);
+            return this.fieldGenerator.generateStringFromFormat(f.format, fieldName ?? f.name);
           case 'integer':
             return Math.floor(random() * 1000);
           case 'number':
@@ -847,597 +254,8 @@ export class Generator {
   }
 
   /**
-   * Generate a string value based on OpenAPI format hint.
-   * Uses the unified format registry for consistency with schema inference.
+   * Resolve a value from an object by path
    */
-  private generateStringFromFormat(format: string | undefined, fieldName?: string): unknown {
-    // Try format-based generation first
-    if (format) {
-      // Look for a plugin generator that matches the format directly (uses cache)
-      const formatGenerator = getGenerator(format);
-      if (formatGenerator) {
-        return formatGenerator([], this.ctx);
-      }
-
-      // Handle date formats specially (they use internal generator methods)
-      switch (format) {
-        case 'date':
-          // YYYY-MM-DD format
-          return this.generateRandomDate();
-        case 'date-time':
-          // ISO 8601 format
-          return this.generateRandomDateTime();
-      }
-
-      // Use the unified format registry
-      if (isKnownFormat(format)) {
-        // Try plugin generator first
-        const pluginName = getPluginGeneratorForFormat(format);
-        if (pluginName) {
-          const result = tryPluginGenerator(pluginName, this.ctx);
-          // Note: tryPluginGenerator returns undefined (not null) when not found
-          if (result !== undefined) {
-            return result;
-          }
-        }
-
-        // Use fallback from registry
-        const fallback = getFallbackForFormat(format);
-        if (fallback) {
-          return fallback();
-        }
-      }
-    }
-
-    // Fallback to context-aware string generation
-    return this.randomString(fieldName);
-  }
-
-  private generateRandomDate(): string {
-    const year = randomInt(2020, 2024);
-    const month = randomInt(1, 12);
-    const day = randomInt(1, 28);
-    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  }
-
-  private generateRandomDateTime(): string {
-    const date = this.generateRandomDate();
-    const hours = randomInt(0, 23);
-    const minutes = randomInt(0, 59);
-    const seconds = randomInt(0, 59);
-    return `${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000Z`;
-  }
-
-  private generateField(field: FieldDefinition, _baseField?: unknown): unknown {
-    // Computed fields - expression is stored in distribution
-    if (field.computed && field.distribution) {
-      return this.evaluateExpression(field.distribution);
-    }
-
-    // Unique fields - retry until we get a unique value
-    if (field.unique) {
-      return this.generateUniqueField(field);
-    }
-
-    return this.generateFromFieldType(field.fieldType, field.name);
-  }
-
-  private generateUniqueField(field: FieldDefinition): unknown {
-    const key = `${this.ctx.currentSchemaName}.${field.name}`;
-
-    if (!this.ctx.uniqueValues.has(key)) {
-      this.ctx.uniqueValues.set(key, new Set());
-    }
-    const usedValues = this.ctx.uniqueValues.get(key)!;
-
-    const maxAttempts = this.ctx.retryLimits.unique;
-    for (let i = 0; i < maxAttempts; i++) {
-      const value = this.generateFromFieldType(field.fieldType, field.name);
-      if (!usedValues.has(value)) {
-        usedValues.add(value);
-        return value;
-      }
-    }
-
-    // Fallback: return last generated value with warning
-    const [schemaName, fieldName] = key.split('.');
-    warningCollector.add(createUniqueExhaustionWarning(schemaName, fieldName, maxAttempts));
-    return this.generateFromFieldType(field.fieldType, field.name);
-  }
-
-  private generateFromFieldType(fieldType: FieldType, fieldName?: string): unknown {
-    switch (fieldType.type) {
-      case 'PrimitiveType':
-        return this.generatePrimitive(fieldType.name, fieldName, fieldType.precision);
-
-      case 'RangeType':
-        return this.generateInRange(
-          fieldType.baseType.name,
-          fieldType.min,
-          fieldType.max,
-          fieldType.baseType.precision
-        );
-
-      case 'SuperpositionType':
-        return this.pickWeighted(fieldType.options);
-
-      case 'CollectionType':
-        return this.generateCollectionField(fieldType);
-
-      case 'ReferenceType':
-        return this.resolveReference(fieldType.path.parts);
-
-      case 'ExpressionType':
-        return this.evaluateExpression(fieldType.expression);
-
-      case 'GeneratorType':
-        return this.generateFromPlugin(fieldType);
-
-      case 'OrderedSequenceType':
-        return this.generateFromOrderedSequence(fieldType, fieldName);
-
-      default:
-        return null;
-    }
-  }
-
-  private generateFromOrderedSequence(seqType: OrderedSequenceType, fieldName?: string): unknown {
-    // Create a unique key for this sequence based on schema and field
-    const key = `${this.ctx.currentSchemaName ?? 'anonymous'}.${fieldName ?? 'field'}`;
-
-    // Get current index (or start at 0)
-    const index = this.ctx.orderedSequenceIndices.get(key) ?? 0;
-
-    // Get element at current index (cycling)
-    const element = seqType.elements[index % seqType.elements.length];
-    const value = this.evaluateExpression(element);
-
-    // Increment index for next call
-    this.ctx.orderedSequenceIndices.set(key, index + 1);
-
-    return value;
-  }
-
-  private generateFromPlugin(genType: GeneratorType): unknown {
-    const { name, arguments: args } = genType;
-
-    // Evaluate arguments
-    const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg));
-
-    // Use cached generator lookup
-    return callGenerator(name, evaluatedArgs, this.ctx);
-  }
-
-  private generatePrimitive(
-    type: 'int' | 'decimal' | 'string' | 'date' | 'boolean',
-    fieldName?: string,
-    precision?: number
-  ): unknown {
-    switch (type) {
-      case 'int':
-        return Math.floor(random() * 1000);
-      case 'decimal': {
-        const value = random() * 1000;
-        if (precision !== undefined) {
-          const factor = Math.pow(10, precision);
-          return Math.round(value * factor) / factor;
-        }
-        return Math.round(value * 100) / 100; // Default 2 decimal places
-      }
-      case 'string':
-        return this.randomString(fieldName);
-      case 'date':
-        return this.randomDate();
-      case 'boolean':
-        return random() > 0.5;
-    }
-  }
-
-  private generateInRange(
-    type: string,
-    min?: Expression,
-    max?: Expression,
-    precision?: number
-  ): unknown {
-    const minVal = min ? (this.evaluateExpression(min) as number) : 0;
-    const maxVal = max ? (this.evaluateExpression(max) as number) : 1000;
-
-    if (type === 'int') {
-      return Math.floor(random() * (maxVal - minVal + 1)) + minVal;
-    }
-
-    if (type === 'date') {
-      const minDate = new Date(minVal, 0, 1);
-      const maxDate = new Date(maxVal, 11, 31);
-      const diff = maxDate.getTime() - minDate.getTime();
-      return new Date(minDate.getTime() + random() * diff).toISOString().split('T')[0];
-    }
-
-    // Decimal with optional precision
-    const value = random() * (maxVal - minVal) + minVal;
-    if (precision !== undefined) {
-      const factor = Math.pow(10, precision);
-      return Math.round(value * factor) / factor;
-    }
-    return value;
-  }
-
-  private pickWeighted(options: { weight?: number; value: Expression }[]): unknown {
-    // If no weights, equal probability
-    const hasWeights = options.some((o) => o.weight !== undefined);
-
-    let result: unknown;
-    if (!hasWeights) {
-      const idx = Math.floor(random() * options.length);
-      result = this.evaluateExpression(options[idx].value);
-    } else {
-      // Weighted selection with support for mixed weighted/unweighted options
-      // Unweighted options share the remaining probability after explicit weights
-      const explicitWeights = options.filter((o) => o.weight !== undefined);
-      const unweightedOptions = options.filter((o) => o.weight === undefined);
-      const totalExplicitWeight = explicitWeights.reduce((sum, o) => sum + o.weight!, 0);
-
-      // Calculate weight for unweighted options
-      let implicitWeight = 0;
-      if (unweightedOptions.length > 0) {
-        const remainingWeight = Math.max(0, 1 - totalExplicitWeight);
-        implicitWeight = remainingWeight / unweightedOptions.length;
-      }
-
-      // Total weight is explicit weights + implicit weights for unweighted options
-      const totalWeight = totalExplicitWeight + implicitWeight * unweightedOptions.length;
-      let r = random() * totalWeight;
-
-      for (const option of options) {
-        const optionWeight = option.weight ?? implicitWeight;
-        r -= optionWeight;
-        if (r <= 0) {
-          result = this.evaluateExpression(option.value);
-          break;
-        }
-      }
-
-      if (result === undefined) {
-        result = this.evaluateExpression(options[options.length - 1].value);
-      }
-    }
-
-    // If result is a range object, pick a random value from it
-    if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
-      const min = result.min as number;
-      const max = result.max as number;
-      return randomInt(min, max);
-    }
-
-    return result;
-  }
-
-  private generateCollectionField(fieldType: {
-    cardinality: Cardinality | DynamicCardinality;
-    elementType: FieldType;
-  }): unknown[] {
-    const count = this.resolveCardinality(fieldType.cardinality);
-    const items: unknown[] = [];
-
-    // Save current instance as parent for nested generation
-    const parentInstance = this.ctx.current;
-
-    for (let i = 0; i < count; i++) {
-      // If element type is a reference to a schema, generate an instance
-      if (fieldType.elementType.type === 'ReferenceType') {
-        const schemaName = fieldType.elementType.path.parts[0];
-        const schema = this.ctx.schemas.get(schemaName);
-        if (schema) {
-          // Set parent context for nested generation
-          this.ctx.parent = parentInstance;
-          items.push(this.generateInstance(schema));
-          continue;
-        }
-      }
-      items.push(this.generateFromFieldType(fieldType.elementType));
-    }
-
-    // Restore context
-    this.ctx.current = parentInstance;
-    this.ctx.parent = undefined;
-
-    return items;
-  }
-
-  private resolveReference(parts: string[]): unknown {
-    // Handle path expressions like line_items.amount or invoices.total
-    // When traversing into an array, map over it to extract values
-    let value: unknown = this.ctx.current;
-
-    // First part might be a let binding (e.g., let teamNames = "A" | "B")
-    const [first, ...rest] = parts;
-    if (this.ctx.bindings.has(first) && rest.length === 0) {
-      const binding = this.ctx.bindings.get(first);
-      return binding !== undefined ? this.evaluateExpression(binding) : null;
-    }
-
-    // First part might be a collection name (for dataset-level validation)
-    if (this.ctx.collections.has(first)) {
-      value = this.ctx.collections.get(first);
-      // If no more parts, return the collection
-      if (rest.length === 0) {
-        return value;
-      }
-      // Continue with remaining parts
-      for (const part of rest) {
-        if (isArray(value)) {
-          value = value
-            .map((item) => (isRecord(item) ? getProperty(item, part) : null))
-            .filter((v) => v !== null);
-        } else if (isRecord(value)) {
-          value = getProperty(value, part);
-        } else {
-          return null;
-        }
-      }
-      return value;
-    }
-
-    // Otherwise start from current context (schema-level)
-    for (const part of parts) {
-      if (isArray(value)) {
-        // Map over array to extract field from each item
-        value = value
-          .map((item) => (isRecord(item) ? getProperty(item, part) : null))
-          .filter((v) => v !== null);
-      } else if (isRecord(value)) {
-        value = getProperty(value, part);
-      } else {
-        return null;
-      }
-    }
-
-    return value;
-  }
-
-  public evaluateExpression(expr: Expression): unknown {
-    switch (expr.type) {
-      case 'Literal':
-        return (expr as Literal).value;
-
-      case 'Identifier': {
-        const name = (expr as { name: string }).name;
-        // Check if it's a primitive type name (for superposition like "string | null")
-        if (PRIMITIVE_TYPES.has(name)) {
-          return this.generatePrimitive(name as 'string' | 'int' | 'decimal' | 'boolean' | 'date');
-        }
-        // Check let bindings (e.g., let teamNames = "A" | "B" | "C")
-        if (this.ctx.bindings.has(name)) {
-          return this.evaluateExpression(this.ctx.bindings.get(name)!);
-        }
-        // Check collections first (for dataset-level validation)
-        if (this.ctx.collections.has(name)) {
-          return this.ctx.collections.get(name);
-        }
-        // Then check current instance context
-        return this.ctx.current?.[name] ?? null;
-      }
-
-      case 'QualifiedName': {
-        const parts = (expr as { parts: string[] }).parts;
-        return this.resolveReference(parts);
-      }
-
-      case 'SuperpositionExpression':
-        return this.pickWeighted((expr as SuperpositionExpression).options);
-
-      case 'RangeExpression': {
-        const range = expr as RangeExpression;
-        const min = range.min ? (this.evaluateExpression(range.min) as number) : 0;
-        const max = range.max ? (this.evaluateExpression(range.max) as number) : 100;
-        // Return range object - caller can use it as bounds or pick a random value
-        return { min, max };
-      }
-
-      case 'CallExpression':
-        return this.evaluateCall(expr as CallExpression);
-
-      case 'BinaryExpression':
-        return this.evaluateBinary(expr as BinaryExpression);
-
-      case 'ParentReference': {
-        const ref = expr as ParentReference;
-        if (this.ctx.parent) {
-          return this.resolveFromObject(this.ctx.parent, ref.path.parts);
-        }
-        return null;
-      }
-
-      case 'AnyOfExpression': {
-        const anyOf = expr as AnyOfExpression;
-        const collectionName =
-          anyOf.collection.type === 'Identifier'
-            ? (anyOf.collection as { name: string }).name
-            : null;
-        if (collectionName) {
-          let items = this.ctx.collections.get(collectionName);
-          if (items && items.length > 0) {
-            // Apply where clause filter if present
-            if (anyOf.condition) {
-              items = filterWithContext(items, this.ctx, () =>
-                Boolean(this.evaluateExpression(anyOf.condition!))
-              ) as Record<string, unknown>[];
-            }
-            if (items.length > 0) {
-              return items[Math.floor(random() * items.length)];
-            }
-          }
-        }
-        return null;
-      }
-
-      case 'LogicalExpression': {
-        const logical = expr as LogicalExpression;
-        const left = Boolean(this.evaluateExpression(logical.left));
-        if (logical.operator === 'and') {
-          // Short-circuit: if left is false, return false
-          if (!left) return false;
-          return Boolean(this.evaluateExpression(logical.right));
-        } else {
-          // or: short-circuit: if left is true, return true
-          if (left) return true;
-          return Boolean(this.evaluateExpression(logical.right));
-        }
-      }
-
-      case 'NotExpression': {
-        const not = expr as NotExpression;
-        return !this.evaluateExpression(not.operand);
-      }
-
-      case 'TernaryExpression': {
-        const ternary = expr as TernaryExpression;
-        const condition = Boolean(this.evaluateExpression(ternary.condition));
-        return condition
-          ? this.evaluateExpression(ternary.consequent)
-          : this.evaluateExpression(ternary.alternate);
-      }
-
-      case 'MatchExpression': {
-        const matchExpr = expr as MatchExpression;
-        const value = this.evaluateExpression(matchExpr.value);
-        for (const arm of matchExpr.arms) {
-          const pattern = this.evaluateExpression(arm.pattern);
-          if (value === pattern) {
-            return this.evaluateExpression(arm.result);
-          }
-        }
-        // No match found - return null
-        return null;
-      }
-
-      case 'UnaryExpression': {
-        const unary = expr as UnaryExpression;
-        const operand = this.evaluateExpression(unary.operand) as number;
-        if (unary.operator === '-') {
-          return -operand;
-        }
-        // '+' operator returns the value as-is
-        return operand;
-      }
-
-      default:
-        return null;
-    }
-  }
-
-  private evaluateCall(call: CallExpression): unknown {
-    const args = call.arguments.map((a) => this.evaluateExpression(a));
-
-    // Check aggregate functions
-    if (call.callee in aggregateFunctions) {
-      return aggregateFunctions[call.callee as keyof typeof aggregateFunctions](args, this.ctx);
-    }
-
-    // Check math functions
-    if (call.callee in mathFunctions) {
-      return mathFunctions[call.callee as keyof typeof mathFunctions](args, this.ctx);
-    }
-
-    // Check distribution functions
-    if (call.callee in distributionFunctions) {
-      return distributionFunctions[call.callee as keyof typeof distributionFunctions](
-        args,
-        this.ctx
-      );
-    }
-
-    // Check date functions
-    if (call.callee in dateFunctions) {
-      return dateFunctions[call.callee as keyof typeof dateFunctions](args, this.ctx);
-    }
-
-    // Check string functions
-    if (call.callee in stringFunctions) {
-      return stringFunctions[call.callee as keyof typeof stringFunctions](args, this.ctx);
-    }
-
-    // Check sequence functions
-    if (call.callee in sequenceFunctions) {
-      return sequenceFunctions[call.callee as keyof typeof sequenceFunctions](args, this.ctx);
-    }
-
-    // Check predicate functions (need special handling with raw AST)
-    if (call.callee in this.predicateFunctions) {
-      return this.predicateFunctions[call.callee as keyof typeof this.predicateFunctions](
-        args,
-        this.ctx,
-        call
-      );
-    }
-
-    // Check unique function
-    if (call.callee === 'unique') {
-      return this.uniqueFn(args, this.ctx, call);
-    }
-
-    // Try plugin generator lookup (uses cache)
-    const generator = getGenerator(call.callee);
-    if (generator) {
-      return generator(args, this.ctx);
-    }
-
-    return null;
-  }
-
-  private evaluateBinary(expr: BinaryExpression): unknown {
-    const left = this.evaluateExpression(expr.left);
-    const right = this.evaluateExpression(expr.right);
-
-    switch (expr.operator) {
-      case '+':
-        // Date arithmetic: date string + Duration = new date string
-        if (typeof left === 'string' && isDuration(right)) {
-          return addDurationToDate(left, right as Duration);
-        }
-        // Duration + date string (commutative)
-        if (isDuration(left) && typeof right === 'string') {
-          return addDurationToDate(right, left as Duration);
-        }
-        return (left as number) + (right as number);
-      case '-':
-        // Date arithmetic: date string - Duration = new date string
-        if (typeof left === 'string' && isDuration(right)) {
-          return subtractDurationFromDate(left, right as Duration);
-        }
-        return (left as number) - (right as number);
-      case '*':
-        return (left as number) * (right as number);
-      case '/': {
-        const divisor = right as number;
-        if (divisor === 0) {
-          throw new Error('Division by zero');
-        }
-        return (left as number) / divisor;
-      }
-      case '==':
-        return left === right;
-      case '<':
-        return (left as number) < (right as number);
-      case '>':
-        return (left as number) > (right as number);
-      case '<=':
-        return (left as number) <= (right as number);
-      case '>=':
-        return (left as number) >= (right as number);
-      default:
-        return null;
-    }
-  }
-
-  private evaluateCondition(condition: Expression, instance: Record<string, unknown>): boolean {
-    const oldCurrent = this.ctx.current;
-    this.ctx.current = instance;
-    const result = this.evaluateExpression(condition);
-    this.ctx.current = oldCurrent;
-    return Boolean(result);
-  }
-
   private resolveFromObject(obj: Record<string, unknown>, parts: string[]): unknown {
     let value: unknown = obj;
     for (const part of parts) {
@@ -1451,83 +269,5 @@ export class Generator {
       }
     }
     return value;
-  }
-
-  private resolveCardinality(cardinality: Cardinality | DynamicCardinality): number {
-    let count: number;
-
-    if (cardinality.type === 'DynamicCardinality') {
-      // Evaluate the expression - should return a number or RangeExpression
-      const result = this.evaluateExpression(cardinality.expression);
-
-      if (typeof result === 'number') {
-        count = Math.floor(result);
-      } else if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
-        // If result is an object with min/max (from RangeExpression evaluation)
-        const min = result.min as number;
-        const max = result.max as number;
-        count = Math.floor(random() * (max - min + 1)) + min;
-      } else {
-        throw new Error(
-          `Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`
-        );
-      }
-    } else {
-      // Static cardinality
-      if (cardinality.min === cardinality.max) {
-        count = cardinality.min;
-      } else {
-        count = Math.floor(random() * (cardinality.max - cardinality.min + 1)) + cardinality.min;
-      }
-    }
-
-    // Validate: cardinality must be non-negative
-    if (count < 0) {
-      throw new Error(`Cardinality must be non-negative, got ${count}. Check your range bounds.`);
-    }
-
-    return count;
-  }
-
-  private randomString(fieldName?: string): string {
-    // Use field name and schema context to pick appropriate generator
-    const field = fieldName?.toLowerCase() ?? '';
-    const schema = this.ctx.currentSchemaName?.toLowerCase() ?? '';
-
-    // Check schema context first
-    if (
-      schema.includes('company') ||
-      schema.includes('business') ||
-      schema.includes('organization')
-    ) {
-      if (field === 'name' || field.includes('company')) {
-        return generateCompanyName();
-      }
-    }
-
-    // Then field name heuristics
-    if (field.includes('company') || field.includes('business') || field.includes('organization')) {
-      return generateCompanyName();
-    }
-    if (
-      field === 'name' ||
-      field.includes('person') ||
-      field.includes('customer') ||
-      field.includes('contact')
-    ) {
-      return generatePersonName();
-    }
-    if (field.includes('product') || field.includes('item') || field.includes('description')) {
-      return generateProductName();
-    }
-
-    return generateText('word');
-  }
-
-  private randomDate(): string {
-    const start = new Date(2020, 0, 1);
-    const end = new Date();
-    const date = new Date(start.getTime() + random() * (end.getTime() - start.getTime()));
-    return date.toISOString().split('T')[0];
   }
 }
