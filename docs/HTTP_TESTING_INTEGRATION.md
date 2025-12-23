@@ -60,13 +60,54 @@ See `examples/http-testing/` for patterns:
 - `webhooks.vague` - Webhook payload generation
 - Complete request/response modeling
 
+### 5. Mock Server Mode
+
+Start an HTTP server that serves generated data at REST endpoints:
+
+```bash
+vague schema.vague --serve              # http://localhost:3000
+vague schema.vague --serve 8080         # http://localhost:8080
+vague schema.vague --serve --seed 42    # Reproducible data
+```
+
+Each collection becomes an endpoint:
+- `GET /` - List available endpoints
+- `GET /{collection}` - All items in collection
+- `GET /{collection}/{index}` - Single item by index
+
+Example output:
+```bash
+$ vague invoices.vague --serve 3000
+
+Vague mock server running at http://localhost:3000
+
+Available endpoints:
+  GET /invoices        (100 items)
+  GET /invoices/{index} (0-99)
+  GET /payments        (50 items)
+  GET /payments/{index} (0-49)
+```
+
+Programmatic API:
+```typescript
+import { createMockServer } from 'vague';
+
+const server = await createMockServer(`
+  schema User { id: int, name: string }
+  dataset Test { users: 10 of User }
+`, { port: 3000, seed: 42 });
+
+await server.listen();
+// GET http://localhost:3000/users
+await server.close();
+```
+
 ## Future Improvements
 
 ### High Priority
 
 | Feature | Description |
 |---------|-------------|
-| HTTP Server Mode | `vague schema.vague --serve --port 3000` |
 | Signature/HMAC | `hmac.sha256(payload, secret)` for webhook auth |
 | cURL/HAR Export | `--format curl` or `--format har` |
 
@@ -79,12 +120,6 @@ See `examples/http-testing/` for patterns:
 | Request/Response Pairs | Matched request/response schema patterns |
 
 ### Proposed Syntax Examples
-
-#### HTTP Server Mode
-```bash
-vague schema.vague --serve --port 3000
-# Routes: /invoices, /payments, etc.
-```
 
 #### Webhook Sequences
 ```vague
@@ -117,10 +152,19 @@ vague webhooks.vague --format ndjson | while read line; do
 done
 ```
 
-### With Mock Servers
+### With Vague Mock Server
+
+Use Vague's built-in mock server:
+
+```bash
+vague api.vague --serve 3000
+# Your app can now hit http://localhost:3000/{collection}
+```
+
+### With External Mock Servers
 
 1. Generate API responses with Vague
-2. Serve via mock server or import into tools like Mockoon
+2. Serve via external mock server (json-server, Mockoon, etc.)
 3. Point application under test to mock endpoints
 
 ## References

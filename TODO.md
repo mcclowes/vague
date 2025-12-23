@@ -1,48 +1,26 @@
 # Vague Language - TODO
 
-## Next
+## Next Up
 
-Codebase Analysis Summary
+### Performance
+| Issue | Location | Note |
+|-------|----------|------|
+| No constraint caching | generator.ts:440-467 | Re-evaluates all constraints per instance |
 
-  Critical Issues (High Priority)
+### Known Limitations
+| Issue | Location | Note |
+|-------|----------|------|
+| `any` types in validator | validator.ts:30-47 | ESM/CJS interop with Ajv library requires `any` |
 
-  | Issue                            | Location                                              | Impact                                              |
-  |----------------------------------|-------------------------------------------------------|-----------------------------------------------------|
-  | ~~Excessive type assertions~~    | ~~generator.ts, predicate.ts, builtins/~~             | ✅ Added type-guards.ts with safe coercion helpers  |
-  | ~~Silent failures via console.warn~~ | ~~generator.ts~~                                 | ✅ All warnings use warningCollector |
-  | ~~Global mutable random state~~  | ~~random.ts~~                                        | ✅ Context-based SeededRandom per compilation       |
-  | ~~Silent null returns~~          | ~~expression-evaluator.ts, field-generator.ts~~      | ✅ Throws errors for unknown types/functions        |
-  | any types in validator           | validator.ts:30-47                                    | ESM/CJS interop with Ajv library requires `any`     |
-
-  Architectural Issues (Medium Priority)
-
-  | Issue                           | Location                                   | Recommendation                                                      |
-  |---------------------------------|--------------------------------------------|---------------------------------------------------------------------|
-  | ~~Generator.ts is 1215 lines~~  | ~~src/interpreter/generator.ts~~           | ✅ Extracted builtins/ modules                                       |
-  | ~~Context lifecycle unclear~~   | ~~context.ts~~                             | ✅ Added resetContext() and resetContextFull() methods with docs     |
-  | ~~Collection iteration duplicated~~ | ~~generator.ts, predicate.ts~~         | ✅ Extracted mapWithContext, filterWithContext, everyWithContext, someWithContext |
-  | ~~Format detection in 3 places~~ | ~~generator.ts, faker.ts, format-detector.ts~~ | ✅ Unified into format-registry.ts                                   |
-  | ~~Magic numbers scattered~~      | ~~Various files~~                          | ✅ Extracted to named constants (DEFAULT_PRIMITIVE_MAX, etc.)        |
-
-  Performance (Low Priority)
-
-  | Issue                       | Location                   | Note                                      |
-  |-----------------------------|----------------------------|-------------------------------------------|
-  | ~~Hardcoded retry limits~~  | ~~generator.ts~~           | ✅ Configurable via `retryLimits` option  |
-  | ~~Plugin lookup on every call~~ | ~~generator.ts~~       | ✅ Added generator cache with invalidation |
-  | No constraint caching       | generator.ts:440-467       | Re-evaluates all constraints per instance |
-
+---
 
 ## Core Language
-- [x] **Conditional fields** - Add/remove fields based on condition: `companyNumber: string when type == "business"`
+
 - [ ] **Conditional field values** - Different generation logic per branch: `email: if type == "business" then corporateEmail() else personalEmail()`
-- [x] **Date arithmetic** - `due_date <= issued_date + date.days(90)`, duration functions: `date.days()`, `date.weeks()`, `date.months()`, `date.years()`
 - [ ] **Conditional probabilities** - `assume status == "paid" with probability 0.9 if due_date < today - 30.days`
 - [ ] **Named distributions** - `distribution AgeStructure { 18..24: 15%, 25..34: 25% }` with `~` operator
 - [ ] Explore other keywords for fields, like unique
-- [x] **Match expressions** - Pattern matching: `match status { "pending" => "Awaiting", "shipped" => "On way" }`
 - [ ] Logging functionality generally
-- [x] **Cardinality syntax** - Changed from `1599 * Schema` to `1599 of Schema` to avoid conflation with multiplication
 
 ## Dataset-Level Features
 
@@ -57,7 +35,7 @@ Codebase Analysis Summary
 
 ## Advanced Features
 
-- [ ] **Cascading `then` blocks** - (Potential) Allow `then` mutations to trigger other `then` blocks with depth limits
+- [ ] **Cascading `then` blocks** - Allow `then` mutations to trigger other `then` blocks with depth limits
 - [ ] **Scenario targeting** - `generate(50) { Invoice where status == "overdue" }`
 - [ ] **Constraint analysis** - Warn on unsatisfiable constraints, estimate rejection probability
 - [ ] **SMT solver** - Z3 integration for complex constraints
@@ -73,36 +51,22 @@ Codebase Analysis Summary
 - [ ] **Context application** - `with Geography("en_GB")` actually influences generation
 - [ ] **Context inheritance** - Child records inherit parent context
 
-## Validation Mode (Dual-Use)
-
-- [x] **Data ingestion validation** - `vague --validate-data data.json --schema schema.vague` to validate real data against Vague schemas
-- [x] **Reuse constraint engine** - Run `assume` constraints as assertions on external data
-- [x] **Error reporting** - Report which records fail which constraints with clear messages
-- [x] **Dataset-level validation** - Run `validate { }` blocks on external data (aggregate constraints)
-
-## Code quality and organisation
-
-- [x] Break up the generator (extracted builtins: aggregate, date, distribution, math, predicate, sequence, string)
-
 ## Output & Tooling
 
-- [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
-- [x] **Better error messages** - ParseError class with source snippets, location info, and expected token hints
+- [x] **Mock server mode** - `vague schema.vague --serve [port]` serves collections as REST endpoints
+- [ ] **Multiple output formats** - SQL inserts, TypeScript fixtures
 - [ ] **LSP server** - Language server for editor support
 
 ## Technical Debt
 
-- [x] **Type safety in generator** - Safe coercion helpers in type-guards.ts
 - [ ] **Error recovery in parser** - Continue parsing after errors
-- [x] **Modular parser** - Split into statements, expressions, primaries (base.ts, primaries.ts, expressions.ts, types.ts, statements.ts, parser.ts)
 
 ## Inspired by Lea
 
 - [ ] **Richer builtins** - Expand beyond 9 aggregate functions (Lea has 60+)
 - [ ] **REPL** - Interactive mode for experimenting with schemas
-- [x] **API embedding** - Embed in TypeScript with tagged templates: `` vague`schema Person { ... }` ``
 
-## Ideas to explore
+## Ideas to Explore
 
 - [ ] Additional keywords like then - so, especially, etc.
 - [ ] **Annotations (`#`)** - User metadata attached to schemas/fields, stored in AST but ignored by generator
@@ -112,81 +76,107 @@ Codebase Analysis Summary
   - `#name: true/false` - explicit boolean
   - Reserve `@decorator` syntax for future system-level features
 
-## OAS parsing
+## OAS Parsing
 
-- [ ] Extract Validation from OAS automatically? 
-- [ ] Rather than 'from' we could use more specific words - 'extends', 'restricts', 'implements', - explore these
-- [ ] Warn if validation in OAS spec - see below
+- [ ] Extract validation from OAS automatically
+- [ ] Rather than 'from' we could use more specific words - 'extends', 'restricts', 'implements'
+- [ ] Warn if validation exists in OAS spec but no validation defined in Vague
 
-```
+```json
 "validation": {
   "warnings": [
-    {
-      "field": "SortCode",
-      "details": "Must be 6 characters long if the specified currency is GBP."
-    },
-    {
-      "field": "SortCode",
-      "details": "Must be provided if the specified currency is GBP."
-    }
-  ],
-  "information": []
+    { "field": "SortCode", "details": "Must be 6 characters long if the specified currency is GBP." },
+    { "field": "SortCode", "details": "Must be provided if the specified currency is GBP." }
+  ]
 }
 ```
-in an OAS, we can see validation warnings defined. These are too human readable to programmatically leverage, but we could at least warn users if validation exists in the OAS but no validation at all is defined in Vague.
 
 ---
 
 ## Completed
 
-- [x] **Faker plugin** - `import faker from "vague-faker"` for semantic types
-- [x] **Syntax highlighting for VSCode** - See `vscode-vague/` directory
+### Language Features
+- [x] **Conditional fields** - `companyNumber: string when type == "business"`
+- [x] **Date arithmetic** - `due_date <= issued_date + date.days(90)` with duration functions
+- [x] **Match expressions** - `match status { "pending" => "Awaiting", "shipped" => "On way" }`
+- [x] **Cardinality syntax** - `1599 of Schema` instead of `1599 * Schema`
 - [x] **Parent references** - `^currency` syntax for inheriting from parent scope
 - [x] **`any of` expressions** - `customer: any of companies` for referencing collection items
 - [x] **Filtered references** - `any of companies where .active == true`
 - [x] **Computed field evaluation** - `total: sum(line_items.amount)` with aggregates
 - [x] **Hard constraints** - `assume due_date >= issued_date` with rejection sampling
 - [x] **Conditional constraints** - `assume if status == "paid" { ... }`
-- [x] **Logical operators** - `and`, `or`, `not` in constraints
+- [x] **Logical operators** - `and`, `or`, `not` everywhere (constraints, comparisons, ternaries, where clauses)
 - [x] **Aggregate functions** - `sum()`, `count()`, `min()`, `max()`, `avg()`
 - [x] **Path expressions** - `line_items.amount` traverses into collections
-- [x] **Markov chain strings** - Context-aware realistic text generation
-- [x] **Schema validation** - Validate generated data against OpenAPI specs (3.0.x/3.1.x)
-- [x] **CLI validation flags** - `-v`, `-m`, `--validate-only` for CI integration
-- [x] **OpenAPI schema import** - `schema Pet from petstore.Pet { }` inherits fields from OpenAPI spec
-- [x] **Dataset-wide constraints** - `validate { sum(invoices.total) >= 100000 }` with rejection sampling
-- [x] **Aggregate constraints** - Cross-collection constraints like `sum(payments.amount) <= sum(invoices.total)`
-- [x] **`then` blocks** - Side effects to mutate referenced records: `schema Payment { ... } then { invoice.status = "paid" }`
-- [x] **Ternary expressions** - `condition ? value : other` for conditional values
-- [x] **Logical operators in expressions** - `and`, `or`, `not` work everywhere (comparisons, ternaries, etc.)
-- [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) of Item` for conditional collection sizes
-- [x] **Nullable fields** - `string?` and `int | null` syntax for fields that can be null
-- [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights: `0.7: int in 10..100 | 0.3: field`
-- [x] **Seed support** - `--seed 123` for reproducible generation
-- [x] **Negative testing** - `dataset Invalid violating { ... }` to generate constraint-violating data
-- [x] **Logical operators in where clauses** - `any of invoices where .status == "paid" or .status == "partial"`
+- [x] **Ternary expressions** - `condition ? value : other`
+- [x] **Dynamic cardinality** - `(condition ? 5..10 : 1..3) of Item`
+- [x] **Nullable fields** - `string?` and `int | null` syntax
+- [x] **Mixed superposition** - `int in 10..500 | field.ref` with optional weights
+- [x] **Mixed weighted/unweighted superposition** - `0.85: "Active" | "Archived"` sharing remaining probability
+- [x] **Negative testing** - `dataset Invalid violating { ... }`
 - [x] **Arithmetic in computed fields** - `= sum(items.price) * 1.2`
-- [x] **Decimal precision** - `round()`, `floor()`, `ceil()` functions with decimal places
-- [x] **Unique values** - `id: unique int in 1..1000` ensures no duplicates
+- [x] **Decimal precision** - `round()`, `floor()`, `ceil()` with decimal places
+- [x] **Unique values** - `id: unique int in 1..1000`
+- [x] **Ordered sequences** - `[a, b, c, d]` cycles through values
+- [x] **Private fields** - `age: private int` excluded from output
+
+### Generation Features
 - [x] **Built-in distributions** - `gaussian()`, `exponential()`, `lognormal()`, `poisson()`, `beta()`, `uniform()`
 - [x] **Date functions** - `now()`, `today()`, `daysAgo()`, `daysFromNow()`, `datetime()`, `dateBetween()`, `formatDate()`
-- [x] **Sequential/stateful generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)` for auto-incrementing values
-- [x] **Previous references** - `previous("field")` for referencing the previous record in a collection
-- [x] **Prettier and ESLint** - Code formatting and linting with `npm run format` and `npm run lint`
-- [x] **Plugin architecture** - `registerPlugin()`, namespace resolution, `VaguePlugin` type
-- [x] **OpenAPI example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
+- [x] **Date plugin** - `date.weekday()`, `date.weekend()`, `date.dayOfWeek()`
+- [x] **Sequential generation** - `sequence("INV-", 1001)` and `sequenceInt("name", start)`
+- [x] **Previous references** - `previous("field")` for referencing previous record
 - [x] **String transformations** - `uppercase()`, `lowercase()`, `capitalize()`, `kebabCase()`, `snakeCase()`, `camelCase()`, `trim()`, `concat()`, `substring()`, `replace()`, `length()`
-- [x] **Mixed weighted/unweighted superposition** - `0.85: "Active" | "Archived"` where unweighted options share remaining probability
-- [x] **Watch mode** - `-w/--watch` flag to regenerate output on file change
-- [x] **Ordered sequences** - `[a, b, c, d]` cycles through values in order
-- [x] **Private fields** - `age: private int` generated but excluded from output
-- [x] **Date plugin** - `date.weekday()`, `date.weekend()`, `date.dayOfWeek()` for day-of-week filtering
-- [x] **Schema inference** - `inferSchema()` and `--infer` CLI option to reverse-engineer schemas from JSON
-- [x] **Correlation detection** - Automatically infer derived fields (`= qty * price`), ordering constraints (`assume end >= start`), and conditional constraints from data patterns
-- [x] **CSV inference** - `--infer data.csv` with `--infer-delimiter` and `--collection-name` options
-- [x] **Date arithmetic** - `date.days()`, `date.weeks()`, `date.months()`, `date.years()` duration functions with `+`/`-` operators
-- [x] **Plugin discovery** - Auto-load plugins from `./plugins/`, `./vague-plugins/`, and `node_modules/vague-plugin-*`
-- [x] **Strict mode** - `compile(source, { strict: true })` throws `ConstraintSatisfactionError` instead of returning invalid data
-- [x] **Context-based seeding** - Each `compile()` call gets its own RNG instance, enabling safe concurrent compilations
-- [x] **Optional field probability** - `compile(source, { optionalFieldProbability: 0.5 })` controls inclusion of optional fields
-- [x] **Exhaustiveness checking** - TypeScript `never` checks in switch statements catch unhandled cases at compile time
+- [x] **Markov chain strings** - Context-aware realistic text generation
+- [x] **Faker plugin** - Semantic types via faker.js
+
+### Dataset Features
+- [x] **Dataset-wide constraints** - `validate { sum(invoices.total) >= 100000 }`
+- [x] **Aggregate constraints** - Cross-collection constraints like `sum(payments.amount) <= sum(invoices.total)`
+- [x] **`then` blocks** - Side effects to mutate referenced records
+
+### Validation
+- [x] **Data ingestion validation** - `--validate-data data.json --schema schema.vague`
+- [x] **Constraint engine reuse** - Run `assume` constraints as assertions on external data
+- [x] **Error reporting** - Clear messages for which records fail which constraints
+- [x] **Dataset-level validation** - Run `validate { }` blocks on external data
+- [x] **Schema validation** - Validate against OpenAPI specs (3.0.x/3.1.x)
+- [x] **CLI validation flags** - `-v`, `-m`, `--validate-only`
+
+### OpenAPI Integration
+- [x] **Schema import** - `schema Pet from petstore.Pet { }` inherits fields
+- [x] **Example population** - `--oas-output`, `--oas-source`, `--oas-external`, `--oas-example-count`
+
+### Schema Inference
+- [x] **JSON inference** - `inferSchema()` and `--infer` CLI option
+- [x] **CSV inference** - `--infer data.csv` with delimiter and collection name options
+- [x] **Correlation detection** - Infer derived fields, ordering constraints, conditional constraints
+
+### CLI & Tooling
+- [x] **Seed support** - `--seed 123` for reproducible generation
+- [x] **Watch mode** - `-w/--watch` flag
+- [x] **Better error messages** - ParseError class with source snippets and location info
+- [x] **Prettier and ESLint** - `npm run format` and `npm run lint`
+- [x] **VSCode syntax highlighting** - See `vscode-vague/` directory
+
+### API & Architecture
+- [x] **API embedding** - Tagged templates: `` vague`schema Person { ... }` ``
+- [x] **Plugin architecture** - `registerPlugin()`, namespace resolution, `VaguePlugin` type
+- [x] **Plugin discovery** - Auto-load from `./plugins/`, `./vague-plugins/`, `node_modules/vague-plugin-*`
+- [x] **Strict mode** - `compile(source, { strict: true })` throws on invalid data
+- [x] **Context-based seeding** - Each `compile()` call gets its own RNG instance
+- [x] **Optional field probability** - `compile(source, { optionalFieldProbability: 0.5 })`
+- [x] **Exhaustiveness checking** - TypeScript `never` checks catch unhandled cases
+
+### Code Quality (Resolved)
+- [x] **Type safety** - Safe coercion helpers in type-guards.ts
+- [x] **Modular parser** - Split into base.ts, primaries.ts, expressions.ts, types.ts, statements.ts
+- [x] **Modular generator** - Extracted builtins: aggregate, date, distribution, math, predicate, sequence, string
+- [x] **Context lifecycle** - `resetContext()` and `resetContextFull()` methods
+- [x] **Collection iteration** - Extracted `mapWithContext`, `filterWithContext`, etc.
+- [x] **Format detection** - Unified into format-registry.ts
+- [x] **Magic numbers** - Extracted to named constants
+- [x] **Configurable retry limits** - Via `retryLimits` option
+- [x] **Generator cache** - Plugin lookup caching with invalidation
+- [x] **Warning collection** - All warnings use warningCollector (no silent console.warn)

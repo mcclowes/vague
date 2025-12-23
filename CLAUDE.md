@@ -177,6 +177,7 @@ const data = await vague({ seed: 42 })`...`;
 | `--schema <file>` | Schema file for data validation |
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results |
+| `--serve [port]` | Start HTTP mock server (default: 3000) |
 | `--debug` | Enable debug logging |
 | `--plugins <dir>` | Load plugins from directory |
 

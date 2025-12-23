@@ -60,6 +60,9 @@ OpenAPI Linting (Spectral):
   --lint-spec <file>       Lint an OpenAPI spec file with Spectral rules
   --lint-verbose           Show detailed lint results including hints
 
+Mock Server:
+  --serve [port]           Start HTTP mock server (default port: 3000)
+
 Examples:
   vague schema.vague -o output.json -p
   vague schema.vague -s 12345                 # Reproducible output
@@ -90,6 +93,11 @@ Examples:
   # Lint an OpenAPI spec with Spectral
   vague --lint-spec openapi.json
   vague --lint-spec openapi.yaml --lint-verbose
+
+  # Start mock server
+  vague schema.vague --serve              # http://localhost:3000
+  vague schema.vague --serve 8080         # http://localhost:8080
+  vague schema.vague --serve --seed 42    # Reproducible data
 
   # Use custom config file
   vague schema.vague -c ./custom-config.js

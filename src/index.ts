@@ -154,6 +154,7 @@ export {
   type SpectralResult,
   type LintResult,
 } from './spectral/index.js';
+export { createMockServer, type MockServer, type MockServerOptions } from './server/index.js';
 export {
   isRecord,
   isFiniteNumber,

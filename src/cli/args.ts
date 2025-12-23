@@ -133,6 +133,14 @@ export function parseArgs(args: string[]): CliOptions {
       options.lintSpecFile = args[++i];
     } else if (args[i] === '--lint-verbose') {
       options.lintVerbose = true;
+    } else if (args[i] === '--serve') {
+      // Check if next arg is a port number
+      const nextArg = args[i + 1];
+      if (nextArg && !nextArg.startsWith('-') && !isNaN(parseInt(nextArg, 10))) {
+        options.servePort = parseInt(args[++i], 10);
+      } else {
+        options.servePort = 3000; // default port
+      }
     }
   }
 

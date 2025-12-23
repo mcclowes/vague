@@ -37,6 +37,7 @@ import {
   handleInfer,
   handleValidate,
   handleCompile,
+  handleServe,
 } from './cli/index.js';
 
 // Create CLI logger
@@ -140,7 +141,9 @@ async function main() {
 
   try {
     // Route to appropriate handler based on mode
-    if (options.lintSpecFile) {
+    if (options.servePort !== null) {
+      await handleServe(options);
+    } else if (options.lintSpecFile) {
       await handleLint(options);
     } else if (options.inferFile) {
       await handleInfer(options);

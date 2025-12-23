@@ -64,6 +64,9 @@ export interface CliOptions {
   // Spectral linting options
   lintSpecFile: string | null;
   lintVerbose: boolean;
+
+  // Mock server options
+  servePort: number | null;
 }
 
 export function createDefaultOptions(): CliOptions {
@@ -103,5 +106,6 @@ export function createDefaultOptions(): CliOptions {
     verbose: false,
     lintSpecFile: null,
     lintVerbose: false,
+    servePort: null,
   };
 }
