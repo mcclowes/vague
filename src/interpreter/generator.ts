@@ -51,6 +51,13 @@ import {
   generateText,
 } from './markov.js';
 import { random, randomInt } from './random.js';
+import {
+  isRecord,
+  isFiniteNumber,
+  isArray,
+  getProperty,
+  setProperty,
+} from '../utils/type-guards.js';
 
 // Import refactored modules
 import { GeneratorContext, createContext } from './context.js';
@@ -124,6 +131,9 @@ export class Generator {
   }
 
   async generate(program: Program): Promise<Record<string, unknown[]>> {
+    // Clear warnings from any previous compilation to prevent leakage
+    warningCollector.clear();
+
     generatorLog.debug('Starting generation', { statements: program.statements.length });
 
     // First pass: collect schemas, imports, and let bindings
@@ -400,12 +410,24 @@ export class Generator {
     // Evaluate the value expression
     const value = this.evaluateExpression(mutation.value);
 
-    // Apply the mutation
+    // Apply the mutation safely using type guards
+    if (!isRecord(targetObj)) {
+      warningCollector.add(
+        createMutationTargetNotFoundWarning(this.ctx.currentSchemaName || 'unknown')
+      );
+      return;
+    }
+
     if (mutation.operator === '+=') {
-      const current = (targetObj as Record<string, unknown>)[fieldName];
-      (targetObj as Record<string, unknown>)[fieldName] = (current as number) + (value as number);
+      const current = getProperty(targetObj, fieldName);
+      if (isFiniteNumber(current) && isFiniteNumber(value)) {
+        setProperty(targetObj, fieldName, current + value);
+      } else {
+        // Fallback: set directly even if types don't match
+        setProperty(targetObj, fieldName, value);
+      }
     } else {
-      (targetObj as Record<string, unknown>)[fieldName] = value;
+      setProperty(targetObj, fieldName, value);
     }
   }
 
@@ -421,12 +443,12 @@ export class Generator {
       }
 
       // First part is a field on the instance (e.g., "invoice")
-      let target: unknown = instance[parts[0]];
+      let target: unknown = getProperty(instance, parts[0]);
 
       // Navigate through intermediate parts
       for (let i = 1; i < parts.length - 1; i++) {
-        if (target && typeof target === 'object') {
-          target = (target as Record<string, unknown>)[parts[i]];
+        if (isRecord(target)) {
+          target = getProperty(target, parts[i]);
         } else {
           return { target: null, field: null };
         }
@@ -442,12 +464,12 @@ export class Generator {
       // Get the base object
       let target: unknown;
       if (binExpr.left.type === 'Identifier') {
-        target = instance[(binExpr.left as { name: string }).name];
+        target = getProperty(instance, (binExpr.left as { name: string }).name);
       } else if (binExpr.left.type === 'BinaryExpression') {
         // Nested: invoice.customer.name - resolve left side first
         const nested = this.resolveMutationTarget(binExpr.left, instance);
-        if (nested.target && nested.field) {
-          target = (nested.target as Record<string, unknown>)[nested.field];
+        if (isRecord(nested.target) && nested.field) {
+          target = getProperty(nested.target, nested.field);
         }
       }
 
@@ -458,6 +480,145 @@ export class Generator {
     }
 
     return { target: null, field: null };
+  }
+
+  /**
+   * Extract field names referenced in an expression.
+   * Used for dependency analysis of computed fields.
+   */
+  private extractFieldDependencies(expr: Expression, allFieldNames: Set<string>): Set<string> {
+    const deps = new Set<string>();
+
+    const visit = (e: Expression): void => {
+      switch (e.type) {
+        case 'Identifier': {
+          const name = (e as { name: string }).name;
+          if (allFieldNames.has(name)) {
+            deps.add(name);
+          }
+          break;
+        }
+        case 'QualifiedName': {
+          const parts = (e as QualifiedName).parts;
+          if (parts.length > 0 && allFieldNames.has(parts[0])) {
+            deps.add(parts[0]);
+          }
+          break;
+        }
+        case 'BinaryExpression': {
+          const bin = e as BinaryExpression;
+          visit(bin.left);
+          visit(bin.right);
+          break;
+        }
+        case 'UnaryExpression': {
+          visit((e as UnaryExpression).operand);
+          break;
+        }
+        case 'CallExpression': {
+          for (const arg of (e as CallExpression).arguments) {
+            visit(arg);
+          }
+          break;
+        }
+        case 'TernaryExpression': {
+          const tern = e as TernaryExpression;
+          visit(tern.condition);
+          visit(tern.consequent);
+          visit(tern.alternate);
+          break;
+        }
+        case 'LogicalExpression': {
+          const log = e as LogicalExpression;
+          visit(log.left);
+          visit(log.right);
+          break;
+        }
+        case 'NotExpression': {
+          visit((e as NotExpression).operand);
+          break;
+        }
+        // Other expression types don't contain field references
+      }
+    };
+
+    visit(expr);
+    return deps;
+  }
+
+  /**
+   * Topologically sort computed fields based on their dependencies.
+   * Throws an error if a circular dependency is detected.
+   */
+  private sortComputedFields(
+    computedFields: [string, FieldDefinition][],
+    allFieldNames: Set<string>
+  ): [string, FieldDefinition][] {
+    // Build dependency graph
+    const deps = new Map<string, Set<string>>();
+    const fieldMap = new Map<string, FieldDefinition>();
+
+    for (const [name, field] of computedFields) {
+      fieldMap.set(name, field);
+      if (field.distribution) {
+        deps.set(name, this.extractFieldDependencies(field.distribution, allFieldNames));
+      } else {
+        deps.set(name, new Set());
+      }
+    }
+
+    // Kahn's algorithm for topological sort
+    const sorted: [string, FieldDefinition][] = [];
+    const inDegree = new Map<string, number>();
+    const computedNames = new Set(computedFields.map(([n]) => n));
+
+    // Initialize in-degrees (only count deps on OTHER computed fields)
+    for (const [name] of computedFields) {
+      let count = 0;
+      for (const dep of deps.get(name)!) {
+        if (computedNames.has(dep)) {
+          count++;
+        }
+      }
+      inDegree.set(name, count);
+    }
+
+    // Find fields with no dependencies on other computed fields
+    const queue: string[] = [];
+    for (const [name, degree] of inDegree) {
+      if (degree === 0) {
+        queue.push(name);
+      }
+    }
+
+    while (queue.length > 0) {
+      const name = queue.shift()!;
+      sorted.push([name, fieldMap.get(name)!]);
+
+      // Reduce in-degree for fields that depend on this one
+      for (const [other, otherDeps] of deps) {
+        if (otherDeps.has(name) && computedNames.has(other)) {
+          const newDegree = inDegree.get(other)! - 1;
+          inDegree.set(other, newDegree);
+          if (newDegree === 0) {
+            queue.push(other);
+          }
+        }
+      }
+    }
+
+    // Check for circular dependencies
+    if (sorted.length !== computedFields.length) {
+      const remaining = computedFields
+        .filter(([n]) => !sorted.some(([s]) => s === n))
+        .map(([n]) => n);
+      throw new Error(
+        `Circular dependency detected among computed fields: ${remaining.join(', ')}. ` +
+          `Check that computed fields don't reference each other in a cycle.`
+      );
+    }
+
+    return sorted;
   }
 
   private generateInstanceAttempt(
@@ -482,10 +643,13 @@ export class Generator {
       }
     }
 
+    // All field names for dependency detection
+    const allFieldNames = new Set(fields.keys());
+
     // Categorize fields by generation order:
     // 1. Simple fields (non-collection, non-computed) - generated first
     // 2. Collection fields - generated second (so parent refs work)
-    // 3. Computed fields - generated last (may reference collections)
+    // 3. Computed fields - generated last (may reference collections), topologically sorted
     const collectionFields: [string, FieldDefinition][] = [];
     const computedFields: [string, FieldDefinition][] = [];
 
@@ -520,8 +684,10 @@ export class Generator {
       instance[name] = this.generateField(field, baseFields.get(name));
     }
 
-    // Generate computed fields last (can reference collections)
-    for (const [name, field] of computedFields) {
+    // Sort computed fields by dependencies and generate in order
+    // This ensures fields are generated after their dependencies
+    const sortedComputedFields = this.sortComputedFields(computedFields, allFieldNames);
+    for (const [name, field] of sortedComputedFields) {
       instance[name] = this.generateField(field, baseFields.get(name));
     }
 
@@ -986,7 +1152,8 @@ export class Generator {
     // First part might be a let binding (e.g., let teamNames = "A" | "B")
     const [first, ...rest] = parts;
     if (this.ctx.bindings.has(first) && rest.length === 0) {
-      return this.evaluateExpression(this.ctx.bindings.get(first)!);
+      const binding = this.ctx.bindings.get(first);
+      return binding !== undefined ? this.evaluateExpression(binding) : null;
     }
 
     // First part might be a collection name (for dataset-level validation)
@@ -998,17 +1165,12 @@ export class Generator {
       }
       // Continue with remaining parts
       for (const part of rest) {
-        if (Array.isArray(value)) {
+        if (isArray(value)) {
           value = value
-            .map((item) => {
-              if (item && typeof item === 'object' && part in item) {
-                return (item as Record<string, unknown>)[part];
-              }
-              return null;
-            })
+            .map((item) => (isRecord(item) ? getProperty(item, part) : null))
             .filter((v) => v !== null);
-        } else if (value && typeof value === 'object' && part in value) {
-          value = (value as Record<string, unknown>)[part];
+        } else if (isRecord(value)) {
+          value = getProperty(value, part);
         } else {
           return null;
         }
@@ -1018,18 +1180,13 @@ export class Generator {
 
     // Otherwise start from current context (schema-level)
     for (const part of parts) {
-      if (Array.isArray(value)) {
+      if (isArray(value)) {
         // Map over array to extract field from each item
         value = value
-          .map((item) => {
-            if (item && typeof item === 'object' && part in item) {
-              return (item as Record<string, unknown>)[part];
-            }
-            return null;
-          })
+          .map((item) => (isRecord(item) ? getProperty(item, part) : null))
           .filter((v) => v !== null);
-      } else if (value && typeof value === 'object' && part in value) {
-        value = (value as Record<string, unknown>)[part];
+      } else if (isRecord(value)) {
+        value = getProperty(value, part);
       } else {
         return null;
       }
@@ -1251,8 +1408,13 @@ export class Generator {
         return (left as number) - (right as number);
       case '*':
         return (left as number) * (right as number);
-      case '/':
-        return (left as number) / (right as number);
+      case '/': {
+        const divisor = right as number;
+        if (divisor === 0) {
+          throw new Error('Division by zero');
+        }
+        return (left as number) / divisor;
+      }
       case '==':
         return left === right;
       case '<':
@@ -1279,8 +1441,11 @@ export class Generator {
   private resolveFromObject(obj: Record<string, unknown>, parts: string[]): unknown {
     let value: unknown = obj;
     for (const part of parts) {
-      if (value && typeof value === 'object' && part in value) {
-        value = (value as Record<string, unknown>)[part];
+      if (isRecord(value)) {
+        value = getProperty(value, part);
+        if (value === undefined) {
+          return null;
+        }
       } else {
         return null;
       }
@@ -1289,31 +1454,39 @@ export class Generator {
   }
 
   private resolveCardinality(cardinality: Cardinality | DynamicCardinality): number {
+    let count: number;
+
     if (cardinality.type === 'DynamicCardinality') {
       // Evaluate the expression - should return a number or RangeExpression
       const result = this.evaluateExpression(cardinality.expression);
 
       if (typeof result === 'number') {
-        return Math.floor(result);
-      }
-
-      // If result is an object with min/max (from RangeExpression evaluation)
-      if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
+        count = Math.floor(result);
+      } else if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
+        // If result is an object with min/max (from RangeExpression evaluation)
         const min = result.min as number;
         const max = result.max as number;
-        return Math.floor(random() * (max - min + 1)) + min;
+        count = Math.floor(random() * (max - min + 1)) + min;
+      } else {
+        throw new Error(
+          `Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`
+        );
       }
-
-      throw new Error(
-        `Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`
-      );
+    } else {
+      // Static cardinality
+      if (cardinality.min === cardinality.max) {
+        count = cardinality.min;
+      } else {
+        count = Math.floor(random() * (cardinality.max - cardinality.min + 1)) + cardinality.min;
+      }
     }
 
-    // Static cardinality
-    if (cardinality.min === cardinality.max) {
-      return cardinality.min;
+    // Validate: cardinality must be non-negative
+    if (count < 0) {
+      throw new Error(`Cardinality must be non-negative, got ${count}. Check your range bounds.`);
     }
-    return Math.floor(random() * (cardinality.max - cardinality.min + 1)) + cardinality.min;
+
+    return count;
   }
 
   private randomString(fieldName?: string): string {

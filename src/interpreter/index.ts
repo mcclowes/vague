@@ -22,3 +22,17 @@ export {
   generatePersonName,
   generateProductName,
 } from './markov.js';
+export {
+  SeededRandom,
+  random,
+  randomInt,
+  randomFloat,
+  randomChoice,
+  randomBool,
+  gaussian,
+  exponential,
+  lognormal,
+  poisson,
+  beta,
+  getGlobalRandom,
+} from './random.js';

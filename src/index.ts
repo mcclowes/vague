@@ -30,6 +30,8 @@ export {
   clearGeneratorCache,
   getGenerator,
   callGenerator,
+  SeededRandom,
+  getGlobalRandom,
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
@@ -147,6 +149,21 @@ export {
   type SpectralResult,
   type LintResult,
 } from './spectral/index.js';
+export {
+  isRecord,
+  isFiniteNumber,
+  isSafeInteger,
+  isString,
+  isBoolean,
+  isArray,
+  isNonEmptyArray,
+  isNullish,
+  isValidDate,
+  getProperty,
+  setProperty,
+  assertRecord,
+  assertFiniteNumber,
+} from './utils/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';

@@ -1,4 +1,13 @@
 import type { GeneratorContext } from '../context.js';
+import { isRecord } from '../../utils/type-guards.js';
+
+/**
+ * Safely coerce an unknown value to a record for context assignment.
+ * Returns an empty object if the value is not a valid record.
+ */
+function toRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
 
 /**
  * Iterates over a collection, setting context.current to each item
@@ -17,8 +26,9 @@ export function mapWithContext<T>(
   const oldCurrent = context.current;
   try {
     return arr.map((item) => {
-      context.current = item as Record<string, unknown>;
-      return callback(item as Record<string, unknown>);
+      const record = toRecord(item);
+      context.current = record;
+      return callback(record);
     });
   } finally {
     context.current = oldCurrent;
@@ -41,8 +51,9 @@ export function filterWithContext(
   const oldCurrent = context.current;
   try {
     return arr.filter((item) => {
-      context.current = item as Record<string, unknown>;
-      return predicate(item as Record<string, unknown>);
+      const record = toRecord(item);
+      context.current = record;
+      return predicate(record);
     });
   } finally {
     context.current = oldCurrent;
@@ -65,8 +76,9 @@ export function everyWithContext(
   const oldCurrent = context.current;
   try {
     for (const item of arr) {
-      context.current = item as Record<string, unknown>;
-      if (!predicate(item as Record<string, unknown>)) {
+      const record = toRecord(item);
+      context.current = record;
+      if (!predicate(record)) {
         return false;
       }
     }
@@ -92,8 +104,9 @@ export function someWithContext(
   const oldCurrent = context.current;
   try {
     for (const item of arr) {
-      context.current = item as Record<string, unknown>;
-      if (predicate(item as Record<string, unknown>)) {
+      const record = toRecord(item);
+      context.current = record;
+      if (predicate(record)) {
         return true;
       }
     }

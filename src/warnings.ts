@@ -65,31 +65,72 @@ export interface UnknownFieldInImportedSchemaWarning extends VagueWarning {
 }
 
 /**
- * Collector for warnings during generation
+ * Collector for warnings during generation.
+ *
+ * IMPORTANT: Call `clear()` before each new compilation to prevent
+ * warnings from previous compilations leaking into subsequent ones.
  */
 class WarningCollector {
   private warnings: VagueWarning[] = [];
+  private silent: boolean = false;
 
+  /**
+   * Add a warning to the collector.
+   */
   add(warning: VagueWarning): void {
     this.warnings.push(warning);
-    // Also log to console for visibility
-    console.warn(`[vague] ${warning.type}: ${warning.message}`);
+    // Log to console unless in silent mode
+    if (!this.silent) {
+      console.warn(`[vague] ${warning.type}: ${warning.message}`);
+    }
   }
 
+  /**
+   * Get a copy of all collected warnings.
+   */
   getWarnings(): VagueWarning[] {
     return [...this.warnings];
   }
 
+  /**
+   * Clear all warnings. Call this before each new compilation
+   * to prevent warnings from leaking between independent runs.
+   */
   clear(): void {
     this.warnings = [];
   }
 
+  /**
+   * Check if any warnings have been collected.
+   */
   hasWarnings(): boolean {
     return this.warnings.length > 0;
   }
 
   /**
-   * Get warnings of a specific type
+   * Get the count of warnings.
+   */
+  count(): number {
+    return this.warnings.length;
+  }
+
+  /**
+   * Enable or disable console output for warnings.
+   * Useful for tests or when you want to collect warnings silently.
+   */
+  setSilent(silent: boolean): void {
+    this.silent = silent;
+  }
+
+  /**
+   * Check if warnings are being suppressed.
+   */
+  isSilent(): boolean {
+    return this.silent;
+  }
+
+  /**
+   * Get warnings of a specific type.
    */
   getWarningsByType<T extends VagueWarning>(type: WarningType): T[] {
     return this.warnings.filter((w) => w.type === type) as T[];

@@ -243,7 +243,7 @@ describe('Error handling', () => {
       }
     });
 
-    it('handles divide by zero in computed field', async () => {
+    it('throws on divide by zero in computed field', async () => {
       const source = `
         schema X {
           a: int in 1..10,
@@ -254,11 +254,8 @@ describe('Error handling', () => {
           items: 1 of X
         }
       `;
-      const result = await compile(source);
-      // Division by zero should produce Infinity or NaN, not crash
-      expect(result).toBeDefined();
-      const item = (result.items as Record<string, unknown>[])[0];
-      expect(item.c === Infinity || Number.isNaN(item.c as number)).toBe(true);
+      // Division by zero should throw an error
+      await expect(compile(source)).rejects.toThrow('Division by zero');
     });
 
     it('handles invalid parent reference', async () => {

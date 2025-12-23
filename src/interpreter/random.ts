@@ -2,208 +2,323 @@
  * Seeded random number generator using a Linear Congruential Generator (LCG).
  * This provides deterministic "random" numbers when given a seed.
  *
- * When no seed is provided, uses Math.random() for true randomness.
+ * ## Thread Safety
+ *
+ * The SeededRandom class is instance-based and thread-safe when each thread
+ * uses its own instance. The global functions (random, setSeed, etc.) use a
+ * shared global instance for backward compatibility but are NOT thread-safe.
+ *
+ * For concurrent generation, create separate SeededRandom instances:
+ * ```typescript
+ * const rng1 = new SeededRandom(42);
+ * const rng2 = new SeededRandom(123);
+ * // Use rng1.random() and rng2.random() independently
+ * ```
  */
 
-// Global state for the seeded RNG
-let currentSeed: number | null = null;
-let state: number = 0;
-
-// LCG constants (same as glibc)
-const a = 1103515245;
-const c = 12345;
-const m = 2 ** 31;
+// LCG constants (same as glibc for cross-platform reproducibility)
+const LCG_A = 1103515245;
+const LCG_C = 12345;
+const LCG_M = 2 ** 31;
 
 /**
- * Set the seed for reproducible random number generation.
- * Pass null to reset to true randomness.
+ * Instance-based seeded random number generator.
+ * Use this class for thread-safe random number generation.
+ */
+export class SeededRandom {
+  private seed: number | null;
+  private state: number;
+
+  /**
+   * Create a new random number generator.
+   * @param seed - Optional seed for deterministic output. If null/undefined, uses Math.random().
+   */
+  constructor(seed?: number | null) {
+    this.seed = seed ?? null;
+    this.state = seed ?? 0;
+  }
+
+  /**
+   * Set or reset the seed.
+   * @param seed - The seed value, or null for true randomness.
+   */
+  setSeed(seed: number | null): void {
+    this.seed = seed;
+    if (seed !== null) {
+      this.state = seed;
+    }
+  }
+
+  /**
+   * Get the current seed (null if using true randomness).
+   */
+  getSeed(): number | null {
+    return this.seed;
+  }
+
+  /**
+   * Generate a random number between 0 (inclusive) and 1 (exclusive).
+   */
+  random(): number {
+    if (this.seed === null) {
+      return Math.random();
+    }
+
+    // LCG algorithm
+    this.state = (LCG_A * this.state + LCG_C) % LCG_M;
+    return this.state / LCG_M;
+  }
+
+  /**
+   * Generate a random integer between min (inclusive) and max (inclusive).
+   */
+  randomInt(min: number, max: number): number {
+    return Math.floor(this.random() * (max - min + 1)) + min;
+  }
+
+  /**
+   * Generate a random float between min and max.
+   */
+  randomFloat(min: number, max: number): number {
+    return this.random() * (max - min) + min;
+  }
+
+  /**
+   * Pick a random element from an array.
+   */
+  randomChoice<T>(arr: T[]): T {
+    return arr[Math.floor(this.random() * arr.length)];
+  }
+
+  /**
+   * Return true with the given probability (0-1).
+   */
+  randomBool(probability = 0.5): boolean {
+    return this.random() < probability;
+  }
+
+  // ============================================
+  // Distribution functions
+  // ============================================
+
+  /**
+   * Generate a random number from a Gaussian (normal) distribution.
+   * Uses Box-Muller transform.
+   */
+  gaussian(mean: number, stddev: number, min?: number, max?: number): number {
+    let u1 = this.random();
+    const u2 = this.random();
+
+    // Avoid log(0)
+    while (u1 === 0) u1 = this.random();
+
+    const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    let result = mean + z * stddev;
+
+    if (min !== undefined) result = Math.max(min, result);
+    if (max !== undefined) result = Math.min(max, result);
+
+    return result;
+  }
+
+  /**
+   * Generate a random number from an exponential distribution.
+   */
+  exponential(rate: number, min = 0, max?: number): number {
+    let u = this.random();
+    while (u === 0) u = this.random();
+
+    let result = min - Math.log(u) / rate;
+    if (max !== undefined) result = Math.min(max, result);
+
+    return result;
+  }
+
+  /**
+   * Generate a random number from a log-normal distribution.
+   */
+  lognormal(mu: number, sigma: number, min?: number, max?: number): number {
+    const normal = this.gaussian(mu, sigma);
+    let result = Math.exp(normal);
+
+    if (min !== undefined) result = Math.max(min, result);
+    if (max !== undefined) result = Math.min(max, result);
+
+    return result;
+  }
+
+  /**
+   * Generate a random number from a Poisson distribution.
+   */
+  poisson(lambda: number): number {
+    if (lambda < 30) {
+      const L = Math.exp(-lambda);
+      let k = 0;
+      let p = 1;
+
+      do {
+        k++;
+        p *= this.random();
+      } while (p > L);
+
+      return k - 1;
+    }
+
+    return Math.max(0, Math.round(this.gaussian(lambda, Math.sqrt(lambda))));
+  }
+
+  /**
+   * Generate a random number from a beta distribution.
+   */
+  beta(alpha: number, betaParam: number): number {
+    const gammaA = this.gammaVariate(alpha);
+    const gammaB = this.gammaVariate(betaParam);
+    return gammaA / (gammaA + gammaB);
+  }
+
+  /**
+   * Generate a gamma-distributed random variable.
+   */
+  private gammaVariate(shape: number): number {
+    if (shape < 1) {
+      return this.gammaVariate(1 + shape) * Math.pow(this.random(), 1 / shape);
+    }
+
+    const d = shape - 1 / 3;
+    const c = 1 / Math.sqrt(9 * d);
+
+    while (true) {
+      let x: number, v: number;
+      do {
+        x = this.gaussian(0, 1);
+        v = 1 + c * x;
+      } while (v <= 0);
+
+      v = v * v * v;
+      const u = this.random();
+
+      if (u < 1 - 0.0331 * (x * x) * (x * x)) {
+        return d * v;
+      }
+
+      if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) {
+        return d * v;
+      }
+    }
+  }
+
+  /**
+   * Create a copy of this random generator with the same state.
+   * Useful for branching random sequences.
+   */
+  clone(): SeededRandom {
+    const copy = new SeededRandom(this.seed);
+    copy.state = this.state;
+    return copy;
+  }
+}
+
+// ============================================
+// Global instance for backward compatibility
+// ============================================
+
+/**
+ * Global random instance used by the module-level functions.
+ * For thread-safe usage, create your own SeededRandom instance instead.
+ */
+const globalRandom = new SeededRandom();
+
+/**
+ * Set the seed for the global random generator.
+ * @deprecated For thread-safe usage, create a SeededRandom instance instead.
  */
 export function setSeed(seed: number | null): void {
-  currentSeed = seed;
-  if (seed !== null) {
-    state = seed;
-  }
+  globalRandom.setSeed(seed);
 }
 
 /**
- * Get the current seed (null if using true randomness).
+ * Get the current seed from the global random generator.
+ * @deprecated For thread-safe usage, create a SeededRandom instance instead.
  */
 export function getSeed(): number | null {
-  return currentSeed;
+  return globalRandom.getSeed();
 }
 
 /**
- * Generate a random number between 0 (inclusive) and 1 (exclusive).
- * If a seed is set, this will be deterministic.
+ * Generate a random number using the global generator.
+ * @deprecated For thread-safe usage, create a SeededRandom instance instead.
  */
 export function random(): number {
-  if (currentSeed === null) {
-    return Math.random();
-  }
-
-  // LCG algorithm
-  state = (a * state + c) % m;
-  return state / m;
+  return globalRandom.random();
 }
 
 /**
- * Generate a random integer between min (inclusive) and max (inclusive).
+ * Generate a random integer using the global generator.
  */
 export function randomInt(min: number, max: number): number {
-  return Math.floor(random() * (max - min + 1)) + min;
+  return globalRandom.randomInt(min, max);
 }
 
 /**
- * Generate a random float between min and max.
+ * Generate a random float using the global generator.
  */
 export function randomFloat(min: number, max: number): number {
-  return random() * (max - min) + min;
+  return globalRandom.randomFloat(min, max);
 }
 
 /**
- * Pick a random element from an array.
+ * Pick a random element from an array using the global generator.
  */
 export function randomChoice<T>(arr: T[]): T {
-  return arr[Math.floor(random() * arr.length)];
+  return globalRandom.randomChoice(arr);
 }
 
 /**
- * Return true with the given probability (0-1).
+ * Return true with the given probability using the global generator.
  */
 export function randomBool(probability = 0.5): boolean {
-  return random() < probability;
+  return globalRandom.randomBool(probability);
 }
 
-// ============================================
-// Distribution functions
-// ============================================
-
 /**
- * Generate a random number from a Gaussian (normal) distribution.
- * Uses Box-Muller transform.
- * @param mean - The mean of the distribution
- * @param stddev - The standard deviation
- * @param min - Optional minimum value (clamps result)
- * @param max - Optional maximum value (clamps result)
+ * Generate a Gaussian random number using the global generator.
  */
 export function gaussian(mean: number, stddev: number, min?: number, max?: number): number {
-  // Box-Muller transform
-  let u1 = random();
-  const u2 = random();
-
-  // Avoid log(0)
-  while (u1 === 0) u1 = random();
-
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  let result = mean + z * stddev;
-
-  // Clamp to bounds if specified
-  if (min !== undefined) result = Math.max(min, result);
-  if (max !== undefined) result = Math.min(max, result);
-
-  return result;
+  return globalRandom.gaussian(mean, stddev, min, max);
 }
 
 /**
- * Generate a random number from an exponential distribution.
- * @param rate - The rate parameter (lambda). Higher = more concentrated near 0.
- * @param min - Minimum value (shifts distribution)
- * @param max - Maximum value (clamps result)
+ * Generate an exponential random number using the global generator.
  */
 export function exponential(rate: number, min = 0, max?: number): number {
-  let u = random();
-  while (u === 0) u = random(); // Avoid log(0)
-
-  let result = min - Math.log(u) / rate;
-
-  if (max !== undefined) result = Math.min(max, result);
-
-  return result;
+  return globalRandom.exponential(rate, min, max);
 }
 
 /**
- * Generate a random number from a log-normal distribution.
- * @param mu - The mean of the underlying normal distribution
- * @param sigma - The standard deviation of the underlying normal distribution
- * @param min - Optional minimum value
- * @param max - Optional maximum value
+ * Generate a log-normal random number using the global generator.
  */
 export function lognormal(mu: number, sigma: number, min?: number, max?: number): number {
-  const normal = gaussian(mu, sigma);
-  let result = Math.exp(normal);
-
-  if (min !== undefined) result = Math.max(min, result);
-  if (max !== undefined) result = Math.min(max, result);
-
-  return result;
+  return globalRandom.lognormal(mu, sigma, min, max);
 }
 
 /**
- * Generate a random number from a Poisson distribution.
- * @param lambda - The expected number of events (mean)
+ * Generate a Poisson random number using the global generator.
  */
 export function poisson(lambda: number): number {
-  // Knuth algorithm for small lambda
-  if (lambda < 30) {
-    const L = Math.exp(-lambda);
-    let k = 0;
-    let p = 1;
-
-    do {
-      k++;
-      p *= random();
-    } while (p > L);
-
-    return k - 1;
-  }
-
-  // For large lambda, use normal approximation
-  return Math.max(0, Math.round(gaussian(lambda, Math.sqrt(lambda))));
+  return globalRandom.poisson(lambda);
 }
 
 /**
- * Generate a random number from a beta distribution.
- * Useful for probabilities and proportions.
- * @param alpha - Shape parameter alpha (> 0)
- * @param beta - Shape parameter beta (> 0)
+ * Generate a beta random number using the global generator.
  */
-export function beta(alpha: number, beta: number): number {
-  // Using the gamma distribution method
-  const gammaA = gammaVariate(alpha);
-  const gammaB = gammaVariate(beta);
-  return gammaA / (gammaA + gammaB);
+export function beta(alpha: number, betaParam: number): number {
+  return globalRandom.beta(alpha, betaParam);
 }
 
 /**
- * Generate a gamma-distributed random variable.
- * Helper for beta distribution.
+ * Get the global random instance.
+ * Useful for passing to functions that need a SeededRandom.
  */
-function gammaVariate(shape: number): number {
-  if (shape < 1) {
-    // Ahrens-Dieter method for shape < 1
-    return gammaVariate(1 + shape) * Math.pow(random(), 1 / shape);
-  }
-
-  // Marsaglia and Tsang's method for shape >= 1
-  const d = shape - 1 / 3;
-  const c = 1 / Math.sqrt(9 * d);
-
-  while (true) {
-    let x: number, v: number;
-    do {
-      x = gaussian(0, 1);
-      v = 1 + c * x;
-    } while (v <= 0);
-
-    v = v * v * v;
-    const u = random();
-
-    if (u < 1 - 0.0331 * (x * x) * (x * x)) {
-      return d * v;
-    }
-
-    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) {
-      return d * v;
-    }
-  }
+export function getGlobalRandom(): SeededRandom {
+  return globalRandom;
 }
