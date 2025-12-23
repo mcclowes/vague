@@ -1,4 +1,5 @@
 import { Token, TokenType } from '../lexer/index.js';
+import { ParseError, tokenTypeName } from './errors.js';
 
 /**
  * Base parser class with token utilities.
@@ -7,9 +8,11 @@ import { Token, TokenType } from '../lexer/index.js';
 export class ParserBase {
   protected tokens: Token[];
   protected pos = 0;
+  protected source?: string;
 
-  constructor(tokens: Token[]) {
+  constructor(tokens: Token[], source?: string) {
     this.tokens = tokens.filter((t) => t.type !== TokenType.NEWLINE);
+    this.source = source;
   }
 
   protected peek(): Token {
@@ -35,16 +38,20 @@ export class ParserBase {
 
   protected consume(type: TokenType | string, message: string): Token {
     if (this.check(type)) return this.advance();
-    throw this.error(message);
+    throw this.error(message, { expected: tokenTypeName(type) });
   }
 
   protected isAtEnd(): boolean {
     return this.peek().type === TokenType.EOF;
   }
 
-  protected error(message: string): Error {
+  protected error(message: string, options?: { expected?: string; context?: string }): ParseError {
     const token = this.peek();
-    return new Error(`Parse error at line ${token.line}, column ${token.column}: ${message}`);
+    return new ParseError(message, token, {
+      source: this.source,
+      expected: options?.expected,
+      context: options?.context,
+    });
   }
 
   // Save/restore position for lookahead

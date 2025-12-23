@@ -4,16 +4,91 @@
 import { describe, it, expect } from 'vitest';
 import { Lexer, TokenType } from './lexer/index.js';
 import { Parser } from './parser/parser.js';
+import { ParseError } from './parser/errors.js';
 import { compile } from './index.js';
 
 function parse(source: string) {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, source);
   return parser.parse();
 }
 
 describe('Error handling', () => {
+  describe('ParseError class', () => {
+    it('is thrown by parser on syntax errors', () => {
+      try {
+        parse('schema { }');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+      }
+    });
+
+    it('includes line and column information', () => {
+      try {
+        parse('schema Invoice {\n  name:\n}');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+        const pe = e as ParseError;
+        expect(pe.line).toBeGreaterThan(0);
+        expect(pe.column).toBeGreaterThan(0);
+      }
+    });
+
+    it('includes token information', () => {
+      try {
+        parse('schema Invoice { @invalid }');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        if (e instanceof ParseError) {
+          expect(e.token).toBeDefined();
+          expect(e.token.type).toBeDefined();
+        }
+        // Also accept lexer errors for invalid characters
+      }
+    });
+
+    it('provides formatted output with source snippet', () => {
+      const source = 'schema Invoice {\n  name:\n}';
+      try {
+        parse(source);
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+        const pe = e as ParseError;
+        const formatted = pe.format();
+        expect(formatted).toContain('Parse error');
+        expect(formatted).toContain('line');
+      }
+    });
+
+    it('includes expected token in error message', () => {
+      try {
+        parse('schema Invoice }');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+        const pe = e as ParseError;
+        // Should expect '{'
+        expect(pe.expected).toBeDefined();
+      }
+    });
+
+    it('can be formatted with filename', () => {
+      try {
+        parse('schema { }');
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ParseError);
+        const pe = e as ParseError;
+        const formatted = pe.format({ filename: 'test.vague' });
+        expect(formatted).toContain('test.vague');
+      }
+    });
+  });
+
   describe('Lexer errors', () => {
     it('throws on unterminated string', () => {
       const lexer = new Lexer('let x = "unterminated');

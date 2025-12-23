@@ -9,3 +9,4 @@ export {
   clearStatementParsers,
   getStatementParsers,
 } from './statements.js';
+export { ParseError, tokenTypeName, unexpectedToken, expectedToken } from './errors.js';

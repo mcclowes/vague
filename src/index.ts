@@ -15,6 +15,7 @@ export {
   registerStatementParser,
   unregisterStatementParser,
   clearStatementParsers,
+  ParseError,
 } from './parser/index.js';
 export * from './ast/index.js';
 export {
@@ -182,7 +183,7 @@ export async function compile(
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
 
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, source);
   const ast = parser.parse();
 
   // Create context with all options (seed, strict mode, etc.)
@@ -200,7 +201,7 @@ export async function compile(
 export function parse(source: string) {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, source);
   return parser.parse();
 }
 

@@ -16,8 +16,13 @@ import { StatementParser } from './statements.js';
  * ternary → or → and → not → superposition → comparison → range → additive → multiplicative → unary → call → primary
  */
 export class Parser extends StatementParser {
-  constructor(tokens: Token[]) {
-    super(tokens);
+  /**
+   * Create a new parser.
+   * @param tokens The tokens to parse
+   * @param source Optional source code for error messages with snippets
+   */
+  constructor(tokens: Token[], source?: string) {
+    super(tokens, source);
   }
 
   parse(): Program {

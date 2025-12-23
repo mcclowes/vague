@@ -87,12 +87,12 @@ Codebase Analysis Summary
 ## Output & Tooling
 
 - [ ] **Multiple output formats** - CSV, SQL inserts, TypeScript fixtures
-- [ ] **Better error messages** - Parse error locations and suggestions
+- [x] **Better error messages** - ParseError class with source snippets, location info, and expected token hints
 - [ ] **LSP server** - Language server for editor support
 
 ## Technical Debt
 
-- [ ] **Type safety in generator** - Reduce `unknown` and `any` usage
+- [x] **Type safety in generator** - Safe coercion helpers in type-guards.ts
 - [ ] **Error recovery in parser** - Continue parsing after errors
 - [x] **Modular parser** - Split into statements, expressions, primaries (base.ts, primaries.ts, expressions.ts, types.ts, statements.ts, parser.ts)
 
