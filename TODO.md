@@ -59,7 +59,7 @@
 
 ## Technical Debt
 
-- [ ] **Error recovery in parser** - Continue parsing after errors
+- [x] **Error recovery in parser** - `parseWithRecovery()` collects multiple errors and returns partial AST
 
 ## Inspired by Lea
 

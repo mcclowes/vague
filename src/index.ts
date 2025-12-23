@@ -16,6 +16,7 @@ export {
   unregisterStatementParser,
   clearStatementParsers,
   ParseError,
+  type ParseResult,
 } from './parser/index.js';
 export * from './ast/index.js';
 export {

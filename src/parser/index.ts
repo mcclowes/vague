@@ -1,4 +1,4 @@
-export { Parser } from './parser.js';
+export { Parser, type ParseResult } from './parser.js';
 export { ParserBase } from './base.js';
 export { ExpressionParser } from './expressions.js';
 export { TypeParser } from './types.js';
