@@ -28,6 +28,9 @@ const sidebars: SidebarsConfig = {
         'plugins/issuer',
         'plugins/dates',
         'plugins/regex',
+        'plugins/http',
+        'plugins/sql',
+        'plugins/graphql',
         'plugins/custom-plugins',
       ],
     },
@@ -41,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'advanced/date-functions',
         'advanced/negative-testing',
         'advanced/dataset-validation',
+        'advanced/http-testing',
       ],
     },
     {
