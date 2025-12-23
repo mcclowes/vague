@@ -32,12 +32,16 @@ export {
   callGenerator,
   SeededRandom,
   getGlobalRandom,
+  ConstraintSatisfactionError,
+  DEFAULT_GENERATION_OPTIONS,
   type VaguePlugin,
   type GeneratorFunction,
   type GeneratorContext,
   type ParserContext,
   type StatementParserFunction,
   type PluginKeyword,
+  type CreateContextOptions,
+  type GenerationOptions,
 } from './interpreter/index.js';
 export {
   warningCollector,
@@ -170,7 +174,6 @@ import { resolve } from 'node:path';
 import { Lexer } from './lexer/index.js';
 import { Parser } from './parser/index.js';
 import { Generator } from './interpreter/index.js';
-import { setSeed } from './interpreter/index.js';
 
 export async function compile(
   source: string,
@@ -182,7 +185,15 @@ export async function compile(
   const parser = new Parser(tokens);
   const ast = parser.parse();
 
-  const generator = new Generator(options.retryLimits);
+  // Create context with all options (seed, strict mode, etc.)
+  const ctx = createContext({
+    retryLimits: options.retryLimits,
+    seed: options.seed,
+    strict: options.strict,
+    optionalFieldProbability: options.optionalFieldProbability,
+  });
+
+  const generator = new Generator(ctx);
   return generator.generate(ast);
 }
 
@@ -194,10 +205,30 @@ export function parse(source: string) {
 }
 
 import type { RetryLimits } from './config/index.js';
+import { createContext } from './interpreter/index.js';
 
 export interface VagueOptions {
+  /**
+   * Seed for reproducible random generation.
+   */
   seed?: number;
+
+  /**
+   * Retry limits for constraint satisfaction.
+   */
   retryLimits?: RetryLimits;
+
+  /**
+   * If true, throw an error when constraints cannot be satisfied.
+   * If false (default), emit a warning and return potentially invalid data.
+   */
+  strict?: boolean;
+
+  /**
+   * Probability that an optional field will be included (0-1).
+   * Default: 0.7 (70% chance of including optional fields)
+   */
+  optionalFieldProbability?: number;
 }
 
 type VagueTaggedTemplate<T> = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<T>;
@@ -212,16 +243,8 @@ function createVagueTemplate<T = Record<string, unknown[]>>(
       source += String(values[i]) + strings[i + 1];
     }
 
-    if (options.seed !== undefined) {
-      setSeed(options.seed);
-    }
-
-    const result = await compile(source, { retryLimits: options.retryLimits });
-
-    // Reset seed after generation to avoid affecting other calls
-    if (options.seed !== undefined) {
-      setSeed(null);
-    }
+    // Use the new context-based approach - seed is now in context, not global
+    const result = await compile(source, options);
 
     return result as T;
   };
@@ -255,15 +278,8 @@ export async function fromFile<T = Record<string, unknown[]>>(
   const absolutePath = resolve(filePath);
   const source = await readFile(absolutePath, 'utf-8');
 
-  if (options.seed !== undefined) {
-    setSeed(options.seed);
-  }
-
-  const result = await compile(source, { retryLimits: options.retryLimits });
-
-  if (options.seed !== undefined) {
-    setSeed(null);
-  }
+  // Use the new context-based approach - seed is now in context, not global
+  const result = await compile(source, options);
 
   return result as T;
 }

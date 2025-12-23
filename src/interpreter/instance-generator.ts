@@ -22,9 +22,23 @@ import {
   createConstraintRetryWarning,
   createMutationTargetNotFoundWarning,
 } from '../warnings.js';
-import { random } from './random.js';
 import { isRecord, isFiniteNumber, getProperty, setProperty } from '../utils/type-guards.js';
 import { GeneratorContext } from './context.js';
+
+/**
+ * Error thrown when constraint satisfaction fails in strict mode
+ */
+export class ConstraintSatisfactionError extends Error {
+  constructor(
+    message: string,
+    public readonly schemaName: string,
+    public readonly attempts: number,
+    public readonly mode: 'satisfying' | 'violating'
+  ) {
+    super(message);
+    this.name = 'ConstraintSatisfactionError';
+  }
+}
 
 export interface InstanceGeneratorDeps {
   evaluateExpression: (expr: Expression) => unknown;
@@ -46,6 +60,8 @@ export class InstanceGenerator {
 
   /**
    * Generate an instance of a schema, respecting constraints
+   *
+   * @throws {ConstraintSatisfactionError} In strict mode, when constraints cannot be satisfied
    */
   generate(schema: SchemaDefinition, overrides?: FieldDefinition[]): Record<string, unknown> {
     const maxAttempts = this.ctx.retryLimits.instance;
@@ -68,8 +84,21 @@ export class InstanceGenerator {
       }
     }
 
-    // Fallback with warning
+    // Constraint satisfaction failed
     const mode = this.ctx.violating ? 'violating' : 'satisfying';
+
+    // In strict mode, throw an error instead of returning invalid data
+    if (this.ctx.options.strict) {
+      throw new ConstraintSatisfactionError(
+        `Could not generate ${mode} data for schema '${schema.name}' after ${maxAttempts} attempts. ` +
+          `The constraints may be too restrictive or impossible to satisfy.`,
+        schema.name,
+        maxAttempts,
+        mode
+      );
+    }
+
+    // In non-strict mode, warn and return potentially invalid data (backward compatible)
     warningCollector.add(createConstraintRetryWarning(maxAttempts, mode, schema.name));
     const instance = this.generateAttempt(schema, overrides);
     this.executeThenBlock(schema.thenBlock, instance);
@@ -112,8 +141,8 @@ export class InstanceGenerator {
         continue;
       }
 
-      // Skip optional fields sometimes
-      if (field.optional && random() > 0.7) {
+      // Skip optional fields based on configured probability
+      if (field.optional && this.ctx.rng.random() > this.ctx.options.optionalFieldProbability) {
         continue;
       }
 

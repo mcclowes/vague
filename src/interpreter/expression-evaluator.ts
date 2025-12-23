@@ -22,7 +22,6 @@ import {
   subtractDurationFromDate,
   type Duration,
 } from '../plugins/date.js';
-import { random } from './random.js';
 import { isRecord, isArray, getProperty } from '../utils/type-guards.js';
 import { GeneratorContext } from './context.js';
 import { getGenerator } from './plugin.js';
@@ -137,7 +136,7 @@ export class ExpressionEvaluator {
               ) as Record<string, unknown>[];
             }
             if (items.length > 0) {
-              return items[Math.floor(random() * items.length)];
+              return items[Math.floor(this.ctx.rng.random() * items.length)];
             }
           }
         }
@@ -192,8 +191,25 @@ export class ExpressionEvaluator {
         return operand;
       }
 
-      default:
-        return null;
+      case 'OrderedSequenceType': {
+        // OrderedSequenceType is primarily handled in field-generator, but can appear in expressions
+        // When evaluated directly, pick a random element from the sequence
+        const seqType = expr as { elements: Expression[] };
+        if (seqType.elements.length === 0) {
+          return null;
+        }
+        const idx = Math.floor(this.ctx.rng.random() * seqType.elements.length);
+        return this.evaluate(seqType.elements[idx]);
+      }
+
+      default: {
+        // Exhaustiveness check: if we get here, we have an unhandled expression type
+        const _exhaustiveCheck: never = expr;
+        throw new Error(
+          `Unhandled expression type: ${(expr as { type: string }).type}. ` +
+            `This is a bug in Vague - please report it.`
+        );
+      }
     }
   }
 
@@ -217,7 +233,7 @@ export class ExpressionEvaluator {
 
     let result: unknown;
     if (!hasWeights) {
-      const idx = Math.floor(random() * options.length);
+      const idx = Math.floor(this.ctx.rng.random() * options.length);
       result = this.evaluate(options[idx].value);
     } else {
       // Weighted selection with support for mixed weighted/unweighted options
@@ -234,7 +250,7 @@ export class ExpressionEvaluator {
 
       // Total weight is explicit weights + implicit weights for unweighted options
       const totalWeight = totalExplicitWeight + implicitWeight * unweightedOptions.length;
-      let r = random() * totalWeight;
+      let r = this.ctx.rng.random() * totalWeight;
 
       for (const option of options) {
         const optionWeight = option.weight ?? implicitWeight;
@@ -254,7 +270,7 @@ export class ExpressionEvaluator {
     if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
       const min = result.min as number;
       const max = result.max as number;
-      return Math.floor(random() * (max - min + 1)) + min;
+      return Math.floor(this.ctx.rng.random() * (max - min + 1)) + min;
     }
 
     return result;
@@ -365,7 +381,10 @@ export class ExpressionEvaluator {
       return generator(args, this.ctx);
     }
 
-    return null;
+    throw new Error(
+      `Unknown function: '${call.callee}'. ` +
+        `Check that the function name is spelled correctly or that the required plugin is registered.`
+    );
   }
 
   private evaluateBinary(expr: BinaryExpression): unknown {
@@ -409,7 +428,10 @@ export class ExpressionEvaluator {
       case '>=':
         return (left as number) >= (right as number);
       default:
-        return null;
+        throw new Error(
+          `Unknown binary operator: '${expr.operator}'. ` +
+            `This is a bug in Vague - please report it.`
+        );
     }
   }
 }

@@ -4,7 +4,7 @@
 
 import { readFileSync, writeFileSync, watch as fsWatch } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { compile, setSeed } from '../../index.js';
+import { compile } from '../../index.js';
 import { SchemaValidator } from '../../validator/index.js';
 import { OpenAPIExamplePopulator } from '../../openapi/example-populator.js';
 import { datasetToCSV, datasetToSingleCSV } from '../../csv/index.js';
@@ -25,13 +25,12 @@ export async function handleCompile(options: CliOptions): Promise<void> {
 
   // Define compilation function for reuse in watch mode
   async function runCompilation(): Promise<boolean> {
-    // Set seed if provided for reproducible generation
-    if (options.seed !== null) {
-      setSeed(options.seed);
-    }
-
     const source = readFileSync(resolve(options.inputFile!), 'utf-8');
-    const result = await compile(source);
+
+    // Pass seed through compile options (context-based, not global)
+    const result = await compile(source, {
+      seed: options.seed ?? undefined,
+    });
 
     // Validate if spec provided
     if (options.validateSpec) {

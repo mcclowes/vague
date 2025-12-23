@@ -12,8 +12,16 @@ export {
   type StatementParserFunction,
   type PluginKeyword,
 } from './generator.js';
-export { createContext, resetContext, resetContextFull } from './context.js';
+export {
+  createContext,
+  resetContext,
+  resetContextFull,
+  type CreateContextOptions,
+  type GenerationOptions,
+  DEFAULT_GENERATION_OPTIONS,
+} from './context.js';
 export { clearGeneratorCache, getGenerator, callGenerator } from './plugin.js';
+export { ConstraintSatisfactionError } from './instance-generator.js';
 export {
   MarkovChain,
   CharMarkov,

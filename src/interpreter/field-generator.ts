@@ -17,7 +17,6 @@ import {
   generateProductName,
   generateText,
 } from './markov.js';
-import { random, randomInt } from './random.js';
 import { GeneratorContext } from './context.js';
 import { callGenerator, getGenerator, tryPluginGenerator } from './plugin.js';
 import {
@@ -95,14 +94,26 @@ export class FieldGenerator {
       case 'OrderedSequenceType':
         return this.generateFromOrderedSequence(fieldType, fieldName);
 
-      default:
-        return null;
+      default: {
+        // Exhaustiveness check: if we get here, we have an unhandled field type
+        const _exhaustiveCheck: never = fieldType;
+        throw new Error(
+          `Unhandled field type: ${(fieldType as { type: string }).type}. ` +
+            `This is a bug in Vague - please report it.`
+        );
+      }
     }
   }
 
   /**
    * Generate a primitive value
    */
+  /**
+   * Default upper bound for primitive int/decimal generation
+   */
+  private static readonly DEFAULT_PRIMITIVE_MAX = 1000;
+  private static readonly DEFAULT_DECIMAL_PRECISION = 2;
+
   generatePrimitive(
     type: 'int' | 'decimal' | 'string' | 'date' | 'boolean',
     fieldName?: string,
@@ -110,21 +121,22 @@ export class FieldGenerator {
   ): unknown {
     switch (type) {
       case 'int':
-        return Math.floor(random() * 1000);
+        return Math.floor(this.ctx.rng.random() * FieldGenerator.DEFAULT_PRIMITIVE_MAX);
       case 'decimal': {
-        const value = random() * 1000;
+        const value = this.ctx.rng.random() * FieldGenerator.DEFAULT_PRIMITIVE_MAX;
         if (precision !== undefined) {
           const factor = Math.pow(10, precision);
           return Math.round(value * factor) / factor;
         }
-        return Math.round(value * 100) / 100; // Default 2 decimal places
+        const defaultFactor = Math.pow(10, FieldGenerator.DEFAULT_DECIMAL_PRECISION);
+        return Math.round(value * defaultFactor) / defaultFactor;
       }
       case 'string':
         return this.randomString(fieldName);
       case 'date':
         return this.randomDate();
       case 'boolean':
-        return random() > 0.5;
+        return this.ctx.rng.random() > 0.5;
     }
   }
 
@@ -133,21 +145,23 @@ export class FieldGenerator {
    */
   generateInRange(type: string, min?: Expression, max?: Expression, precision?: number): unknown {
     const minVal = min ? (this.deps.evaluateExpression(min) as number) : 0;
-    const maxVal = max ? (this.deps.evaluateExpression(max) as number) : 1000;
+    const maxVal = max
+      ? (this.deps.evaluateExpression(max) as number)
+      : FieldGenerator.DEFAULT_PRIMITIVE_MAX;
 
     if (type === 'int') {
-      return Math.floor(random() * (maxVal - minVal + 1)) + minVal;
+      return Math.floor(this.ctx.rng.random() * (maxVal - minVal + 1)) + minVal;
     }
 
     if (type === 'date') {
       const minDate = new Date(minVal, 0, 1);
       const maxDate = new Date(maxVal, 11, 31);
       const diff = maxDate.getTime() - minDate.getTime();
-      return new Date(minDate.getTime() + random() * diff).toISOString().split('T')[0];
+      return new Date(minDate.getTime() + this.ctx.rng.random() * diff).toISOString().split('T')[0];
     }
 
     // Decimal with optional precision
-    const value = random() * (maxVal - minVal) + minVal;
+    const value = this.ctx.rng.random() * (maxVal - minVal) + minVal;
     if (precision !== undefined) {
       const factor = Math.pow(10, precision);
       return Math.round(value * factor) / factor;
@@ -169,7 +183,7 @@ export class FieldGenerator {
       } else if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
         const min = result.min as number;
         const max = result.max as number;
-        count = Math.floor(random() * (max - min + 1)) + min;
+        count = Math.floor(this.ctx.rng.random() * (max - min + 1)) + min;
       } else {
         throw new Error(
           `Dynamic cardinality expression must evaluate to a number or range, got: ${typeof result}`
@@ -179,7 +193,9 @@ export class FieldGenerator {
       if (cardinality.min === cardinality.max) {
         count = cardinality.min;
       } else {
-        count = Math.floor(random() * (cardinality.max - cardinality.min + 1)) + cardinality.min;
+        count =
+          Math.floor(this.ctx.rng.random() * (cardinality.max - cardinality.min + 1)) +
+          cardinality.min;
       }
     }
 
@@ -258,7 +274,7 @@ export class FieldGenerator {
 
     let result: unknown;
     if (!hasWeights) {
-      const idx = Math.floor(random() * options.length);
+      const idx = Math.floor(this.ctx.rng.random() * options.length);
       result = this.deps.evaluateExpression(options[idx].value);
     } else {
       const explicitWeights = options.filter((o) => o.weight !== undefined);
@@ -272,7 +288,7 @@ export class FieldGenerator {
       }
 
       const totalWeight = totalExplicitWeight + implicitWeight * unweightedOptions.length;
-      let r = random() * totalWeight;
+      let r = this.ctx.rng.random() * totalWeight;
 
       for (const option of options) {
         const optionWeight = option.weight ?? implicitWeight;
@@ -292,7 +308,7 @@ export class FieldGenerator {
     if (result && typeof result === 'object' && 'min' in result && 'max' in result) {
       const min = result.min as number;
       const max = result.max as number;
-      return randomInt(min, max);
+      return this.ctx.rng.randomInt(min, max);
     }
 
     return result;
@@ -381,17 +397,17 @@ export class FieldGenerator {
   }
 
   private generateRandomDate(): string {
-    const year = randomInt(2020, 2024);
-    const month = randomInt(1, 12);
-    const day = randomInt(1, 28);
+    const year = this.ctx.rng.randomInt(2020, 2024);
+    const month = this.ctx.rng.randomInt(1, 12);
+    const day = this.ctx.rng.randomInt(1, 28);
     return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   private generateRandomDateTime(): string {
     const date = this.generateRandomDate();
-    const hours = randomInt(0, 23);
-    const minutes = randomInt(0, 59);
-    const seconds = randomInt(0, 59);
+    const hours = this.ctx.rng.randomInt(0, 23);
+    const minutes = this.ctx.rng.randomInt(0, 59);
+    const seconds = this.ctx.rng.randomInt(0, 59);
     return `${date}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.000Z`;
   }
 
@@ -432,7 +448,9 @@ export class FieldGenerator {
   private randomDate(): string {
     const start = new Date(2020, 0, 1);
     const end = new Date();
-    const date = new Date(start.getTime() + random() * (end.getTime() - start.getTime()));
+    const date = new Date(
+      start.getTime() + this.ctx.rng.random() * (end.getTime() - start.getTime())
+    );
     return date.toISOString().split('T')[0];
   }
 }

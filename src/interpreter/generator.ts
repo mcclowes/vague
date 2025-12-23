@@ -10,11 +10,11 @@
 import { Program, SchemaDefinition, Expression } from '../ast/index.js';
 import { OpenAPILoader } from '../openapi/index.js';
 import { warningCollector, createUnknownFieldWarning } from '../warnings.js';
-import { random } from './random.js';
 import { isRecord, getProperty } from '../utils/type-guards.js';
 
 // Import refactored modules
 import { GeneratorContext, createContext } from './context.js';
+import { setSeed } from './random.js';
 import {
   registerPlugin,
   unregisterPlugin,
@@ -113,6 +113,14 @@ export class Generator {
   async generate(program: Program): Promise<Record<string, unknown[]>> {
     // Clear warnings from any previous compilation
     warningCollector.clear();
+
+    // Sync global random with context's RNG for backward compatibility
+    // This ensures markov.ts and other code using global random stays in sync
+    // TODO: Eventually refactor markov.ts to accept RNG as parameter
+    const contextSeed = this.ctx.rng.getSeed();
+    if (contextSeed !== null) {
+      setSeed(contextSeed);
+    }
 
     generatorLog.debug('Starting generation', { statements: program.statements.length });
 
@@ -229,7 +237,7 @@ export class Generator {
     };
 
     if (f.enum && f.enum.length > 0) {
-      return f.enum[Math.floor(random() * f.enum.length)];
+      return f.enum[Math.floor(this.ctx.rng.random() * f.enum.length)];
     }
 
     switch (f.type.kind) {
@@ -238,11 +246,11 @@ export class Generator {
           case 'string':
             return this.fieldGenerator.generateStringFromFormat(f.format, fieldName ?? f.name);
           case 'integer':
-            return Math.floor(random() * 1000);
+            return Math.floor(this.ctx.rng.random() * 1000);
           case 'number':
-            return random() * 1000;
+            return this.ctx.rng.random() * 1000;
           case 'boolean':
-            return random() > 0.5;
+            return this.ctx.rng.random() > 0.5;
           default:
             return null;
         }

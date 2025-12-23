@@ -1,6 +1,33 @@
 import type { SchemaDefinition, Expression } from '../ast/index.js';
 import type { ImportedSchema } from '../openapi/index.js';
 import { type RetryLimits, DEFAULT_RETRY_LIMITS } from '../config/index.js';
+import { SeededRandom } from './random.js';
+
+/**
+ * Generation behavior options
+ */
+export interface GenerationOptions {
+  /**
+   * If true, throw an error when constraints cannot be satisfied.
+   * If false, emit a warning and return potentially invalid data.
+   * Default: false (for backward compatibility)
+   */
+  strict?: boolean;
+
+  /**
+   * Probability that an optional field will be included (0-1).
+   * Default: 0.7 (70% chance of including optional fields)
+   */
+  optionalFieldProbability?: number;
+}
+
+/**
+ * Default generation options
+ */
+export const DEFAULT_GENERATION_OPTIONS: Required<GenerationOptions> = {
+  strict: false,
+  optionalFieldProbability: 0.7,
+};
 
 /**
  * Context maintained during generation.
@@ -45,13 +72,31 @@ export interface GeneratorContext {
   sequences: Map<string, number>; // Track sequence counters
   orderedSequenceIndices: Map<string, number>; // Track cycling index for ordered sequences
   retryLimits: Required<RetryLimits>; // Configurable retry limits
+  rng: SeededRandom; // Instance-based random number generator (avoids global state)
+  options: Required<GenerationOptions>; // Generation behavior options
+}
+
+/**
+ * Options for creating a generator context
+ */
+export interface CreateContextOptions {
+  retryLimits?: RetryLimits;
+  seed?: number | null;
+  strict?: boolean;
+  optionalFieldProbability?: number;
 }
 
 /**
  * Create a fresh generator context with all state initialized to empty.
- * @param retryLimits Optional custom retry limits
+ * @param options Optional configuration for the context
  */
-export function createContext(retryLimits?: RetryLimits): GeneratorContext {
+export function createContext(options?: CreateContextOptions | RetryLimits): GeneratorContext {
+  // Support both old API (RetryLimits) and new API (CreateContextOptions)
+  const opts: CreateContextOptions =
+    options && ('seed' in options || 'strict' in options || 'optionalFieldProbability' in options)
+      ? options
+      : { retryLimits: options as RetryLimits | undefined };
+
   return {
     schemas: new Map(),
     importedSchemas: new Map(),
@@ -60,7 +105,14 @@ export function createContext(retryLimits?: RetryLimits): GeneratorContext {
     uniqueValues: new Map(),
     sequences: new Map(),
     orderedSequenceIndices: new Map(),
-    retryLimits: { ...DEFAULT_RETRY_LIMITS, ...retryLimits },
+    retryLimits: { ...DEFAULT_RETRY_LIMITS, ...opts.retryLimits },
+    rng: new SeededRandom(opts.seed ?? undefined),
+    options: {
+      ...DEFAULT_GENERATION_OPTIONS,
+      strict: opts.strict ?? DEFAULT_GENERATION_OPTIONS.strict,
+      optionalFieldProbability:
+        opts.optionalFieldProbability ?? DEFAULT_GENERATION_OPTIONS.optionalFieldProbability,
+    },
   };
 }
 

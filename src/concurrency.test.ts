@@ -99,11 +99,9 @@ describe('Concurrency and Thread Safety', () => {
         dataset D { items: 5 of Item }
       `;
 
-      // Run same compilation twice with same seed
-      setSeed(42);
-      const result1 = await compile(source);
-      setSeed(42);
-      const result2 = await compile(source);
+      // Run same compilation twice with same seed using context-based seeding
+      const result1 = await compile(source, { seed: 42 });
+      const result2 = await compile(source, { seed: 42 });
 
       expect(result1.items).toEqual(result2.items);
     });
