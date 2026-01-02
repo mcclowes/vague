@@ -7,9 +7,6 @@ const config: Config = {
   tagline: 'A declarative language for generating realistic test data',
   favicon: 'img/favicon.ico',
 
-  future: {
-    v4: true,
-  },
 
   url: 'https://vague-docs.vercel.app',
   baseUrl: '/',
