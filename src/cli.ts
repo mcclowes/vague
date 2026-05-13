@@ -20,6 +20,8 @@ import {
   graphqlShorthandPlugin,
   httpPlugin,
   httpShorthandPlugin,
+  sqlPlugin,
+  sqlShorthandPlugin,
   discoverPlugins,
 } from './plugins/index.js';
 import { loadConfig, loadConfigFrom, type ResolvedConfig } from './config/index.js';
@@ -57,6 +59,8 @@ const builtinPlugins = [
   graphqlShorthandPlugin,
   httpPlugin,
   httpShorthandPlugin,
+  sqlPlugin,
+  sqlShorthandPlugin,
 ];
 
 async function main() {

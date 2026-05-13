@@ -6,23 +6,27 @@ Vague is a declarative language for generating realistic test data. It treats am
 
 ```
 src/
-├── lexer/       # Tokenizer - converts source to tokens
-├── parser/      # Parser - converts tokens to AST
-├── ast/         # AST node type definitions
-├── interpreter/ # Generator - produces JSON from AST
-├── validator/   # Schema validation against OpenAPI/JSON Schema
-├── openapi/     # OpenAPI schema import support
-├── infer/       # Schema inference from JSON data
-├── csv/         # CSV input/output formatting
-├── ndjson/      # NDJSON (newline-delimited JSON) formatting
-├── config/      # Configuration file loading (vague.config.js)
-├── logging/     # Logging utilities with levels and components
-├── plugins/     # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
-├── spectral/    # OpenAPI linting with Spectral
-├── cli/         # CLI handlers and argument parsing
-├── index.ts     # Library exports
-└── cli.ts       # CLI entry point
-examples/        # Example .vague files
+├── lexer/             # Tokenizer - converts source to tokens
+├── parser/            # Parser - converts tokens to AST
+├── ast/               # AST node type definitions
+├── interpreter/       # Generator - produces JSON from AST
+├── validator/         # Schema validation against OpenAPI/JSON Schema
+├── openapi/           # OpenAPI schema import support
+├── infer/             # Schema inference from JSON data
+├── csv/               # CSV input/output formatting
+├── ndjson/            # NDJSON (newline-delimited JSON) formatting
+├── config/            # Configuration file loading (vague.config.js)
+├── logging/           # Logging utilities with levels and components
+├── plugins/           # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
+├── spectral/          # OpenAPI linting with Spectral
+├── server/            # HTTP mock server (--serve)
+├── utils/             # Shared type guards and helpers
+├── cli/               # CLI handlers and argument parsing
+├── format-registry.ts # Output format registry (json, csv, ndjson)
+├── warnings.ts        # Warning collector for non-fatal generation issues
+├── index.ts           # Library exports
+└── cli.ts             # CLI entry point
+examples/              # Example .vague files
 ```
 
 ## Key Commands
@@ -116,8 +120,8 @@ Pattern validation: `assume matches("^[A-Z]{3}", code)`
 ### HTTP Plugin
 Generators for HTTP testing and webhook payloads:
 - Methods: `http.method()` - weighted HTTP methods (GET, POST, PUT, etc.)
-- Status: `http.statusCode()`, `http.statusText()`, `http.successCode()`, `http.clientErrorCode()`, `http.serverErrorCode()`
-- Headers: `http.contentType()`, `http.userAgent()`, `http.accept()`, `http.cacheControl()`
+- Status: `http.statusCode()`, `http.statusText()`, `http.status()`, `http.successCode()`, `http.clientErrorCode()`, `http.serverErrorCode()`
+- Headers: `http.contentType()`, `http.userAgent()`, `http.accept()`, `http.cacheControl()`, `http.requestHeader()`, `http.responseHeader()`
 - CORS: `http.corsOrigin()`, `http.corsMethods()`, `http.corsHeaders()`
 - Auth: `http.bearerToken()`, `http.basicAuth()`, `http.apiKey()`
 - Webhooks: `http.webhookEvent()` - common webhook event types
@@ -125,18 +129,25 @@ Generators for HTTP testing and webhook payloads:
 
 ### SQL Plugin
 Generators for SQL-related test data:
-- Identifiers: `sql.tableName()`, `sql.columnName()`, `sql.schemaName()`, `sql.identifier()`, `sql.alias()`
-- Values: `sql.string()`, `sql.dateValue()`, `sql.timestamp()`, `sql.nullValue()`, `sql.boolean()`
-- Queries: `sql.selectQuery()`, `sql.insertQuery()`, `sql.updateQuery()`, `sql.deleteQuery()`
-- Clauses: `sql.whereClause()`, `sql.orderByClause()`, `sql.joinClause()`
-- Errors: `sql.error()`, `sql.errorCode()`
+- Identifiers: `sql.tableName()`, `sql.columnName()`, `sql.schemaName()`, `sql.identifier()`, `sql.alias()`, `sql.quoted(name, dialect?)`
+- Values: `sql.string()`, `sql.dateValue()`, `sql.timestamp()`, `sql.nullValue()`, `sql.boolean()`, `sql.integer(min, max)`, `sql.decimalValue(precision)`
+- Data types: `sql.dataType()`, `sql.columnDefinition()`
+- Connection strings: `sql.connectionString(dialect)` (e.g., `"postgres"`, `"mysql"`)
+- Query fragments: `sql.select()`, `sql.whereClause()`, `sql.orderBy()`, `sql.limit(n?)`, `sql.groupBy()`, `sql.join(type?)`
+- Full statements: `sql.insert()`, `sql.update()`, `sql.delete()`, `sql.createTable()`
+- Placeholders: `sql.placeholder(dialect, position?)`
+- Comments: `sql.comment(style?)`
 
 ### GraphQL Plugin
 Generators for GraphQL-related test data:
-- Identifiers: `graphql.fieldName()`, `graphql.typeName()`, `graphql.operationName()`, `graphql.enumValue()`
+- Identifiers: `graphql.fieldName()`, `graphql.typeName()`, `graphql.operationName()`, `graphql.enumValue()`, `graphql.directiveName()`, `graphql.argumentName()`, `graphql.variableName()`
+- Scalars: `graphql.id()`, `graphql.string()`, `graphql.integer()`, `graphql.float()`, `graphql.boolean()`
 - Operations: `graphql.query()`, `graphql.mutation()`, `graphql.subscription()`, `graphql.fragment()`
-- Errors: `graphql.error()`, `graphql.errorCode()`
-- Shorthand (prefixed): `gqlQuery()`, `gqlMutation()`, `gqlTypeName()`, etc.
+- Errors: `graphql.error()`, `graphql.errorMessage()`, `graphql.errorCode()`
+- Variables: `graphql.variables()`
+- Introspection: `graphql.introspectionType()`, `graphql.builtinScalar()`, `graphql.builtinDirective()`, `graphql.typeKind()`
+- Schema: `graphql.schemaDefinition()`, `graphql.connectionType()`
+- Shorthand (prefixed to avoid conflicts): `gqlQuery()`, `gqlMutation()`, `gqlTypeName()`, `gqlFieldName()`, `gqlId()`, `gqlError()`, etc.
 
 ## TypeScript API
 
@@ -158,6 +169,8 @@ const data = await vague({ seed: 42 })`...`;
 
 ## CLI Reference
 
+Run `node dist/cli.js --help` for full usage. Key options:
+
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
@@ -168,18 +181,36 @@ const data = await vague({ seed: 42 })`...`;
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping |
 | `--validate-only` | Only validate, don't output data |
+| `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
+| `--csv-no-header` | Omit CSV header row |
+| `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
+| `--csv-nested <mode>` | Nested objects: `flatten`, `json` |
 | `--infer <file>` | Infer schema from JSON/CSV |
+| `--dataset-name <name>` | Dataset name for inference |
 | `--collection-name <name>` | Collection name for CSV inference |
+| `--infer-delimiter <char>` | CSV delimiter for inference |
+| `--no-formats` | Disable format detection (uuid, email, etc.) |
+| `--no-weights` | Disable weighted superpositions |
+| `--max-enum <n>` | Max unique values for enum detection |
 | `--typescript` | Generate TypeScript definitions |
 | `--ts-only` | Generate only TypeScript (no .vague) |
-| `--oas-source/--oas-output` | OpenAPI example population |
+| `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
+| `--oas-output <file>` | Write OpenAPI spec with examples to file |
+| `--oas-external` | Use external file references instead of inline |
+| `--oas-example-count <n>` | Examples per schema (default: 1) |
 | `--validate-data <file>` | Validate JSON against Vague schema |
 | `--schema <file>` | Schema file for data validation |
+| `--dataset <name>` | Dataset name for `validate {}` block constraints |
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results |
 | `--serve [port]` | Start HTTP mock server (default: 3000) |
-| `--debug` | Enable debug logging |
-| `--plugins <dir>` | Load plugins from directory |
+| `-c, --config <file>` | Use specific config file |
+| `--no-config` | Skip loading config file |
+| `-d, --debug` | Enable debug logging |
+| `--log-level <level>` | Set log level: `none`, `error`, `warn`, `info`, `debug` |
+| `--plugins <dir>` | Load plugins from directory (repeatable) |
+| `--no-auto-plugins` | Disable automatic plugin discovery |
+| `--verbose` | Show verbose output (e.g., discovered plugins) |
 
 ## OpenAPI Integration
 

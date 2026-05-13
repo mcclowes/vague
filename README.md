@@ -535,21 +535,26 @@ npm run dev       # Watch mode
 
 ```
 src/
-├── lexer/       # Tokenizer
-├── parser/      # Recursive descent parser
-├── ast/         # AST node definitions
-├── interpreter/ # JSON generator
-├── validator/   # Schema validation (Ajv)
-├── openapi/     # OpenAPI import support
-├── infer/       # Schema inference from data
-├── csv/         # CSV input/output formatting
-├── ndjson/      # NDJSON (newline-delimited JSON) formatting
-├── config/      # Configuration file loading (vague.config.js)
-├── logging/     # Debug logging utilities
-├── plugins/     # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
-├── spectral/    # OpenAPI linting with Spectral
-├── index.ts     # Library exports
-└── cli.ts       # CLI entry point
+├── lexer/             # Tokenizer
+├── parser/            # Recursive descent parser
+├── ast/               # AST node definitions
+├── interpreter/       # JSON generator
+├── validator/         # Schema validation (Ajv)
+├── openapi/           # OpenAPI import support
+├── infer/             # Schema inference from data
+├── csv/               # CSV input/output formatting
+├── ndjson/            # NDJSON (newline-delimited JSON) formatting
+├── config/            # Configuration file loading (vague.config.js)
+├── logging/           # Debug logging utilities
+├── plugins/           # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
+├── spectral/          # OpenAPI linting with Spectral
+├── server/            # HTTP mock server (--serve)
+├── utils/             # Shared type guards and helpers
+├── cli/               # CLI argument parsing and handlers
+├── format-registry.ts # Output format registry
+├── warnings.ts        # Warning collector for non-fatal generation issues
+├── index.ts           # Library exports
+└── cli.ts             # CLI entry point
 ```
 
 ## Roadmap
