@@ -1,8 +1,16 @@
-import Ajv, { type ErrorObject as AjvErrorObject } from 'ajv';
-import addFormats from 'ajv-formats';
+import { Ajv, type ErrorObject as AjvErrorObject } from 'ajv';
+import addFormats, { type FormatsPlugin } from 'ajv-formats';
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { readFileSync } from 'node:fs';
 import type { OpenAPIV3 } from 'openapi-types';
+
+// `ajv-formats` ships as CJS and exposes the plugin only as a default export.
+// Under NodeNext ESM, the runtime value of `addFormats` may be either the
+// plugin function itself or a module namespace whose `.default` is the plugin.
+// The `unknown` cast keeps the lookup typed without falling back to `any`.
+const addFormatsFn: FormatsPlugin =
+  (addFormats as unknown as { default?: FormatsPlugin }).default ??
+  (addFormats as unknown as FormatsPlugin);
 
 export interface ValidationError {
   path: string;
@@ -27,25 +35,17 @@ export interface CollectionValidationResult {
 type JsonSchema = Record<string, unknown>;
 
 export class SchemaValidator {
-  // Ajv instance - typed as any due to ESM/CJS interop complexity
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private ajv: any;
+  private ajv: Ajv;
   private schemas: Map<string, JsonSchema> = new Map();
   private openApiDoc: OpenAPIV3.Document | null = null;
 
   constructor() {
-    // Handle ESM/CJS interop for Ajv
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const AjvConstructor = (Ajv as any).default || Ajv;
-    this.ajv = new AjvConstructor({
+    this.ajv = new Ajv({
       allErrors: true,
       strict: false,
       validateFormats: true,
     });
-    // Handle ESM/CJS interop for ajv-formats
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const addFormatsFunc = (addFormats as any).default || addFormats;
-    addFormatsFunc(this.ajv);
+    addFormatsFn(this.ajv);
   }
 
   /**
