@@ -559,11 +559,11 @@ src/
 
 ## Roadmap
 
-See [TODO.md](TODO.md) for planned features:
+Planned features are tracked as [GitHub issues](https://github.com/mcclowes/vague/issues). Highlights:
 
-- Probabilistic constraints (`assume X with probability 0.7`)
-- Conditional schema variants
-- Constraint solving (SMT integration)
+- Probabilistic constraints (`assume X with probability 0.7`) — [#77](https://github.com/mcclowes/vague/issues/77)
+- Conditional values and probabilities — [#74](https://github.com/mcclowes/vague/issues/74)
+- Constraint solving (SMT integration) — [#77](https://github.com/mcclowes/vague/issues/77)
 
 ## Working with Claude
 

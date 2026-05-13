@@ -113,7 +113,7 @@ src/
 
 ## What to Work On
 
-Check [TODO.md](https://github.com/mcclowes/vague/blob/main/TODO.md) for planned features.
+Browse [open issues](https://github.com/mcclowes/vague/issues) for planned features.
 
 ### Good First Contributions
 

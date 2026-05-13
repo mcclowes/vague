@@ -53,7 +53,7 @@ schema Contact {
 }
 ```
 
-**Status**: Tracked in TODO.md as "Conditional field values"
+**Status**: Tracked in [#74](https://github.com/mcclowes/vague/issues/74) ("Conditional field values")
 
 ---
 
@@ -225,7 +225,7 @@ schema Invoice {
 
 ### Proposal
 
-**Option A**: Conditional probability modifier (from TODO.md)
+**Option A**: Conditional probability modifier (tracked in [#74](https://github.com/mcclowes/vague/issues/74))
 
 ```vague
 assume status == "paid" with probability 0.9 if age > 60
@@ -415,7 +415,7 @@ schema Person {
 
 This works, but lacks semantic meaning and can't express continuous distributions naturally.
 
-### Proposal (from TODO.md)
+### Proposal (tracked in [#74](https://github.com/mcclowes/vague/issues/74))
 
 ```vague
 distribution AgeStructure {

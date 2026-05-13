@@ -356,6 +356,6 @@ After completing any feature:
 1. Update `examples/` with new syntax
 2. Update SYNTAX.md and README.md
 3. Add keywords to `vscode-vague/syntaxes/vague.tmLanguage.json`
-4. Move completed items in TODO.md
+4. Close the corresponding GitHub issue (or check off the relevant sub-task in a grouped issue)
 
-See [TODO.md](TODO.md) for planned features and technical debt.
+Planned features and technical debt live in [GitHub issues](https://github.com/mcclowes/vague/issues).
