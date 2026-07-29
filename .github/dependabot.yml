@@ -6,6 +6,7 @@ updates:
     directories:
       - "/"
       - "/docusaurus"
+      - "/vague-openapi-export"
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
