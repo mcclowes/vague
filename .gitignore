@@ -1,4 +1,16 @@
 node_modules/
 dist/
+coverage/
 *.log
+*.tsbuildinfo
 .DS_Store
+
+# Test scratch space
+.test-tmp/
+
+# Local environment
+.env
+.env.local
+
+# Added by saggar — local files that shouldn't be committed
+.saggar/**/*.local.*
