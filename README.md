@@ -309,6 +309,22 @@ dataset Invalid violating {
 }
 ```
 
+### Contracts and Invariants
+
+```vague
+// Invariants always hold, even in violating mode (unlike assume)
+contract PositiveAmount {
+  invariant amount > 0 "Amount must be positive"
+}
+
+schema Invoice implements PositiveAmount {
+  amount: decimal in 1..1000,
+  invariant amount <= 1000
+}
+```
+
+See [SYNTAX.md](SYNTAX.md#contracts-and-invariants) for details, including golden dataset comparison (`compareDatasets`) and schema diff (`diffSchemas`) APIs.
+
 ## Built-in Plugins
 
 Vague includes several plugins for generating realistic domain-specific data. For complete documentation, see [SYNTAX.md](SYNTAX.md#generators-semantic-data).

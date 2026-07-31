@@ -593,6 +593,38 @@ dataset Invalid violating {
 }
 ```
 
+## Contracts and Invariants
+
+Invariants are constraints that can NEVER be violated — unlike `assume`, they hold even in `violating` mode.
+
+```vague
+# Reusable contract
+contract PositiveAmount {
+  invariant amount > 0 "Amount must be positive"
+
+  # Conditional invariant
+  invariant if status == "paid" {
+    amount_paid >= total
+  }
+}
+
+# Apply with 'implements' (comma-separate multiple contracts)
+schema Invoice implements PositiveAmount {
+  amount: decimal in 1..1000,
+  status: "draft" | "paid",
+  total: decimal in 100..500,
+  amount_paid: decimal in 0..600
+}
+
+# Or declare invariants inline in a schema
+schema Payment {
+  amount: int in 1..1000,
+  invariant amount > 0 "Payment must be positive"
+}
+```
+
+The error message string after an invariant is optional and improves diagnostics when generation retries.
+
 ## OpenAPI Import
 
 ```vague
