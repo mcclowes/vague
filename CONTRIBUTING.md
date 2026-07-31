@@ -46,12 +46,21 @@ When adding features:
 
 ```
 src/
-├── lexer/       # Tokenizer (tokens.ts, lexer.ts)
-├── parser/      # Parser (parser.ts)
-├── ast/         # Type definitions (nodes.ts)
-├── interpreter/ # Generator (generator.ts, markov.ts)
-├── openapi/     # Schema import (loader.ts)
+├── lexer/       # Tokenizer
+├── parser/      # Parser (statements, expressions, types)
+├── ast/         # AST node type definitions
+├── interpreter/ # Generator (expression evaluator, field/instance/dataset generators)
+├── validator/   # Schema and data validation
+├── openapi/     # OpenAPI import and example population
+├── infer/       # Schema inference from JSON/CSV
+├── compare/     # Golden dataset comparison and schema diff
+├── reporting/   # Enterprise reporting and audit trails
+├── plugins/     # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
+├── cli/         # CLI argument parsing and handlers
+└── ...          # csv, ndjson, config, logging, spectral, server, utils
 ```
+
+See [CLAUDE.md](CLAUDE.md) for the full structure.
 
 ## What to Work On
 

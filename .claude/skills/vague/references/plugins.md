@@ -88,7 +88,7 @@ assume matches("^[A-Z]{3}", code)
 Create custom generators:
 
 ```typescript
-import { VaguePlugin, registerPlugin } from 'vague';
+import { VaguePlugin, registerPlugin } from 'vague-lang';
 
 const myPlugin: VaguePlugin = {
   name: 'custom',

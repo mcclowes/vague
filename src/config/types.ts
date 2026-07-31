@@ -115,7 +115,7 @@ export interface VagueConfig {
    * Default output format.
    * Can be overridden by CLI --format flag.
    */
-  format?: 'json' | 'csv';
+  format?: 'json' | 'csv' | 'ndjson';
 
   /**
    * Pretty-print JSON output by default.
@@ -142,7 +142,7 @@ export interface VagueConfig {
 export interface ResolvedConfig {
   plugins: VaguePlugin[];
   seed?: number;
-  format?: 'json' | 'csv';
+  format?: 'json' | 'csv' | 'ndjson';
   pretty?: boolean;
   logging?: LoggingConfig;
   retryLimits?: RetryLimits;

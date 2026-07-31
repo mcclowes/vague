@@ -161,7 +161,7 @@ Generators for GraphQL-related test data:
 ## TypeScript API
 
 ```typescript
-import { fromFile, vague, compile } from 'vague';
+import { fromFile, vague, compile } from 'vague-lang';
 
 // File-based (recommended)
 const data = await fromFile('./fixtures.vague', { seed: 42 });
@@ -259,7 +259,7 @@ npm run lint:spec openapi.json
 Programmatic API:
 
 ```typescript
-import { lintOpenAPISpec, SpectralLinter } from 'vague';
+import { lintOpenAPISpec, SpectralLinter } from 'vague-lang';
 
 // Simple function
 const result = await lintOpenAPISpec('openapi.json');
@@ -314,7 +314,7 @@ Tests colocated with source (`*.test.ts`). Run with `npm test`.
 
 ### Generator Plugins
 ```typescript
-import { VaguePlugin, registerPlugin, unregisterPlugin } from 'vague';
+import { VaguePlugin, registerPlugin, unregisterPlugin } from 'vague-lang';
 
 const myPlugin: VaguePlugin = {
   name: 'custom',
@@ -331,7 +331,7 @@ registerPlugin(myPlugin);
 Plugins can extend the Vague language itself with custom keywords and statements:
 
 ```typescript
-import { VaguePlugin, registerPlugin, type ParserContext } from 'vague';
+import { VaguePlugin, registerPlugin, type ParserContext } from 'vague-lang';
 
 const aliasPlugin: VaguePlugin = {
   name: 'alias',
@@ -386,7 +386,7 @@ import {
   compareReports,
   createAuditLogEntry,
   type GenerationReport,
-} from 'vague';
+} from 'vague-lang';
 ```
 
 ## Contracts, Golden Datasets, and Schema Diff
@@ -402,7 +402,7 @@ import {
   datasetsEqual,
   diffSchemas,
   formatDiffResult,
-} from 'vague';
+} from 'vague-lang';
 
 // Compare generated data against a golden snapshot
 const result = compareDatasets(golden, actual, {
