@@ -1,0 +1,39 @@
+// Contracts and invariants - constraints that can NEVER be violated,
+// even in violating mode (unlike assume, which inverts for negative testing)
+
+contract PositiveAmount {
+  invariant amount > 0 "Amount must be positive"
+
+  // Conditional invariant - only applies when the condition holds
+  invariant if status == "paid" {
+    amount_paid >= amount
+  }
+}
+
+// Apply a contract with 'implements'
+schema Invoice implements PositiveAmount {
+  id: uuid(),
+  amount: decimal(2) in 1..1000,
+  status: "draft" | "sent" | "paid",
+  amount_paid: decimal(2) in 0..2000,
+
+  // assume constraints CAN be violated in violating mode
+  assume amount <= 500
+}
+
+// Inline invariants work without a named contract
+schema Refund {
+  id: uuid(),
+  amount: decimal(2) in 1..500,
+  invariant amount > 0 "Refund must be positive"
+}
+
+dataset ContractDemo {
+  invoices: 10 of Invoice,
+  refunds: 5 of Refund
+}
+
+// Even here, the invariants still hold - only assume constraints break
+dataset InvalidData violating {
+  bad_invoices: 5 of Invoice
+}
