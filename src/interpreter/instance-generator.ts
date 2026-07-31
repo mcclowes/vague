@@ -6,6 +6,7 @@ import {
   SchemaDefinition,
   FieldDefinition,
   AssumeClause,
+  InvariantClause,
   RefineBlock,
   ThenBlock,
   Mutation,
@@ -23,7 +24,10 @@ import {
   createMutationTargetNotFoundWarning,
 } from '../warnings.js';
 import { isRecord, isFiniteNumber, getProperty, setProperty } from '../utils/type-guards.js';
+import { createLogger } from '../logging/index.js';
 import { GeneratorContext } from './context.js';
+
+const constraintLog = createLogger('constraint');
 
 /**
  * Error thrown when constraint satisfaction fails in strict mode
@@ -67,17 +71,34 @@ export class InstanceGenerator {
     const maxAttempts = this.ctx.retryLimits.instance;
     const privateFields = this.getPrivateFieldNames(schema, overrides);
 
+    // Collect all invariants (inline + from applied contracts)
+    const allInvariants = this.collectInvariants(schema);
+    const hasAssumes = schema.assumes && schema.assumes.length > 0;
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const instance = this.generateAttempt(schema, overrides);
 
-      // If no constraints, execute then block and return
-      if (!schema.assumes || schema.assumes.length === 0) {
+      // Invariants must ALWAYS pass, even in violating mode
+      if (allInvariants.length > 0) {
+        const invariantResult = this.validateInvariants(allInvariants, instance);
+        if (!invariantResult.valid) {
+          constraintLog.debug('Invariant failed, retrying', {
+            schema: schema.name,
+            attempt: attempt + 1,
+            message: invariantResult.failedMessage,
+          });
+          continue;
+        }
+      }
+
+      // If no assume constraints, execute then block and return
+      if (!hasAssumes) {
         this.executeThenBlock(schema.thenBlock, instance);
         return this.stripPrivateFields(instance, privateFields);
       }
 
-      // Check all constraints
-      const constraintsPass = this.validateConstraints(schema.assumes, instance);
+      // Check all constraints (in violating mode, we want them to FAIL)
+      const constraintsPass = this.validateConstraints(schema.assumes!, instance);
       if (this.ctx.violating ? !constraintsPass : constraintsPass) {
         this.executeThenBlock(schema.thenBlock, instance);
         return this.stripPrivateFields(instance, privateFields);
@@ -185,6 +206,71 @@ export class InstanceGenerator {
     }
 
     return instance;
+  }
+
+  /**
+   * Collect all invariants for a schema:
+   * - Inline invariants from the schema definition
+   * - Invariants from applied contracts (via `implements`)
+   */
+  private collectInvariants(schema: SchemaDefinition): InvariantClause[] {
+    const invariants: InvariantClause[] = [];
+
+    if (schema.invariants) {
+      invariants.push(...schema.invariants);
+    }
+
+    if (schema.contracts) {
+      for (const contractName of schema.contracts) {
+        const contract = this.ctx.contracts.get(contractName);
+        if (contract) {
+          invariants.push(...contract.invariants);
+        } else {
+          constraintLog.warn(`Contract "${contractName}" not found`, {
+            schema: schema.name,
+          });
+        }
+      }
+    }
+
+    return invariants;
+  }
+
+  /**
+   * Validate invariants - these MUST always pass, regardless of violating mode.
+   */
+  validateInvariants(
+    invariants: InvariantClause[],
+    instance: Record<string, unknown>
+  ): { valid: boolean; failedMessage?: string } {
+    const oldCurrent = this.ctx.current;
+    this.ctx.current = instance;
+
+    try {
+      for (const invariant of invariants) {
+        // Check if conditional invariant applies
+        if (invariant.condition) {
+          const conditionMet = Boolean(this.deps.evaluateExpression(invariant.condition));
+          if (!conditionMet) {
+            continue;
+          }
+        }
+
+        // All constraints in the clause must be true
+        for (const constraint of invariant.constraints) {
+          const result = this.deps.evaluateExpression(constraint);
+          if (!result) {
+            return {
+              valid: false,
+              failedMessage: invariant.message || 'Invariant violated',
+            };
+          }
+        }
+      }
+      return { valid: true };
+    } finally {
+      this.ctx.current = oldCurrent;
+    }
   }
 
   /**

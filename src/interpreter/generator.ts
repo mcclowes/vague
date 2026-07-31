@@ -124,7 +124,7 @@ export class Generator {
 
     generatorLog.debug('Starting generation', { statements: program.statements.length });
 
-    // First pass: collect schemas, imports, and let bindings
+    // First pass: collect schemas, contracts, imports, and let bindings
     for (const stmt of program.statements) {
       if (stmt.type === 'ImportStatement') {
         generatorLog.debug('Loading OpenAPI import', { name: stmt.name, path: stmt.path });
@@ -137,6 +137,14 @@ export class Generator {
           name: stmt.name,
           fields: stmt.fields.length,
           constraints: stmt.assumes?.length ?? 0,
+          invariants: stmt.invariants?.length ?? 0,
+          contracts: stmt.contracts?.length ?? 0,
+        });
+      } else if (stmt.type === 'ContractDefinition') {
+        this.ctx.contracts.set(stmt.name, stmt);
+        generatorLog.debug('Registered contract', {
+          name: stmt.name,
+          invariants: stmt.invariants.length,
         });
       } else if (stmt.type === 'LetStatement') {
         this.ctx.bindings.set(stmt.name, stmt.value);
@@ -146,6 +154,7 @@ export class Generator {
 
     generatorLog.info('Schema registration complete', {
       schemas: this.ctx.schemas.size,
+      contracts: this.ctx.contracts.size,
       imports: this.ctx.importedSchemas.size,
       bindings: this.ctx.bindings.size,
     });

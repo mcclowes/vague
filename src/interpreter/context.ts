@@ -1,4 +1,4 @@
-import type { SchemaDefinition, Expression } from '../ast/index.js';
+import type { SchemaDefinition, ContractDefinition, Expression } from '../ast/index.js';
 import type { ImportedSchema } from '../openapi/index.js';
 import { type RetryLimits, DEFAULT_RETRY_LIMITS } from '../config/index.js';
 import { SeededRandom } from './random.js';
@@ -31,7 +31,7 @@ export const DEFAULT_GENERATION_OPTIONS: Required<GenerationOptions> = {
 
 /**
  * Context maintained during generation.
- * Tracks schemas, collections, and state for sequential generation.
+ * Tracks schemas, contracts, collections, and state for sequential generation.
  *
  * ## State Lifecycle
  *
@@ -39,6 +39,7 @@ export const DEFAULT_GENERATION_OPTIONS: Required<GenerationOptions> = {
  *
  * ### Persistent State (preserved across resets)
  * - `schemas`: Schema definitions parsed from source
+ * - `contracts`: Named contract definitions applied via `implements`
  * - `importedSchemas`: Schemas imported from OpenAPI specs
  * - `bindings`: Let bindings (name -> expression)
  *
@@ -60,6 +61,7 @@ export const DEFAULT_GENERATION_OPTIONS: Required<GenerationOptions> = {
  */
 export interface GeneratorContext {
   schemas: Map<string, SchemaDefinition>;
+  contracts: Map<string, ContractDefinition>; // Named contracts that can be applied to schemas
   importedSchemas: Map<string, Map<string, ImportedSchema>>;
   collections: Map<string, unknown[]>;
   bindings: Map<string, Expression>; // let bindings (name -> expression)
@@ -99,6 +101,7 @@ export function createContext(options?: CreateContextOptions | RetryLimits): Gen
 
   return {
     schemas: new Map(),
+    contracts: new Map(),
     importedSchemas: new Map(),
     collections: new Map(),
     bindings: new Map(),

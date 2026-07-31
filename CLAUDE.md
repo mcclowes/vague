@@ -15,6 +15,7 @@ src/
 ├── infer/             # Schema inference from JSON data
 ├── csv/               # CSV input/output formatting
 ├── ndjson/            # NDJSON (newline-delimited JSON) formatting
+├── compare/           # Golden dataset comparison and schema diff
 ├── config/            # Configuration file loading (vague.config.js)
 ├── logging/           # Logging utilities with levels and components
 ├── plugins/           # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
@@ -94,6 +95,13 @@ then { invoice.amount_paid += amount }
 // Refine blocks (conditional field overrides)
 schema Player { position: "GK" | "FWD", goals: int in 0..30 }
 refine { if position == "GK" { goals: int in 0..3 } }
+
+// Contracts and invariants (never violated, even in violating mode)
+contract PositiveAmount {
+  invariant amount > 0 "Amount must be positive"
+}
+schema Invoice implements PositiveAmount { amount: decimal in 1..1000 }
+schema Payment { amount: int, invariant amount > 0 "Payment must be positive" }
 ```
 
 ## Built-in Plugins
@@ -380,6 +388,37 @@ import {
   type GenerationReport,
 } from 'vague';
 ```
+
+## Contracts, Golden Datasets, and Schema Diff
+
+Contracts define invariants that are always enforced — unlike `assume`, they hold even in `violating` mode. Define with `contract`, apply with `implements`, or declare `invariant` clauses inline in a schema. Invariants take an optional error message string.
+
+Golden dataset comparison and schema diff (programmatic API):
+
+```typescript
+import {
+  compareDatasets,
+  formatComparisonResult,
+  datasetsEqual,
+  diffSchemas,
+  formatDiffResult,
+} from 'vague';
+
+// Compare generated data against a golden snapshot
+const result = compareDatasets(golden, actual, {
+  numericTolerance: 0.01,      // Allow small float differences
+  ignoreFields: ['timestamp'], // Skip certain fields
+  orderSensitive: true,        // Record order matters (default: true)
+  maxDiffsPerCollection: 10,   // Limit reported differences
+});
+if (!result.identical) console.log(formatComparisonResult(result));
+
+// Detect breaking changes between schema versions
+const diff = diffSchemas(oldSource, newSource);
+if (diff.hasBreakingChanges) console.log(formatDiffResult(diff));
+```
+
+Schema diff classifies changes as breaking (field/schema removed, constraint tightened), compatible (field added, constraint loosened), or cosmetic.
 
 ## Post-Implementation Cleanup
 
