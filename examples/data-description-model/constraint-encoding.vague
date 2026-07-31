@@ -1,0 +1,118 @@
+// Constraint Encoding: Business rules as first-class citizens
+//
+// Vague treats constraints as part of the schema, not afterthoughts.
+// The same constraints that generate valid data can validate real data.
+
+schema Employee {
+  id: uuid(),
+  name: fullName(),
+  email: email(),
+  hire_date: date in 2015..2024,
+  termination_date: date in 2015..2024?,
+  department: "engineering" | "sales" | "marketing" | "hr" | "finance",
+  salary: int in 40000..250000,
+  manager: any of employees?,
+
+  // Constraint: Termination must be after hire
+  assume if termination_date != null {
+    termination_date >= hire_date
+  },
+
+  // Constraint: Salary bands by department
+  assume if department == "engineering" { salary >= 60000 },
+  assume if department == "sales" { salary >= 45000 },
+
+  // Constraint: Managers earn more than base
+  assume if manager != null { salary >= 50000 }
+}
+
+schema Project {
+  id: uuid(),
+  name: faker.company.buzzPhrase(),
+  lead: any of employees where .department == "engineering",
+  start_date: date in 2023..2024,
+  end_date: date in 2023..2025?,
+  budget: int in 10000..500000,
+  spent: int in 0..500000,
+  status: "planning" | "active" | "completed" | "cancelled",
+
+  // Constraint: End date after start
+  assume if end_date != null { end_date >= start_date },
+
+  // Constraint: Can't overspend
+  assume spent <= budget,
+
+  // Constraint: Completed projects have end dates
+  assume if status == "completed" { end_date != null },
+
+  // Constraint: Active projects are within budget threshold
+  assume if status == "active" { spent < budget * 0.9 }
+}
+
+schema TimeEntry {
+  id: uuid(),
+  employee: any of employees where .termination_date == null,
+  project: any of projects where .status == "active",
+  date: date in 2024..2024,
+  hours: decimal(1) in 0.5..12,
+  billable: boolean,
+
+  // Constraint: Date must be within project timeline
+  assume date >= project.start_date,
+  assume if project.end_date != null { date <= project.end_date },
+
+  // Constraint: Reasonable daily hours
+  assume hours <= 12,
+  assume if billable == true { hours >= 1 }
+}
+
+schema Invoice {
+  id: sequence("INV-", 1001),
+  project: any of projects,
+  issued_date: date in 2024..2024,
+  due_date: date in 2024..2024,
+  amount: decimal(2) in 1000..100000,
+  paid_amount: decimal(2) in 0..100000,
+  status: "draft" | "sent" | "partial" | "paid" | "overdue",
+
+  // Constraint: Due date is 30 days after issued
+  assume due_date >= issued_date,
+
+  // Constraint: Can't pay more than owed
+  assume paid_amount <= amount,
+
+  // Constraint: Status reflects payment state
+  assume if status == "paid" { paid_amount >= amount },
+  assume if status == "partial" { paid_amount > 0 and paid_amount < amount },
+  assume if status == "draft" { paid_amount == 0 }
+}
+
+schema Payment {
+  id: uuid(),
+  invoice: any of invoices where .status == "sent" or .status == "partial",
+  amount: decimal(2) in 100..50000,
+  date: date in 2024..2024,
+
+  // Constraint: Payment doesn't exceed remaining balance
+  assume amount <= invoice.amount - invoice.paid_amount
+} then {
+  // Side effect: Update invoice state
+  invoice.paid_amount += amount,
+  invoice.status = invoice.paid_amount >= invoice.amount ? "paid" : "partial"
+}
+
+dataset BusinessData {
+  employees: 50 of Employee,
+  projects: 20 of Project,
+  time_entries: 500 of TimeEntry,
+  invoices: 100 of Invoice,
+  payments: 150 of Payment,
+
+  validate {
+    // Dataset-level constraints
+    all(invoices, .paid_amount <= .amount),
+    all(time_entries, .hours <= 12),
+    some(invoices, .status == "paid"),
+    none(projects, .spent > .budget)
+  }
+}

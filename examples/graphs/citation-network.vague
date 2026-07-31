@@ -1,0 +1,39 @@
+// Citation Network
+// Academic papers citing each other (DAG by publication year)
+
+schema Paper {
+  id: unique int in 1..10000,
+  title: string,
+  year: int in 2000..2024,
+  venue: "journal" | "conference" | "workshop" | "preprint",
+  citations_count: private int in 0..500,
+  field: "cs" | "physics" | "biology" | "math" | "chemistry"
+}
+
+schema Author {
+  id: unique int in 1..5000,
+  name: fullName(),
+  affiliation: companyName(),
+  h_index: int in 1..100
+}
+
+schema Authorship {
+  paper: any of papers,
+  author: any of authors,
+  position: "first" | "middle" | "last" | "corresponding"
+}
+
+schema Citation {
+  citing_paper: any of papers,
+  cited_paper: any of papers,
+  citation_context: "background" | "methodology" | "comparison" | "extension",
+  // Papers can only cite older papers (ensures DAG)
+  assume citing_paper.year > cited_paper.year
+}
+
+dataset CitationNetwork {
+  papers: 100 of Paper,
+  authors: 80 of Author,
+  authorships: 200 of Authorship,
+  citations: 400 of Citation
+}

@@ -895,7 +895,7 @@ describe('Regex Plugin', () => {
       `);
 
       const items = result.items as Array<{ code: string }>;
-      const codes = items.map(i => i.code);
+      const codes = items.map((i) => i.code);
       const uniqueCodes = new Set(codes);
       expect(uniqueCodes.size).toBe(codes.length);
     });
@@ -910,8 +910,8 @@ describe('Regex Plugin', () => {
       `);
 
       const items = result.items as Array<{ code: string }>;
-      const hasAlpha = items.some(i => /^[A-Z]{3}$/.test(i.code));
-      const hasDigits = items.some(i => /^[0-9]{3}$/.test(i.code));
+      const hasAlpha = items.some((i) => /^[A-Z]{3}$/.test(i.code));
+      const hasDigits = items.some((i) => /^[0-9]{3}$/.test(i.code));
       expect(hasAlpha).toBe(true);
       expect(hasDigits).toBe(true);
     });

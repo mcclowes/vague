@@ -54,9 +54,7 @@ Bob,"Has, commas"`;
       });
     });
 
-    // Note: Newlines within quoted fields are not currently supported
-    // This is a complex edge case that would require more sophisticated parsing
-    it.skip('handles quoted fields with newlines', () => {
+    it('handles quoted fields with newlines', () => {
       const csv = `name,bio
 Alice,"Line1
 Line2"
@@ -66,6 +64,7 @@ Bob,Simple`;
 
       expect(result).toHaveLength(2);
       expect(result[0].bio).toBe('Line1\nLine2');
+      expect(result[1].bio).toBe('Simple');
     });
 
     it('generates column names when no header', () => {

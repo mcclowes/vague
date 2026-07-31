@@ -9,3 +9,9 @@ export { distributionFunctions } from './distribution.js';
 export { dateFunctions } from './date.js';
 export { stringFunctions } from './string.js';
 export { sequenceFunctions } from './sequence.js';
+export {
+  mapWithContext,
+  filterWithContext,
+  everyWithContext,
+  someWithContext,
+} from './collection.js';

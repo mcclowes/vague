@@ -50,6 +50,7 @@ export interface SchemaDefinition {
   constraints?: ConstraintBlock;
   assumes?: AssumeClause[];
   invariants?: InvariantClause[]; // inline invariants
+  refineBlock?: RefineBlock; // refine { if ... { ... } }
   thenBlock?: ThenBlock; // then { invoice.status = "paid" }
 }
 
@@ -57,6 +58,19 @@ export interface SchemaDefinition {
 export interface ThenBlock {
   type: 'ThenBlock';
   mutations: Mutation[];
+}
+
+// refine { if element_type == 1 { goals_scored: int in 0..3 } }
+export interface RefineBlock {
+  type: 'RefineBlock';
+  refinements: RefineCondition[];
+}
+
+// if element_type == 1 { goals_scored: int in 0..3, assists: int in 0..5 }
+export interface RefineCondition {
+  type: 'RefineCondition';
+  condition: Expression;
+  fields: FieldDefinition[];
 }
 
 // invoice.status = "paid" or invoice.amount_paid += amount

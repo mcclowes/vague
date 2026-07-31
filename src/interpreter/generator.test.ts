@@ -1691,6 +1691,126 @@ describe('Generator', () => {
     });
   });
 
+  describe('match expressions', () => {
+    it('evaluates simple match expression', async () => {
+      const source = `
+        schema Order {
+          status: "pending" | "shipped" | "delivered",
+          display_status: match status {
+            "pending" => "Awaiting shipment",
+            "shipped" => "On the way",
+            "delivered" => "Complete"
+          }
+        }
+
+        dataset TestData {
+          orders: 30 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      const orders = result.orders as { status: string; display_status: string }[];
+      for (const order of orders) {
+        if (order.status === 'pending') {
+          expect(order.display_status).toBe('Awaiting shipment');
+        } else if (order.status === 'shipped') {
+          expect(order.display_status).toBe('On the way');
+        } else {
+          expect(order.display_status).toBe('Complete');
+        }
+      }
+    });
+
+    it('match with numeric values', async () => {
+      const source = `
+        schema Rating {
+          stars: 1 | 2 | 3 | 4 | 5,
+          label: match stars {
+            1 => "terrible",
+            2 => "poor",
+            3 => "average",
+            4 => "good",
+            5 => "excellent"
+          }
+        }
+
+        dataset TestData {
+          ratings: 50 of Rating
+        }
+      `;
+
+      const result = await compile(source);
+
+      const ratings = result.ratings as { stars: number; label: string }[];
+      const labels = ['terrible', 'poor', 'average', 'good', 'excellent'];
+      for (const rating of ratings) {
+        expect(rating.label).toBe(labels[rating.stars - 1]);
+      }
+    });
+
+    it('match returns null for unmatched values', async () => {
+      const source = `
+        schema Item {
+          code: "A" | "B" | "X",
+          description: match code {
+            "A" => "Alpha",
+            "B" => "Beta"
+          }
+        }
+
+        dataset TestData {
+          items: 30 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const items = result.items as { code: string; description: string | null }[];
+      for (const item of items) {
+        if (item.code === 'A') {
+          expect(item.description).toBe('Alpha');
+        } else if (item.code === 'B') {
+          expect(item.description).toBe('Beta');
+        } else {
+          expect(item.description).toBeNull();
+        }
+      }
+    });
+
+    it('match with computed result expressions', async () => {
+      const source = `
+        schema Product {
+          tier: "basic" | "premium",
+          base_price: int in 10..100,
+          final_price: match tier {
+            "basic" => base_price,
+            "premium" => base_price * 2
+          }
+        }
+
+        dataset TestData {
+          products: 20 of Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      const products = result.products as {
+        tier: string;
+        base_price: number;
+        final_price: number;
+      }[];
+      for (const product of products) {
+        if (product.tier === 'basic') {
+          expect(product.final_price).toBe(product.base_price);
+        } else {
+          expect(product.final_price).toBe(product.base_price * 2);
+        }
+      }
+    });
+  });
+
   describe('dynamic cardinality', () => {
     it('supports simple dynamic cardinality with ternary', async () => {
       const source = `
@@ -3192,6 +3312,351 @@ describe('Generator', () => {
         } else {
           expect(customer).not.toHaveProperty('premiumFeatures');
         }
+      }
+    });
+  });
+
+  describe('refine blocks', () => {
+    it('applies refine block to regenerate fields based on condition', async () => {
+      const source = `
+        schema Player {
+          element_type: 1 | 2 | 3 | 4,
+          goals_scored: int in 0..30,
+          assists: int in 0..20
+        } refine {
+          if element_type == 1 {
+            goals_scored: int in 0..3,
+            assists: int in 0..5
+          }
+        }
+
+        dataset TestData {
+          players: 50 of Player
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const player of result.players as Record<string, unknown>[]) {
+        if (player.element_type === 1) {
+          // Goalkeepers should have refined values
+          expect(player.goals_scored).toBeGreaterThanOrEqual(0);
+          expect(player.goals_scored).toBeLessThanOrEqual(3);
+          expect(player.assists).toBeGreaterThanOrEqual(0);
+          expect(player.assists).toBeLessThanOrEqual(5);
+        }
+      }
+    });
+
+    it('applies multiple refine conditions', async () => {
+      const source = `
+        schema Player {
+          position: "GK" | "DEF" | "MID" | "FWD",
+          goals: int in 0..30,
+          clean_sheets: int in 0..20
+        } refine {
+          if position == "GK" {
+            goals: int in 0..2
+          },
+          if position == "FWD" {
+            clean_sheets: int in 0..3
+          }
+        }
+
+        dataset TestData {
+          players: 100 of Player
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const player of result.players as Record<string, unknown>[]) {
+        if (player.position === 'GK') {
+          expect(player.goals).toBeLessThanOrEqual(2);
+        }
+        if (player.position === 'FWD') {
+          expect(player.clean_sheets).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+
+    it('refine block works with unique fields', async () => {
+      const source = `
+        schema Item {
+          type: "A" | "B",
+          code: unique int in 1..1000
+        } refine {
+          if type == "A" {
+            code: unique int in 1..100
+          }
+        }
+
+        dataset TestData {
+          items: 20 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const typeACodes = new Set<number>();
+      for (const item of result.items as Record<string, unknown>[]) {
+        if (item.type === 'A') {
+          expect(item.code).toBeGreaterThanOrEqual(1);
+          expect(item.code).toBeLessThanOrEqual(100);
+          // Check uniqueness
+          expect(typeACodes.has(item.code as number)).toBe(false);
+          typeACodes.add(item.code as number);
+        }
+      }
+    });
+
+    it('refine block with complex conditions', async () => {
+      const source = `
+        schema Order {
+          priority: "low" | "high",
+          express: boolean,
+          processing_days: int in 1..30
+        } refine {
+          if priority == "high" or express == true {
+            processing_days: int in 1..3
+          }
+        }
+
+        dataset TestData {
+          orders: 50 of Order
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const order of result.orders as Record<string, unknown>[]) {
+        if (order.priority === 'high' || order.express === true) {
+          expect(order.processing_days).toBeLessThanOrEqual(3);
+        }
+      }
+    });
+  });
+
+  describe('let bindings', () => {
+    it('uses let binding for superposition field', async () => {
+      const source = `
+        let teamNames = "Arsenal" | "Chelsea" | "Liverpool"
+
+        schema Team {
+          name: teamNames
+        }
+
+        dataset TestData {
+          teams: 20 of Team
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const team of result.teams as Record<string, unknown>[]) {
+        expect(['Arsenal', 'Chelsea', 'Liverpool']).toContain(team.name);
+      }
+    });
+
+    it('uses let binding with unique modifier', async () => {
+      const source = `
+        let colors = "red" | "green" | "blue" | "yellow" | "purple"
+
+        schema Item {
+          color: unique colors
+        }
+
+        dataset TestData {
+          items: 5 of Item
+        }
+      `;
+
+      const result = await compile(source);
+
+      const usedColors = new Set<string>();
+      for (const item of result.items as Record<string, unknown>[]) {
+        expect(['red', 'green', 'blue', 'yellow', 'purple']).toContain(item.color);
+        expect(usedColors.has(item.color as string)).toBe(false);
+        usedColors.add(item.color as string);
+      }
+      expect(usedColors.size).toBe(5);
+    });
+
+    it('uses let binding with weighted superposition', async () => {
+      const source = `
+        let statuses = 0.9: "active" | 0.1: "inactive"
+
+        schema User {
+          status: statuses
+        }
+
+        dataset TestData {
+          users: 100 of User
+        }
+      `;
+
+      const result = await compile(source);
+
+      let activeCount = 0;
+      for (const user of result.users as Record<string, unknown>[]) {
+        expect(['active', 'inactive']).toContain(user.status);
+        if (user.status === 'active') activeCount++;
+      }
+      // With 90% weight, expect majority to be active
+      expect(activeCount).toBeGreaterThan(70);
+    });
+
+    it('uses multiple let bindings', async () => {
+      const source = `
+        let sizes = "S" | "M" | "L"
+        let colors = "red" | "blue"
+
+        schema Product {
+          size: sizes,
+          color: colors
+        }
+
+        dataset TestData {
+          products: 20 of Product
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const product of result.products as Record<string, unknown>[]) {
+        expect(['S', 'M', 'L']).toContain(product.size);
+        expect(['red', 'blue']).toContain(product.color);
+      }
+    });
+  });
+
+  describe('negative ranges', () => {
+    it('generates int in negative to positive range', async () => {
+      const source = `
+        schema Temperature {
+          celsius: int in -40..50
+        }
+
+        dataset TestData {
+          temps: 20 of Temperature
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.temps).toHaveLength(20);
+      for (const temp of result.temps) {
+        const t = temp as Record<string, unknown>;
+        expect(t.celsius).toBeGreaterThanOrEqual(-40);
+        expect(t.celsius).toBeLessThanOrEqual(50);
+      }
+    });
+
+    it('generates int in fully negative range', async () => {
+      const source = `
+        schema Account {
+          balance: int in -1000..-1
+        }
+
+        dataset TestData {
+          accounts: 20 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.accounts).toHaveLength(20);
+      for (const account of result.accounts) {
+        const a = account as Record<string, unknown>;
+        expect(a.balance).toBeGreaterThanOrEqual(-1000);
+        expect(a.balance).toBeLessThanOrEqual(-1);
+        expect(a.balance).toBeLessThan(0); // Must be negative
+      }
+    });
+
+    it('generates decimal in negative range', async () => {
+      const source = `
+        schema Transaction {
+          amount: decimal(2) in -99.99..-0.01
+        }
+
+        dataset TestData {
+          transactions: 20 of Transaction
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.transactions).toHaveLength(20);
+      for (const transaction of result.transactions) {
+        const t = transaction as Record<string, unknown>;
+        expect(t.amount).toBeGreaterThanOrEqual(-99.99);
+        expect(t.amount).toBeLessThanOrEqual(-0.01);
+        expect(t.amount).toBeLessThan(0); // Must be negative
+      }
+    });
+
+    it('generates values with unary plus', async () => {
+      const source = `
+        schema Value {
+          num: int in +1..+100
+        }
+
+        dataset TestData {
+          values: 10 of Value
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.values).toHaveLength(10);
+      for (const value of result.values) {
+        const v = value as Record<string, unknown>;
+        expect(v.num).toBeGreaterThanOrEqual(1);
+        expect(v.num).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it('uses negative numbers in constraints', async () => {
+      const source = `
+        schema Account {
+          balance: int in -500..500,
+          assume balance >= -100
+        }
+
+        dataset TestData {
+          accounts: 30 of Account
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const account of result.accounts) {
+        const a = account as Record<string, unknown>;
+        expect(a.balance).toBeGreaterThanOrEqual(-100);
+        expect(a.balance).toBeLessThanOrEqual(500);
+      }
+    });
+
+    it('uses negative numbers in computed fields', async () => {
+      const source = `
+        schema Invoice {
+          subtotal: int in 100..500,
+          discount: -50,
+          total: subtotal + discount
+        }
+
+        dataset TestData {
+          invoices: 10 of Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      for (const invoice of result.invoices) {
+        const i = invoice as Record<string, unknown>;
+        expect(i.discount).toBe(-50);
+        expect(i.total).toBe((i.subtotal as number) - 50);
       }
     });
   });

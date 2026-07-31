@@ -1,0 +1,29 @@
+// Weighted Graph
+// Cities connected by roads with distances and travel times
+
+schema City {
+  id: unique int in 1..100,
+  name: city(),
+  population: int in 10000..5000000,
+  elevation_m: int in 0..3000
+}
+
+schema Road {
+  city_a: any of cities,
+  city_b: any of cities,
+  distance_km: decimal(1) in 10..500,
+  travel_time_hours: decimal(2) in 0.25..8,
+  road_type: 0.4: "highway" | 0.4: "regional" | 0.2: "local",
+  toll: boolean,
+
+  // No self-loops
+  assume not (city_a.id == city_b.id),
+  // Travel time roughly proportional to distance
+  assume travel_time_hours >= distance_km / 120,
+  assume travel_time_hours <= distance_km / 40
+}
+
+dataset RoadNetwork {
+  cities: 25 of City,
+  roads: 60 of Road
+}

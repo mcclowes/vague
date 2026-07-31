@@ -12,6 +12,23 @@ schema Person {
 }
 ```
 
+## Let Bindings (Reusable Values)
+
+```vague
+// Define reusable superpositions at the top of the file
+let teamNames = "Arsenal" | "Chelsea" | "Liverpool" | "Man City"
+let statuses = 0.8: "active" | 0.15: "pending" | 0.05: "inactive"
+
+schema Team {
+  name: unique teamNames,
+  status: statuses
+}
+```
+
+- Improves readability for long enum lists
+- Works with `unique` modifier
+- Supports weighted superpositions
+
 ## Superposition (Random Choice)
 
 ```vague
@@ -156,6 +173,49 @@ schema Order {
 }
 ```
 
+## Match Expressions
+
+Pattern matching for cleaner multi-way branching:
+
+```vague
+schema Order {
+  status: "pending" | "shipped" | "delivered",
+
+  // Map values to display text
+  display_status: match status {
+    "pending" => "Awaiting shipment",
+    "shipped" => "On the way",
+    "delivered" => "Complete"
+  }
+}
+
+schema Rating {
+  stars: 1 | 2 | 3 | 4 | 5,
+
+  // Match on numeric values
+  sentiment: match stars {
+    1 => "terrible",
+    2 => "poor",
+    3 => "average",
+    4 => "good",
+    5 => "excellent"
+  }
+}
+
+schema Product {
+  tier: "basic" | "premium",
+  base_price: int in 50..200,
+
+  // Match with computed results
+  final_price: match tier {
+    "basic" => base_price,
+    "premium" => base_price * 2
+  }
+}
+```
+
+If no arm matches, the result is `null`.
+
 ## Dynamic Cardinality
 
 ```vague
@@ -189,6 +249,32 @@ then {
 - Runs once per generated record
 - Can only mutate upstream references
 - Supports `=` (assignment) and `+=` (compound assignment)
+
+## Refine Blocks (Conditional Field Overrides)
+
+Override field definitions based on conditions - more efficient than constraints:
+
+```vague
+schema Player {
+  position: "GK" | "DEF" | "MID" | "FWD",
+  goals_scored: int in 0..30,
+  assists: int in 0..20,
+  clean_sheets: int in 0..20
+} refine {
+  if position == "GK" {
+    goals_scored: int in 0..3,
+    assists: int in 0..5
+  },
+  if position == "FWD" {
+    clean_sheets: int in 0..3
+  }
+}
+```
+
+- Runs after initial field generation
+- Fields are regenerated with new definitions when conditions match
+- More efficient than `assume` constraints (generates correct values directly)
+- Supports logical operators: `if position == "GK" or position == "DEF" { ... }`
 
 ## Datasets
 

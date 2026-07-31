@@ -55,12 +55,12 @@ src/
 
 ## What to Work On
 
-Check [TODO.md](TODO.md) for planned features. Good first contributions:
+Browse [open issues](https://github.com/mcclowes/vague/issues) for planned features. Good first contributions:
 
 - **Bug fixes** — If something doesn't work as expected
 - **Documentation** — Improve examples, clarify syntax
 - **Tests** — Increase coverage, add edge cases
-- **Small features** — Items marked as "quick win" in the roadmap
+- **Small features** — Look for issues labeled `good first issue` or `enhancement`
 
 For larger features, open an issue first to discuss the approach.
 

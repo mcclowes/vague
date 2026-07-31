@@ -33,6 +33,38 @@ export type LogComponent =
   | 'config';
 
 /**
+ * Retry limits for constraint satisfaction
+ */
+export interface RetryLimits {
+  /**
+   * Max attempts for dataset-level constraint satisfaction.
+   * Default: 20
+   */
+  dataset?: number;
+
+  /**
+   * Max attempts for instance-level constraint satisfaction.
+   * Default: 100
+   */
+  instance?: number;
+
+  /**
+   * Max attempts for unique value generation.
+   * Default: 1000
+   */
+  unique?: number;
+}
+
+/**
+ * Default retry limits
+ */
+export const DEFAULT_RETRY_LIMITS: Required<RetryLimits> = {
+  dataset: 20,
+  instance: 100,
+  unique: 1000,
+};
+
+/**
  * Logging configuration
  */
 export interface LoggingConfig {
@@ -96,6 +128,12 @@ export interface VagueConfig {
    * Can be overridden by CLI --debug or --log-level flags.
    */
   logging?: LoggingConfig;
+
+  /**
+   * Retry limits for constraint satisfaction.
+   * Increase these values for complex schemas with tight constraints.
+   */
+  retryLimits?: RetryLimits;
 }
 
 /**
@@ -107,6 +145,7 @@ export interface ResolvedConfig {
   format?: 'json' | 'csv';
   pretty?: boolean;
   logging?: LoggingConfig;
+  retryLimits?: RetryLimits;
   configPath?: string;
 }
 
