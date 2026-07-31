@@ -63,7 +63,7 @@
   "author": "Max Clayton Clowes <max@mcclowes.com>",
   "license": "MIT",
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.0.2",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
