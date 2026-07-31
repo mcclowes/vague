@@ -63,6 +63,12 @@ OpenAPI Linting (Spectral):
 Mock Server:
   --serve [port]           Start HTTP mock server (default port: 3000)
 
+Enterprise Reporting:
+  --report <file>          Generate enterprise report (JSON, HTML, or Markdown based on extension)
+  --report-format <fmt>    Report format: json, html, markdown (default: auto-detect from extension)
+  --audit-log <file>       Append audit log entry to JSONL file
+  --baseline <file>        Compare against baseline report for distribution drift
+
 Examples:
   vague schema.vague -o output.json -p
   vague schema.vague -s 12345                 # Reproducible output
@@ -102,6 +108,12 @@ Examples:
   # Use custom config file
   vague schema.vague -c ./custom-config.js
   vague schema.vague --no-config  # Skip config file
+
+  # Enterprise reporting
+  vague schema.vague -o data.json --report report.html          # HTML report
+  vague schema.vague -o data.json --report report.md            # Markdown report
+  vague schema.vague --audit-log audit.jsonl                    # Append to audit log
+  vague schema.vague --report new.json --baseline old.json      # Compare distributions
 
 Configuration File (vague.config.js):
   // vague.config.js

@@ -4,6 +4,7 @@
 
 import type { CsvOptions } from '../csv/index.js';
 import type { LogLevel } from '../config/index.js';
+import type { ReportFormat } from '../reporting/index.js';
 
 export interface ValidationMapping {
   [collection: string]: string;
@@ -67,6 +68,12 @@ export interface CliOptions {
 
   // Mock server options
   servePort: number | null;
+
+  // Enterprise reporting options
+  reportFile: string | null;
+  reportFormat: ReportFormat | null;
+  auditLogFile: string | null;
+  baselineFile: string | null;
 }
 
 export function createDefaultOptions(): CliOptions {
@@ -107,5 +114,9 @@ export function createDefaultOptions(): CliOptions {
     lintSpecFile: null,
     lintVerbose: false,
     servePort: null,
+    reportFile: null,
+    reportFormat: null,
+    auditLogFile: null,
+    baselineFile: null,
   };
 }

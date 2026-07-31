@@ -3,6 +3,7 @@
  */
 
 import type { LogLevel } from '../config/index.js';
+import type { ReportFormat } from '../reporting/index.js';
 import { type CliOptions, type ValidationMapping, createDefaultOptions } from './types.js';
 
 export function parseArgs(args: string[]): CliOptions {
@@ -129,6 +130,19 @@ export function parseArgs(args: string[]): CliOptions {
       options.autoPlugins = false;
     } else if (args[i] === '--verbose') {
       options.verbose = true;
+    } else if (args[i] === '--report') {
+      options.reportFile = args[++i];
+    } else if (args[i] === '--report-format') {
+      const fmt = args[++i];
+      if (!['json', 'html', 'markdown'].includes(fmt)) {
+        console.error(`Error: Invalid report format '${fmt}'. Must be: json, html, markdown`);
+        process.exit(1);
+      }
+      options.reportFormat = fmt as ReportFormat;
+    } else if (args[i] === '--audit-log') {
+      options.auditLogFile = args[++i];
+    } else if (args[i] === '--baseline') {
+      options.baselineFile = args[++i];
     } else if (args[i] === '--lint-spec') {
       options.lintSpecFile = args[++i];
     } else if (args[i] === '--lint-verbose') {

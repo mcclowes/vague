@@ -18,6 +18,7 @@ src/
 ├── config/            # Configuration file loading (vague.config.js)
 ├── logging/           # Logging utilities with levels and components
 ├── plugins/           # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
+├── reporting/         # Enterprise reporting, audit trails, compliance
 ├── spectral/          # OpenAPI linting with Spectral
 ├── server/            # HTTP mock server (--serve)
 ├── utils/             # Shared type guards and helpers
@@ -204,6 +205,10 @@ Run `node dist/cli.js --help` for full usage. Key options:
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results |
 | `--serve [port]` | Start HTTP mock server (default: 3000) |
+| `--report <file>` | Generate enterprise report (JSON/HTML/Markdown by extension) |
+| `--report-format <fmt>` | Report format override: `json`, `html`, `markdown` |
+| `--audit-log <file>` | Append audit log entry to JSONL file |
+| `--baseline <file>` | Compare against baseline report for distribution drift |
 | `-c, --config <file>` | Use specific config file |
 | `--no-config` | Skip loading config file |
 | `-d, --debug` | Enable debug logging |
@@ -349,6 +354,32 @@ export default {
 ```
 
 Auto-discovery: `./vague-plugins/`, `./plugins/`, `node_modules/vague-plugin-*`
+
+## Enterprise Reporting
+
+Audit trails, compliance documentation, and distribution drift detection:
+
+```bash
+node dist/cli.js schema.vague -o data.json --report report.html   # HTML report (also .md, .json)
+node dist/cli.js schema.vague --audit-log audit.jsonl             # Append JSONL audit entry
+node dist/cli.js schema.vague --report new.json --baseline old.json  # Drift detection
+```
+
+Reports include synthetic data attestation, per-field statistics (types, null %, cardinality, numeric stats), value distributions, warnings, and performance metrics. Drift is measured with Jensen-Shannon divergence (flagged significant above 15%).
+
+Programmatic API:
+
+```typescript
+import {
+  generateReport,
+  formatReportAsHTML,
+  formatReportAsMarkdown,
+  formatReportAsJSON,
+  compareReports,
+  createAuditLogEntry,
+  type GenerationReport,
+} from 'vague';
+```
 
 ## Post-Implementation Cleanup
 

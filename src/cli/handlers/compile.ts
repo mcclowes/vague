@@ -2,13 +2,25 @@
  * Normal compilation handler.
  */
 
-import { readFileSync, writeFileSync, watch as fsWatch } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, watch as fsWatch } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { compile } from '../../index.js';
 import { SchemaValidator } from '../../validator/index.js';
 import { OpenAPIExamplePopulator } from '../../openapi/example-populator.js';
 import { datasetToCSV, datasetToSingleCSV } from '../../csv/index.js';
 import { datasetToNdjson } from '../../ndjson/index.js';
+import {
+  generateReport,
+  formatReportAsHTML,
+  formatReportAsMarkdown,
+  formatReportAsJSON,
+  createAuditLogEntry,
+  formatAuditLogEntry,
+  hashString,
+  type ReportFormat,
+  type GenerationReport,
+} from '../../reporting/index.js';
+import { warningCollector } from '../../warnings.js';
 import type { CliOptions } from '../types.js';
 
 export async function handleCompile(options: CliOptions): Promise<void> {
@@ -25,6 +37,9 @@ export async function handleCompile(options: CliOptions): Promise<void> {
 
   // Define compilation function for reuse in watch mode
   async function runCompilation(): Promise<boolean> {
+    const startTime = Date.now();
+    warningCollector.clear();
+
     const source = readFileSync(resolve(options.inputFile!), 'utf-8');
 
     // Pass seed through compile options (context-based, not global)
@@ -175,6 +190,77 @@ export async function handleCompile(options: CliOptions): Promise<void> {
         } else {
           console.log(json);
         }
+      }
+    }
+
+    const endTime = Date.now();
+
+    // Generate enterprise report / audit log if requested
+    if (options.reportFile || options.auditLogFile) {
+      const schemaHash = hashString(source);
+      const warnings = warningCollector.getWarnings();
+
+      // Load baseline for comparison if provided
+      let baseline: GenerationReport | undefined;
+      if (options.baselineFile) {
+        try {
+          const baselineContent = readFileSync(resolve(options.baselineFile), 'utf-8');
+          baseline = JSON.parse(baselineContent) as GenerationReport;
+        } catch (err) {
+          console.error(
+            `Warning: Could not load baseline report: ${err instanceof Error ? err.message : err}`
+          );
+        }
+      }
+
+      if (options.reportFile) {
+        const report = generateReport(result as Record<string, unknown[]>, source, warnings, {
+          seed: options.seed,
+          schemaFile: options.inputFile!,
+          configFile: options.configFile ?? undefined,
+          startTime,
+          endTime,
+          baseline,
+        });
+
+        // Determine format from extension or flag
+        let format: ReportFormat = options.reportFormat ?? 'json';
+        if (!options.reportFormat) {
+          if (options.reportFile.endsWith('.html')) format = 'html';
+          else if (options.reportFile.endsWith('.md')) format = 'markdown';
+        }
+
+        let reportContent: string;
+        switch (format) {
+          case 'html':
+            reportContent = formatReportAsHTML(report);
+            break;
+          case 'markdown':
+            reportContent = formatReportAsMarkdown(report);
+            break;
+          default:
+            reportContent = formatReportAsJSON(report);
+        }
+
+        writeFileSync(resolve(options.reportFile), reportContent);
+        console.error(`Enterprise report written to ${options.reportFile}`);
+      }
+
+      if (options.auditLogFile) {
+        const status = warnings.length > 0 ? 'warning' : 'success';
+        const entry = createAuditLogEntry(
+          'generate',
+          status,
+          options.inputFile!,
+          schemaHash,
+          result as Record<string, unknown[]>,
+          warnings,
+          endTime - startTime,
+          options.seed
+        );
+
+        appendFileSync(resolve(options.auditLogFile), formatAuditLogEntry(entry) + '\n');
+        console.error(`Audit log entry appended to ${options.auditLogFile}`);
       }
     }
 

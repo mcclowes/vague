@@ -171,6 +171,28 @@ export {
   assertRecord,
   assertFiniteNumber,
 } from './utils/index.js';
+export {
+  // Types
+  type GenerationReport,
+  type CollectionStatistics,
+  type FieldStatistics,
+  type PerformanceMetrics,
+  type SyntheticDataAttestation,
+  type AuditLogEntry,
+  type DistributionComparison,
+  type ReportFormat,
+  type ReportOptions,
+  type AuditLogConfig,
+  // Functions
+  generateReport,
+  compareReports,
+  createAuditLogEntry,
+  formatAuditLogEntry,
+  formatReportAsHTML,
+  formatReportAsMarkdown,
+  formatReportAsJSON,
+  hashString,
+} from './reporting/index.js';
 
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
