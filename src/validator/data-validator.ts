@@ -16,6 +16,7 @@ import {
   UnaryExpression,
   CallExpression,
   Literal,
+  LogicalExpression,
 } from '../ast/nodes.js';
 import { createContext } from '../interpreter/context.js';
 import { Generator } from '../interpreter/generator.js';
@@ -40,6 +41,20 @@ export interface DatasetValidationResult {
   collections: Map<string, SchemaValidationResult>;
   totalRecords: number;
   totalFailed: number;
+}
+
+export interface DatasetLevelError {
+  constraint: string;
+  message: string;
+}
+
+export interface DatasetLevelValidationResult {
+  valid: boolean;
+  errors: DatasetLevelError[];
+}
+
+export interface FullDatasetValidationResult extends DatasetValidationResult {
+  datasetLevelValidation?: DatasetLevelValidationResult;
 }
 
 /**
@@ -74,6 +89,13 @@ export class DataValidator {
    */
   getSchemaNames(): string[] {
     return Array.from(this.schemas.keys());
+  }
+
+  /**
+   * Get all loaded dataset names
+   */
+  getDatasetNames(): string[] {
+    return Array.from(this.datasets.keys());
   }
 
   /**
@@ -182,6 +204,97 @@ export class DataValidator {
   }
 
   /**
+   * Validate dataset-level constraints from a validate { } block
+   * These are aggregate constraints that apply to the entire dataset, like:
+   * - sum(invoices.total) >= 100000
+   * - all(invoices, .amount_paid <= .total)
+   * - some(invoices, .status == "paid")
+   */
+  validateDatasetLevelConstraints(
+    datasetName: string,
+    data: Record<string, unknown[]>
+  ): DatasetLevelValidationResult {
+    const dataset = this.datasets.get(datasetName);
+    if (!dataset) {
+      return {
+        valid: false,
+        errors: [
+          {
+            constraint: 'dataset',
+            message: `Dataset "${datasetName}" not found`,
+          },
+        ],
+      };
+    }
+
+    if (!dataset.validation || dataset.validation.validations.length === 0) {
+      // No validation block - all data passes
+      return { valid: true, errors: [] };
+    }
+
+    const errors: DatasetLevelError[] = [];
+
+    // Create a context with all collections
+    const ctx = createContext();
+    for (const [name, items] of Object.entries(data)) {
+      ctx.collections.set(name, items);
+    }
+
+    // Create a generator instance for expression evaluation
+    const generator = new Generator(ctx);
+
+    // Evaluate each validation expression
+    for (const constraint of dataset.validation.validations) {
+      try {
+        const result = generator.evaluateExpression(constraint);
+        if (!result) {
+          errors.push({
+            constraint: this.expressionToString(constraint),
+            message: `Dataset constraint failed: ${this.expressionToString(constraint)}`,
+          });
+        }
+      } catch (err) {
+        errors.push({
+          constraint: this.expressionToString(constraint),
+          message: `Error evaluating dataset constraint: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Full validation: validates records against schema constraints AND
+   * validates dataset-level constraints from validate { } blocks
+   */
+  validateFull(
+    data: Record<string, unknown[]>,
+    mapping: Record<string, string>,
+    datasetName?: string
+  ): FullDatasetValidationResult {
+    // First validate record-level constraints
+    const result = this.validateDataset(data, mapping);
+
+    // Then validate dataset-level constraints if a dataset name is provided
+    let datasetLevelValidation: DatasetLevelValidationResult | undefined;
+    if (datasetName) {
+      datasetLevelValidation = this.validateDatasetLevelConstraints(datasetName, data);
+    }
+
+    const allValid = result.valid && (!datasetLevelValidation || datasetLevelValidation.valid);
+
+    return {
+      ...result,
+      valid: allValid,
+      datasetLevelValidation,
+    };
+  }
+
+  /**
    * Check constraints against a record using the generator's expression evaluator
    */
   private checkConstraints(
@@ -219,24 +332,72 @@ export class DataValidator {
 
       // Check all constraints in the clause
       for (const constraint of assume.constraints) {
-        try {
-          const result = generator.evaluateExpression(constraint);
-          if (!result) {
-            errors.push({
-              record: recordIndex,
-              constraint: this.expressionToString(constraint),
-              message: `Constraint failed: ${this.expressionToString(constraint)}`,
-              value: this.getRelevantValues(constraint, record),
-            });
-          }
-        } catch (err) {
-          errors.push({
-            record: recordIndex,
-            constraint: this.expressionToString(constraint),
-            message: `Error evaluating constraint: ${err instanceof Error ? err.message : String(err)}`,
-          });
-        }
+        // Collect all failing parts of the constraint (handles compound 'and' expressions)
+        const constraintErrors = this.checkConstraintRecursive(
+          constraint,
+          generator,
+          record,
+          recordIndex
+        );
+        errors.push(...constraintErrors);
       }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Recursively check a constraint, breaking down compound 'and' expressions
+   * to report all individual failures.
+   */
+  private checkConstraintRecursive(
+    constraint: Expression,
+    generator: Generator,
+    record: Record<string, unknown>,
+    recordIndex: number
+  ): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    // First, check if this is a compound 'and' expression
+    if (constraint.type === 'LogicalExpression') {
+      const logical = constraint as LogicalExpression;
+      if (logical.operator === 'and') {
+        // For 'and' expressions, check both sides independently
+        // This way, if both sides fail, we report both errors
+        const leftErrors = this.checkConstraintRecursive(
+          logical.left,
+          generator,
+          record,
+          recordIndex
+        );
+        const rightErrors = this.checkConstraintRecursive(
+          logical.right,
+          generator,
+          record,
+          recordIndex
+        );
+        errors.push(...leftErrors, ...rightErrors);
+        return errors;
+      }
+    }
+
+    // For non-compound expressions or 'or' expressions, evaluate as a whole
+    try {
+      const result = generator.evaluateExpression(constraint);
+      if (!result) {
+        errors.push({
+          record: recordIndex,
+          constraint: this.expressionToString(constraint),
+          message: `Constraint failed: ${this.expressionToString(constraint)}`,
+          value: this.getRelevantValues(constraint, record),
+        });
+      }
+    } catch (err) {
+      errors.push({
+        record: recordIndex,
+        constraint: this.expressionToString(constraint),
+        message: `Error evaluating constraint: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
 
     return errors;

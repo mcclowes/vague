@@ -1,6 +1,16 @@
 // Markov chain text generator for realistic strings
 import { random, randomInt, randomChoice } from './random.js';
 
+/**
+ * Random number generator interface for markov functions.
+ * Allows using either the global random or a SeededRandom instance.
+ */
+export interface MarkovRng {
+  random(): number;
+  randomInt(min: number, max: number): number;
+  randomChoice<T>(arr: T[]): T;
+}
+
 // Training corpus - common English words for general text
 const WORD_CORPUS = `
 the quick brown fox jumps over the lazy dog

@@ -1,6 +1,6 @@
 {
   "name": "vague-lang",
-  "version": "3.0.0",
+  "version": "3.3.0",
   "description": "A declarative language for generating realistic test data",
   "type": "module",
   "main": "dist/index.js",
@@ -20,8 +20,12 @@
   "bugs": {
     "url": "https://github.com/mcclowes/vague/issues"
   },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/mcclowes"
+  },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsc",
@@ -34,7 +38,10 @@
     "format:check": "prettier --check \"src/**/*.ts\"",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "prepare": "husky"
+    "lint:spec": "node dist/cli.js --lint-spec",
+    "prepare": "husky",
+    "prepublishOnly": "npm run build && npm run test:run",
+    "release": "npm run build && npm run test:run && npm publish"
   },
   "lint-staged": {
     "src/**/*.ts": [
@@ -54,7 +61,7 @@
     "testing"
   ],
   "author": "Max Clayton Clowes <max@mcclowes.com>",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@types/node": "^25.0.2",
@@ -69,6 +76,8 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
+    "@stoplight/spectral-core": "^1.20.0",
+    "@stoplight/spectral-rulesets": "^1.22.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "randexp": "^0.5.3",

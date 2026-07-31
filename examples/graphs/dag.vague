@@ -1,0 +1,24 @@
+// Directed Acyclic Graph (DAG)
+// Task dependencies where prerequisite.id < dependent.id ensures no cycles
+
+schema Task {
+  id: unique int in 1..100,
+  name: string,
+  priority: "low" | "medium" | "high" | "critical",
+  estimated_hours: int in 1..40,
+  status: 0.2: "done" | 0.3: "in_progress" | 0.5: "pending"
+}
+
+schema Dependency {
+  // Constraint ensures acyclic: lower IDs are prerequisites for higher IDs
+  prerequisite: any of tasks,
+  dependent: any of tasks,
+  dependency_type: "blocks" | "requires" | "suggests",
+
+  assume prerequisite.id < dependent.id
+}
+
+dataset TaskDAG {
+  tasks: 20 of Task,
+  dependencies: 35 of Dependency
+}

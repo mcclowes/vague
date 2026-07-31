@@ -1,0 +1,81 @@
+// GraphQL Plugin Example
+// Generates realistic GraphQL-related test data
+
+// GraphQL Error for testing error handling
+schema GraphQLError {
+  message: graphql.errorMessage(),
+  code: graphql.errorCode(),
+  path: 1..4 of graphql.fieldName()
+}
+
+// API Request/Response for testing GraphQL clients
+schema GraphQLRequest {
+  operationName: graphql.operationName(),
+  query: graphql.query(),
+  variables: graphql.variables()
+}
+
+schema GraphQLResponse {
+  data: graphql.variables(),
+  errors: 0..2 of GraphQLError
+}
+
+// Schema introspection types
+schema SchemaType {
+  name: graphql.typeName(),
+  kind: graphql.typeKind(),
+  description: string
+}
+
+schema SchemaField {
+  name: graphql.fieldName(),
+  typeName: graphql.typeName(),
+  isRequired: boolean,
+  args: 0..3 of graphql.argumentName()
+}
+
+// Full GraphQL schema definition for mock servers
+schema GraphQLSchemaDefinition {
+  types: 3..8 of SchemaType,
+  queryType: graphql.typeName(),
+  mutationType: graphql.typeName(),
+  subscriptionType: graphql.typeName()
+}
+
+// Test data for GraphQL resolvers
+schema ResolverTestCase {
+  fieldName: graphql.fieldName(),
+  parentType: graphql.typeName(),
+  args: graphql.variables(),
+  expectedResult: graphql.id()
+}
+
+// Enum definitions for testing
+schema EnumTestData {
+  enumName: graphql.typeName(),
+  values: 3..6 of graphql.enumValue()
+}
+
+// Directive usage testing
+schema DirectiveTestCase {
+  directive: graphql.directiveName(),
+  appliedTo: graphql.fieldName(),
+  builtinDirective: graphql.builtinDirective()
+}
+
+// GraphQL operations for testing subscriptions
+schema SubscriptionTestCase {
+  subscription: graphql.subscription(),
+  fragment: graphql.fragment()
+}
+
+// Generate test datasets
+dataset GraphQLTestData {
+  requests: 10 of GraphQLRequest,
+  responses: 10 of GraphQLResponse,
+  schemaDefinitions: 3 of GraphQLSchemaDefinition,
+  resolverTests: 20 of ResolverTestCase,
+  enumTests: 5 of EnumTestData,
+  directiveTests: 8 of DirectiveTestCase,
+  subscriptionTests: 5 of SubscriptionTestCase
+}

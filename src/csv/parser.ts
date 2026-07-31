@@ -126,6 +126,63 @@ function inferValue(value: string): unknown {
 }
 
 /**
+ * Split CSV content into logical lines, respecting quoted fields that may contain newlines
+ */
+function splitCsvIntoLines(content: string): string[] {
+  const lines: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (nextChar === '"') {
+          // Escaped quote
+          current += '""';
+          i++; // Skip next quote
+        } else {
+          // End of quoted field
+          inQuotes = false;
+          current += char;
+        }
+      } else {
+        current += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+        current += char;
+      } else if (char === '\r' && nextChar === '\n') {
+        // Windows line ending
+        if (current.trim() !== '') {
+          lines.push(current);
+        }
+        current = '';
+        i++; // Skip \n
+      } else if (char === '\n') {
+        // Unix line ending
+        if (current.trim() !== '') {
+          lines.push(current);
+        }
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+  }
+
+  // Don't forget the last line
+  if (current.trim() !== '') {
+    lines.push(current);
+  }
+
+  return lines;
+}
+
+/**
  * Parse CSV content into an array of records
  */
 export function parseCSV(
@@ -134,8 +191,8 @@ export function parseCSV(
 ): Record<string, unknown>[] {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  // Split into lines, handling different line endings
-  const lines = content.split(/\r?\n/).filter((line) => line.trim() !== '');
+  // Split into logical lines, respecting quoted fields with newlines
+  const lines = splitCsvIntoLines(content);
 
   if (lines.length === 0) {
     return [];

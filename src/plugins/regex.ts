@@ -41,7 +41,7 @@
 
 import RandExp from 'randexp';
 import type { VaguePlugin, GeneratorFunction, GeneratorContext } from '../interpreter/generator.js';
-import { random, randomInt, randomChoice } from '../interpreter/random.js';
+import { randomInt, randomChoice } from '../interpreter/random.js';
 
 // Configure RandExp to use our seeded random
 function createRandExp(pattern: string | RegExp): RandExp {
@@ -56,8 +56,10 @@ function wrap<T>(fn: (...args: unknown[]) => T): GeneratorFunction {
   return (args) => fn(...args);
 }
 
-// Helper with context
-function wrapWithContext<T>(fn: (context: GeneratorContext, ...args: unknown[]) => T): GeneratorFunction {
+// Helper with context - prefixed with underscore as it's not currently used but may be useful
+function _wrapWithContext<T>(
+  fn: (context: GeneratorContext, ...args: unknown[]) => T
+): GeneratorFunction {
   return (args, context) => fn(context, ...args);
 }
 
@@ -127,7 +129,7 @@ function matchAll(pattern: unknown, value: unknown): string[] {
 
   const regex = new RegExp(pattern, 'g');
   const matches = String(value).matchAll(regex);
-  return Array.from(matches, m => m[0]);
+  return Array.from(matches, (m) => m[0]);
 }
 
 /**

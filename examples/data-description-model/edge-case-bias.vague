@@ -1,0 +1,167 @@
+// Edge Case Bias: Intentionally problematic data for robust testing
+//
+// The issuer plugin generates technically valid but problematic data
+// that exposes bugs in parsing, encoding, and security handling.
+
+schema UnicodeStressTest {
+  // Zero-width characters that break string comparison
+  invisible_chars: issuer.zeroWidth(),
+
+  // Right-to-left override that can spoof UI
+  rtl_spoof: issuer.rtl(),
+
+  // Homoglyphs: "admin" with Cyrillic characters
+  fake_admin: issuer.homoglyph("admin"),
+  fake_paypal: issuer.homoglyph("paypal"),
+
+  // Multi-codepoint emoji (ZWJ sequences)
+  complex_emoji: issuer.emoji(),
+
+  // Zalgo-style combining characters
+  zalgo_text: issuer.combining(),
+
+  // CJK full-width characters
+  fullwidth: issuer.fullWidth(),
+
+  // Mixed scripts (brand spoofing)
+  mixed_script: issuer.mixedScript()
+}
+
+schema InjectionPatterns {
+  // SQL-like patterns (valid text, problematic for bad parsers)
+  sql_fragment: issuer.sqlLike(),
+
+  // HTML/XSS special characters
+  html_chars: issuer.htmlSpecial(),
+
+  // JSON special characters (breaks naive string handling)
+  json_chars: issuer.jsonSpecial(),
+
+  // Path traversal patterns
+  path_pattern: issuer.pathTraversal(),
+
+  // Command injection patterns
+  cmd_pattern: issuer.commandInjection(),
+
+  // Embedded newlines and tabs
+  multiline: issuer.newlines(),
+
+  // Embedded null character
+  null_byte: issuer.nullChar()
+}
+
+schema NumericBoundaries {
+  // JavaScript integer limits
+  max_safe_int: issuer.maxInt(),
+  min_safe_int: issuer.minInt(),
+
+  // Floating point precision issues (0.1 + 0.2)
+  precision_trap: issuer.floatPrecision(),
+
+  // Very small decimals
+  tiny_decimal: issuer.tinyDecimal(),
+
+  // Negative zero
+  negative_zero: issuer.negativeZero(),
+
+  // Boundary values (127, 255, 32767, 65535, etc.)
+  boundary_value: issuer.boundaryInt()
+}
+
+schema DateEdgeCases {
+  // February 29th dates
+  leap_day: issuer.leapDay(),
+
+  // Y2K boundary dates
+  y2k_date: issuer.y2k(),
+
+  // Unix epoch boundaries (1970, 2038)
+  epoch_boundary: issuer.epoch(),
+
+  // Very far future (year 9999)
+  far_future: issuer.farFuture(),
+
+  // Very far past (year 0001)
+  far_past: issuer.farPast()
+}
+
+schema WeirdButValidFormats {
+  // Valid but unusual email addresses
+  weird_email: issuer.weirdEmail(),
+
+  // Valid but unusual URLs
+  weird_url: issuer.weirdUrl(),
+
+  // Edge case UUIDs (nil, max)
+  special_uuid: issuer.specialUuid(),
+
+  // Empty and whitespace strings
+  empty_string: issuer.empty(),
+  whitespace_only: issuer.whitespace(),
+
+  // Very long strings (buffer overflow testing)
+  long_string: issuer.long(10000)
+}
+
+// Combine edge cases with normal data for realistic testing
+schema User {
+  id: uuid(),
+
+  // Mix normal and edge case names (10% edge cases)
+  name: 0.9: fullName() | 0.1: issuer.combining(),
+
+  // Mix normal and weird emails
+  email: 0.95: email() | 0.05: issuer.weirdEmail(),
+
+  // Occasionally include problematic Unicode
+  bio: 0.9: sentence() | 0.05: issuer.zeroWidth() | 0.05: issuer.emoji(),
+
+  // Age with boundary values occasionally
+  age: 0.95: int in 18..100 | 0.05: issuer.boundaryInt(),
+
+  status: "active" | "inactive"
+}
+
+schema Comment {
+  id: uuid(),
+  user: any of users,
+
+  // Comments are a prime target for injection
+  content: 0.7: paragraph() |
+           0.1: issuer.htmlSpecial() |
+           0.1: issuer.sqlLike() |
+           0.05: issuer.emoji() |
+           0.05: issuer.combining(),
+
+  // Sometimes very long content
+  extended_content: 0.9: sentence() | 0.1: issuer.long(5000)
+}
+
+dataset SecurityTestData {
+  unicode_tests: 50 of UnicodeStressTest,
+  injection_tests: 50 of InjectionPatterns,
+  numeric_tests: 50 of NumericBoundaries,
+  date_tests: 50 of DateEdgeCases,
+  format_tests: 50 of WeirdButValidFormats,
+
+  // Mixed realistic + edge case data
+  users: 100 of User,
+  comments: 500 of Comment
+}
+
+// Generate ONLY constraint-violating data for negative testing
+schema ValidatedInput {
+  age: int in 18..120,
+  email: string,
+  amount: decimal in 0..10000,
+
+  assume age >= 18,
+  assume age <= 120,
+  assume amount >= 0
+}
+
+dataset NegativeTests violating {
+  // These will intentionally violate the constraints
+  // age < 18 OR age > 120 OR amount < 0
+  bad_inputs: 100 of ValidatedInput
+}

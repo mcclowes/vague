@@ -6,7 +6,8 @@ export type WarningType =
   | 'UniqueValueExhaustion'
   | 'ConstraintRetryLimit'
   | 'ConstraintEvaluationError'
-  | 'MutationTargetNotFound';
+  | 'MutationTargetNotFound'
+  | 'UnknownFieldInImportedSchema';
 
 export interface VagueWarning {
   type: WarningType;
@@ -54,31 +55,82 @@ export interface MutationTargetNotFoundWarning extends VagueWarning {
 }
 
 /**
- * Collector for warnings during generation
+ * Warning for when a schema extends an imported schema but adds fields not in the original
+ */
+export interface UnknownFieldInImportedSchemaWarning extends VagueWarning {
+  type: 'UnknownFieldInImportedSchema';
+  schema: string;
+  field: string;
+  importedFrom: string;
+}
+
+/**
+ * Collector for warnings during generation.
+ *
+ * IMPORTANT: Call `clear()` before each new compilation to prevent
+ * warnings from previous compilations leaking into subsequent ones.
  */
 class WarningCollector {
   private warnings: VagueWarning[] = [];
+  private silent: boolean = false;
 
+  /**
+   * Add a warning to the collector.
+   */
   add(warning: VagueWarning): void {
     this.warnings.push(warning);
-    // Also log to console for visibility
-    console.warn(`[vague] ${warning.type}: ${warning.message}`);
+    // Log to console unless in silent mode
+    if (!this.silent) {
+      console.warn(`[vague] ${warning.type}: ${warning.message}`);
+    }
   }
 
+  /**
+   * Get a copy of all collected warnings.
+   */
   getWarnings(): VagueWarning[] {
     return [...this.warnings];
   }
 
+  /**
+   * Clear all warnings. Call this before each new compilation
+   * to prevent warnings from leaking between independent runs.
+   */
   clear(): void {
     this.warnings = [];
   }
 
+  /**
+   * Check if any warnings have been collected.
+   */
   hasWarnings(): boolean {
     return this.warnings.length > 0;
   }
 
   /**
-   * Get warnings of a specific type
+   * Get the count of warnings.
+   */
+  count(): number {
+    return this.warnings.length;
+  }
+
+  /**
+   * Enable or disable console output for warnings.
+   * Useful for tests or when you want to collect warnings silently.
+   */
+  setSilent(silent: boolean): void {
+    this.silent = silent;
+  }
+
+  /**
+   * Check if warnings are being suppressed.
+   */
+  isSilent(): boolean {
+    return this.silent;
+  }
+
+  /**
+   * Get warnings of a specific type.
    */
   getWarningsByType<T extends VagueWarning>(type: WarningType): T[] {
     return this.warnings.filter((w) => w.type === type) as T[];
@@ -146,5 +198,22 @@ export function createMutationTargetNotFoundWarning(schema: string): MutationTar
     type: 'MutationTargetNotFound',
     message: `Could not resolve mutation target in schema '${schema}'.`,
     schema,
+  };
+}
+
+/**
+ * Helper to create an UnknownFieldInImportedSchemaWarning
+ */
+export function createUnknownFieldWarning(
+  schema: string,
+  field: string,
+  importedFrom: string
+): UnknownFieldInImportedSchemaWarning {
+  return {
+    type: 'UnknownFieldInImportedSchema',
+    message: `Field '${field}' in schema '${schema}' does not exist in imported schema '${importedFrom}'. This field will be added to the output but is not part of the original OpenAPI schema.`,
+    schema,
+    field,
+    importedFrom,
   };
 }

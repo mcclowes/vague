@@ -2,7 +2,25 @@
 
 # Vague
 
-A declarative language for generating realistic test data. Vague treats ambiguity as a first-class primitive — declare the shape of valid data and let the runtime figure out how to populate it.
+A declarative language for describing and generating realistic data. Vague treats ambiguity as a first-class primitive — declare the shape of valid data and let the runtime figure out how to populate it.
+
+## Why Vague?
+
+**Vague is a data description model for APIs, not just a fake data tool.**
+
+Think of it as OpenAPI meets property-based testing: you describe *what valid data looks like* — its structure, constraints, distributions, and edge cases — and Vague handles generation. The same schema that generates test data can validate production data.
+
+| What You Need | Traditional Tools | Vague |
+|---------------|-------------------|-------|
+| **Intent** — "80% of users are active" | Random selection | `status: 0.8: "active" \| 0.2: "inactive"` |
+| **Constraints** — "due date ≥ issued date" | Manual validation | `assume due_date >= issued_date` |
+| **Relationships** — "payment references an invoice" | Manual wiring | `invoice: any of invoices where .status == "open"` |
+| **Edge cases** — "test with Unicode exploits" | Manual creation | `name: issuer.homoglyph("admin")` |
+| **Validation** — "does this data match the schema?" | Separate tool | Same `.vague` file with `--validate-data` |
+
+The question isn't "which fake data library?" — it's "how do we formally describe what valid data looks like for our APIs?"
+
+For a detailed comparison, see [COMPARISON.md](COMPARISON.md).
 
 ## Installation
 
@@ -166,6 +184,19 @@ status: amount_paid >= total ? "paid" : "pending"
 grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 ```
 
+### Match Expressions
+
+```vague
+// Pattern matching for multi-way branching
+display: match status {
+  "pending" => "Awaiting shipment",
+  "shipped" => "On the way",
+  "delivered" => "Complete"
+}
+
+// Returns null if no pattern matches
+```
+
 ### Conditional Fields
 
 ```vague
@@ -278,14 +309,45 @@ dataset Invalid violating {
 }
 ```
 
+## Built-in Plugins
+
+Vague includes several plugins for generating realistic domain-specific data. For complete documentation, see [SYNTAX.md](SYNTAX.md#generators-semantic-data).
+
+| Plugin | Description | Example |
+|--------|-------------|---------|
+| **faker** | Realistic personal/business data | `email()`, `fullName()`, `companyName()` |
+| **issuer** | Edge case testing values | `issuer.homoglyph("admin")`, `issuer.maxInt()` |
+| **regex** | Pattern-based generation | `regex("[A-Z]{3}-[0-9]{4}")`, `semver()` |
+| **date** | Day-of-week filtering | `date.weekday(2024, 2025)` |
+| **http** | HTTP testing data | `http.method()`, `http.statusCode()`, `env("API_KEY")` |
+| **sql** | SQL test data | `sql.tableName()`, `sql.connectionString("postgres")` |
+| **graphql** | GraphQL test data | `graphql.query()`, `graphql.error()` |
+
 ## Examples
 
-See the `examples/` directory:
+The `examples/` directory contains organized examples for learning and reference:
 
+**Getting Started:**
+- `data-description-model/` - **Start here:** Intent encoding, constraint encoding, edge-case bias
 - `basics/` - Core language features (schemas, constraints, computed fields, cross-refs)
+
+**OpenAPI Integration:**
 - `openapi-importing/` - Import schemas from OpenAPI specs
 - `openapi-examples-generation/` - Populate OpenAPI specs with generated examples
-- `codat/`, `stripe/`, `github/`, etc. - Real-world API examples
+
+**Real-World API Examples:**
+- `stripe/` - Payment processing (invoices, charges, subscriptions)
+- `github/` - GitHub API patterns (repos, issues, PRs)
+- `slack/` - Slack webhook payloads
+- `shopify/` - E-commerce data
+- `codat/` - Accounting/fintech APIs
+- `twilio/` - Communications platform
+- `graphql/` - GraphQL-specific patterns
+
+**Advanced Topics:**
+- `http-testing/` - HTTP request/response patterns
+- `custom-plugins/` - Creating custom plugins
+- `vitest-fixtures/` - Test data for Vitest
 
 ## CLI Usage
 
@@ -340,13 +402,15 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
-| `-f, --format <fmt>` | Output format: `json` (default), `csv` |
+| `-f, --format <fmt>` | Output format: `json` (default), `csv`, `ndjson` |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
 | `-w, --watch` | Watch input file and regenerate on changes |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |
+| `--validate-data <file>` | Validate external JSON data against Vague schema |
+| `--schema <file>` | Schema file for data validation |
 | `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
 | `--csv-no-header` | Omit CSV header row |
 | `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
@@ -355,11 +419,109 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--collection-name <name>` | Collection name for CSV inference |
 | `--infer-delimiter <char>` | CSV delimiter for inference (default: `,`) |
 | `--dataset-name <name>` | Dataset name for inference |
+| `--typescript` | Generate TypeScript definitions alongside output |
+| `--ts-only` | Generate only TypeScript definitions (no .vague) |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
 | `--oas-output <file>` | Output path for populated OpenAPI spec |
 | `--oas-example-count <n>` | Number of examples per schema (default: 1) |
 | `--oas-external` | Use external file references instead of inline |
+| `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
+| `--lint-verbose` | Show detailed lint results (includes hints) |
+| `--plugins <dir>` | Load plugins from directory (can be used multiple times) |
+| `--no-auto-plugins` | Disable automatic plugin discovery |
+| `--debug` | Enable debug logging |
+| `--log-level <level>` | Set log level: `none`, `error`, `warn`, `info`, `debug` |
+| `--verbose` | Show verbose output (e.g., discovered plugins) |
 | `-h, --help` | Show help |
+
+## Configuration File
+
+Create a `vague.config.js` in your project root for persistent settings:
+
+```javascript
+// vague.config.js
+export default {
+  seed: 42,              // Reproducible output
+  format: 'json',        // 'json', 'csv', or 'ndjson'
+  pretty: true,          // Pretty-print JSON
+  plugins: [
+    './my-plugin.js',    // Local plugin
+    'vague-plugin-foo',  // npm package
+  ],
+  logging: {
+    level: 'info',       // 'none', 'error', 'warn', 'info', 'debug'
+    components: ['generator', 'constraint'],
+  },
+};
+```
+
+Config files are auto-discovered by searching up from the current directory.
+
+## Troubleshooting
+
+### Constraint failures (100 retries exceeded)
+
+If generation fails with "Maximum constraint retries exceeded":
+
+1. **Check constraint compatibility**: Ensure your constraints don't conflict
+   ```vague
+   // BAD: Impossible constraint
+   value: int in 1..10,
+   assume value > 100
+
+   // GOOD: Compatible constraint
+   value: int in 1..100,
+   assume value > 50
+   ```
+
+2. **Widen ranges**: If constraints are too tight, generation may fail frequently
+   ```vague
+   // BAD: Very narrow valid range
+   age: int in 0..100,
+   assume age >= 18 and age <= 21  // Only 4 valid values
+
+   // GOOD: Use range directly
+   age: int in 18..21
+   ```
+
+3. **Use `--debug` to diagnose**: See which constraints are failing
+   ```bash
+   node dist/cli.js file.vague --debug
+   ```
+
+### Cross-reference "No matching items" errors
+
+If you get "No matching items found for reference":
+
+1. **Check generation order**: Referenced collections must be generated first
+   ```vague
+   dataset Data {
+     customers: 10 of Customer,    // Generated first
+     invoices: 50 of Invoice       // Can reference customers
+   }
+   ```
+
+2. **Ensure filter matches**: Check that `where` conditions can be satisfied
+   ```vague
+   // If no customers have status "vip", this will fail
+   customer: any of customers where .status == "vip"
+   ```
+
+### Plugin not found
+
+1. Check plugin path is relative to config file location
+2. For npm packages, ensure they're installed: `npm install vague-plugin-foo`
+3. Use `--verbose` to see discovered plugins
+
+### Debug logging
+
+```bash
+# Enable all debug output
+node dist/cli.js file.vague --debug
+
+# Filter by component
+VAGUE_DEBUG=generator,constraint node dist/cli.js file.vague
+```
 
 ## Development
 
@@ -373,25 +535,35 @@ npm run dev       # Watch mode
 
 ```
 src/
-├── lexer/       # Tokenizer
-├── parser/      # Recursive descent parser
-├── ast/         # AST node definitions
-├── interpreter/ # JSON generator
-├── validator/   # Schema validation (Ajv)
-├── openapi/     # OpenAPI import support
-├── csv/         # CSV input/output formatting
-├── infer/       # Schema inference from data
-├── index.ts     # Library exports
-└── cli.ts       # CLI entry point
+├── lexer/             # Tokenizer
+├── parser/            # Recursive descent parser
+├── ast/               # AST node definitions
+├── interpreter/       # JSON generator
+├── validator/         # Schema validation (Ajv)
+├── openapi/           # OpenAPI import support
+├── infer/             # Schema inference from data
+├── csv/               # CSV input/output formatting
+├── ndjson/            # NDJSON (newline-delimited JSON) formatting
+├── config/            # Configuration file loading (vague.config.js)
+├── logging/           # Debug logging utilities
+├── plugins/           # Built-in plugins (faker, issuer, date, regex, http, sql, graphql)
+├── spectral/          # OpenAPI linting with Spectral
+├── server/            # HTTP mock server (--serve)
+├── utils/             # Shared type guards and helpers
+├── cli/               # CLI argument parsing and handlers
+├── format-registry.ts # Output format registry
+├── warnings.ts        # Warning collector for non-fatal generation issues
+├── index.ts           # Library exports
+└── cli.ts             # CLI entry point
 ```
 
 ## Roadmap
 
-See [TODO.md](TODO.md) for planned features:
+Planned features are tracked as [GitHub issues](https://github.com/mcclowes/vague/issues). Highlights:
 
-- Probabilistic constraints (`assume X with probability 0.7`)
-- Conditional schema variants
-- Constraint solving (SMT integration)
+- Probabilistic constraints (`assume X with probability 0.7`) — [#77](https://github.com/mcclowes/vague/issues/77)
+- Conditional values and probabilities — [#74](https://github.com/mcclowes/vague/issues/74)
+- Constraint solving (SMT integration) — [#77](https://github.com/mcclowes/vague/issues/77)
 
 ## Working with Claude
 

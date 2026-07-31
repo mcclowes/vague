@@ -493,6 +493,7 @@ export class TypeParser extends ExpressionParser {
       expr.type === 'CallExpression' ||
       expr.type === 'BinaryExpression' ||
       expr.type === 'TernaryExpression' ||
+      expr.type === 'MatchExpression' ||
       expr.type === 'LogicalExpression' ||
       expr.type === 'UnaryExpression' ||
       expr.type === 'NotExpression'

@@ -1,0 +1,26 @@
+// Knowledge Graph
+// Entities with typed relationships (subject-predicate-object triples)
+
+schema Entity {
+  id: unique int in 1..1000,
+  name: string,
+  type: "person" | "place" | "organization" | "event" | "concept",
+  description: faker.lorem.sentence()
+}
+
+schema Relation {
+  subject: any of entities,
+  predicate: "works_at" | "born_in" | "founded" | "located_in" |
+             "attended" | "created" | "part_of" | "related_to",
+  object: any of entities,
+  confidence: decimal(2) in 0.5..1.0,
+  source: "manual" | "inferred" | "external",
+
+  // No reflexive relations
+  assume not (subject.id == object.id)
+}
+
+dataset KnowledgeGraph {
+  entities: 100 of Entity,
+  relations: 300 of Relation
+}

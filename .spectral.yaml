@@ -1,0 +1,69 @@
+extends:
+  - spectral:oas
+
+# Vague-specific Spectral ruleset for linting OpenAPI specs
+# This configuration extends the standard OpenAPI ruleset and adds
+# rules particularly useful when using OpenAPI specs with Vague.
+
+rules:
+  # Ensure all schemas have descriptions for better understanding
+  oas3-schema-description:
+    description: Schemas should have descriptions
+    severity: hint
+    given: "$.components.schemas[*]"
+    then:
+      field: description
+      function: truthy
+
+  # Ensure required properties are defined
+  oas3-required-properties-defined:
+    description: Required properties must be defined in properties
+    severity: error
+    given: "$.components.schemas[*]"
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          if:
+            required:
+              - required
+              - properties
+          then:
+            type: object
+            additionalProperties: true
+
+  # Encourage use of examples on schemas (helpful for Vague generation)
+  oas3-schema-examples:
+    description: Schemas should have examples for better test data generation
+    severity: hint
+    given: "$.components.schemas[*]"
+    then:
+      field: example
+      function: truthy
+
+  # Warn about overly permissive additionalProperties
+  oas3-additional-properties-warning:
+    description: Consider specifying additionalProperties explicitly
+    severity: hint
+    given: "$.components.schemas[*][?(@.type=='object')]"
+    then:
+      field: additionalProperties
+      function: defined
+
+  # Built-in rules configuration
+  info-contact: hint
+  info-description: warn
+  info-license: off
+  operation-operationId: warn
+  operation-description: hint
+  operation-tags: hint
+  path-params: error
+  no-eval-in-markdown: error
+  no-script-tags-in-markdown: error
+  openapi-tags: hint
+  operation-singular-tag: hint
+  tag-description: hint
+  oas3-api-servers: hint
+  oas3-parameter-description: hint
+  oas3-valid-media-example: warn
+  oas3-valid-schema-example: warn

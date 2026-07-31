@@ -10,6 +10,8 @@ export {
   type LoggingConfig,
   type LogLevel,
   type LogComponent,
+  type RetryLimits,
+  DEFAULT_RETRY_LIMITS,
   ConfigError,
   PluginLoadError,
 } from './types.js';

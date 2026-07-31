@@ -1,7 +1,11 @@
 /**
  * Format detection for schema inference.
  * Recognizes common patterns like UUID, email, phone, URL, etc.
+ *
+ * Uses the unified format registry for generator mapping.
  */
+
+import { getVagueSyntaxForFormat } from '../format-registry.js';
 
 export type DetectedFormat =
   | 'uuid'
@@ -160,47 +164,14 @@ export function detectFormat(values: unknown[]): DetectedFormat {
 }
 
 /**
- * Get the Vague generator function for a format
+ * Get the Vague generator function for a format.
+ * Uses the unified format registry to ensure consistency with generator.ts.
  */
 export function getGeneratorForFormat(format: DetectedFormat): string | null {
-  switch (format) {
-    case 'uuid':
-      return 'uuid()';
-    case 'email':
-      return 'email()';
-    case 'phone':
-      return 'phone()';
-    case 'url':
-      return 'faker.internet.url()';
-    case 'hostname':
-      return 'faker.internet.domainName()';
-    case 'ipv4':
-      return 'faker.internet.ipv4()';
-    case 'ipv6':
-      return 'faker.internet.ipv6()';
-    case 'datetime':
-    case 'date':
-    case 'time':
-      // These are handled by type detection, not format
-      return null;
-    case 'slug':
-      return 'faker.lorem.slug()';
-    case 'credit-card':
-      return 'faker.finance.creditCardNumber()';
-    case 'iban':
-      return 'faker.finance.iban()';
-    case 'mac-address':
-      return 'faker.internet.mac()';
-    case 'isbn':
-      return 'faker.commerce.isbn()';
-    case 'hex-color':
-      return 'faker.color.rgb()';
-    case 'ssn':
-      // Note: Use issuer plugin for SSN-like values if testing edge cases
-      return 'faker.string.numeric({ length: 9, allowLeadingZeros: false })';
-    default:
-      return null;
+  if (format === 'none') {
+    return null;
   }
+  return getVagueSyntaxForFormat(format);
 }
 
 /**

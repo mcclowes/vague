@@ -1,0 +1,194 @@
+// Webhook payload generation for HTTP testing tools like Reqon
+// Use with: vague webhooks.vague --format ndjson -o webhooks.jsonl
+
+// Common webhook metadata
+schema WebhookMetadata {
+  id: uuid(),
+  timestamp: faker.date.recent(),
+  version: "1.0" | "2.0",
+  source: "api" | "dashboard" | "scheduler"
+}
+
+// Generic webhook envelope
+schema WebhookEnvelope {
+  id: uuid(),
+  type: http.webhookEvent(),
+  created_at: faker.date.recent(),
+  api_version: "2024-01-01",
+  request: {
+    method: http.method(),
+    headers: {
+      content_type: http.contentType(),
+      user_agent: http.userAgent(),
+      accept: http.accept()
+    }
+  }
+}
+
+// Payment webhook (Stripe-like)
+schema PaymentWebhook {
+  id: uuid(),
+  object: "event",
+  type: "payment_intent.succeeded" | "payment_intent.failed" | "payment_intent.created",
+  created: int in 1700000000..1750000000,
+  api_version: "2023-10-16",
+  data: {
+    object: {
+      id: regex("pi_[A-Za-z0-9]{24}"),
+      object: "payment_intent",
+      amount: int in 100..100000,
+      currency: "usd" | "eur" | "gbp",
+      status: 0.8: "succeeded" | 0.1: "requires_payment_method" | 0.1: "processing",
+      customer: regex("cus_[A-Za-z0-9]{14}")?,
+      payment_method: regex("pm_[A-Za-z0-9]{24}")?,
+      created: int in 1700000000..1750000000
+    }
+  },
+  livemode: 0.1: true | 0.9: false,
+  pending_webhooks: int in 0..5
+}
+
+// Order webhook (Shopify-like)
+schema OrderWebhook {
+  id: int in 1000000..9999999,
+  topic: "orders/create" | "orders/updated" | "orders/paid" | "orders/fulfilled",
+  shop_domain: faker.internet.domainName(),
+  created_at: faker.date.recent(),
+  order: {
+    id: int in 1000000..9999999,
+    email: email(),
+    total_price: decimal(2) in 10.00..500.00,
+    currency: "USD" | "EUR" | "GBP" | "CAD",
+    financial_status: 0.7: "paid" | 0.2: "pending" | 0.1: "refunded",
+    fulfillment_status: 0.5: null | 0.3: "fulfilled" | 0.2: "partial",
+    line_items: 1..5 of {
+      id: int in 10000000..99999999,
+      title: faker.commerce.productName(),
+      quantity: int in 1..5,
+      price: decimal(2) in 5.00..100.00
+    }
+  }
+}
+
+// User webhook (Auth0-like)
+schema UserWebhook {
+  id: uuid(),
+  event: "user.created" | "user.updated" | "user.deleted" | "user.login",
+  timestamp: faker.date.recent(),
+  user: {
+    id: regex("auth0\\|[a-f0-9]{24}"),
+    email: email(),
+    email_verified: 0.8: true | 0.2: false,
+    name: fullName(),
+    nickname: faker.internet.userName(),
+    picture: faker.image.avatar(),
+    created_at: faker.date.past(),
+    updated_at: faker.date.recent(),
+    last_login: faker.date.recent()?,
+    logins_count: int in 1..500
+  },
+  connection: "Username-Password-Authentication" | "google-oauth2" | "github"
+}
+
+// Slack webhook (incoming message)
+schema SlackWebhook {
+  token: regex("[A-Za-z0-9]{24}"),
+  team_id: regex("T[A-Z0-9]{8}"),
+  team_domain: faker.internet.domainWord(),
+  channel_id: regex("C[A-Z0-9]{8}"),
+  channel_name: faker.lorem.slug(),
+  user_id: regex("U[A-Z0-9]{8}"),
+  user_name: faker.internet.userName(),
+  command: "/deploy" | "/status" | "/help" | "/notify",
+  text: faker.lorem.sentence(),
+  response_url: faker.internet.url(),
+  trigger_id: regex("[0-9]{13}\\.[0-9]{13}\\.[a-f0-9]{32}")
+}
+
+// GitHub webhook
+schema GitHubWebhook {
+  action: "opened" | "closed" | "reopened" | "synchronize" | "labeled",
+  sender: {
+    login: faker.internet.userName(),
+    id: int in 1000000..99999999,
+    avatar_url: faker.image.avatar(),
+    type: 0.95: "User" | 0.05: "Bot"
+  },
+  repository: {
+    id: int in 10000000..999999999,
+    name: faker.lorem.slug(),
+    full_name: concat(faker.internet.userName(), "/", faker.lorem.slug()),
+    private: 0.3: true | 0.7: false,
+    html_url: faker.internet.url(),
+    default_branch: 0.9: "main" | 0.1: "master"
+  },
+  installation: {
+    id: int in 10000000..99999999
+  }?
+}
+
+// HTTP request/response pair for mock server testing
+schema HttpRequestResponse {
+  request: {
+    method: http.method(),
+    path: "/" | "/api/v1/users" | "/api/v1/orders" | "/api/v1/products" | "/health",
+    headers: {
+      accept: http.accept(),
+      content_type: http.contentType()?,
+      authorization: http.bearerToken()?,
+      user_agent: http.userAgent()
+    },
+    query_params: {
+      page: int in 1..100,
+      limit: 10 | 20 | 50 | 100
+    }?,
+    body: string?
+  },
+  response: {
+    status_code: http.statusCode(),
+    headers: {
+      content_type: "application/json",
+      cache_control: http.cacheControl(),
+      x_request_id: uuid()
+    },
+    body: string?
+  },
+  latency_ms: int in 5..500
+}
+
+// API error response
+schema ApiError {
+  status: http.clientErrorCode(),
+  error: {
+    code: "INVALID_REQUEST" | "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "RATE_LIMITED",
+    message: faker.lorem.sentence(),
+    details: faker.lorem.paragraph()?,
+    request_id: uuid()
+  },
+  timestamp: faker.date.recent()
+}
+
+// Environment-aware configuration (uses env() function)
+schema WebhookConfig {
+  endpoint: env("WEBHOOK_ENDPOINT", "http://localhost:8080/webhook"),
+  secret: env("WEBHOOK_SECRET", "test_secret_key"),
+  retry_count: int in 1..5,
+  timeout_ms: 1000 | 3000 | 5000 | 10000
+}
+
+dataset WebhookTestData {
+  payment_webhooks: 20 of PaymentWebhook,
+  order_webhooks: 15 of OrderWebhook,
+  user_webhooks: 10 of UserWebhook,
+  slack_webhooks: 10 of SlackWebhook,
+  github_webhooks: 10 of GitHubWebhook,
+  request_responses: 25 of HttpRequestResponse,
+  api_errors: 10 of ApiError,
+  config: 1 of WebhookConfig,
+
+  validate {
+    some(payment_webhooks, .data.object.status == "succeeded"),
+    some(order_webhooks, .order.financial_status == "paid"),
+    some(api_errors, .status == 404)
+  }
+}
