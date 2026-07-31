@@ -32,6 +32,8 @@ dataset TestData {
 - **Let bindings**: `let statuses = "active" | "pending"` (reusable values)
 - **Computed**: `total: sum(items.amount)`, `median()`, `first()`, `last()`, `product()`
 - **Constraints**: `assume due_date >= issued_date`
+- **Invariants**: `invariant amount > 0 "message"` (never violated, even in violating mode)
+- **Contracts**: `contract Name { invariant ... }` applied via `schema X implements Name`
 - **Refine**: `} refine { if type == "A" { field: int in 1..10 } }`
 - **Match**: `match status { "a" => "Alpha", "b" => "Beta" }`
 - **References**: `any of companies where .active == true`

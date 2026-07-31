@@ -413,6 +413,28 @@ node dist/cli.js data.vague --oas-output api.json --oas-source api.json --oas-ex
 
 Auto-detection maps collection names to schema names (e.g., `invoices` → `Invoice`).
 
+### Mock server
+
+Serve generated data over HTTP instead of writing files:
+
+```bash
+node dist/cli.js file.vague --serve          # http://localhost:3000
+node dist/cli.js file.vague --serve 8080     # Custom port
+node dist/cli.js file.vague --serve --seed 42
+```
+
+Each collection in the dataset becomes an endpoint (`GET /invoices`, `GET /invoices/:index`).
+
+### Enterprise reporting
+
+Generate audit trails and generation reports for compliance:
+
+```bash
+node dist/cli.js file.vague -o data.json --report report.html   # Also .md, .json
+node dist/cli.js file.vague --audit-log audit.jsonl             # Append JSONL audit entry
+node dist/cli.js file.vague --report new.json --baseline old.json  # Distribution drift
+```
+
 ### CLI Options
 
 | Option | Description |
@@ -427,6 +449,7 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--validate-only` | Only validate, don't output data |
 | `--validate-data <file>` | Validate external JSON data against Vague schema |
 | `--schema <file>` | Schema file for data validation |
+| `--dataset <name>` | Dataset name for `validate {}` block constraints |
 | `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
 | `--csv-no-header` | Omit CSV header row |
 | `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
@@ -435,6 +458,9 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--collection-name <name>` | Collection name for CSV inference |
 | `--infer-delimiter <char>` | CSV delimiter for inference (default: `,`) |
 | `--dataset-name <name>` | Dataset name for inference |
+| `--no-formats` | Disable format detection during inference (uuid, email, etc.) |
+| `--no-weights` | Disable weighted superpositions during inference |
+| `--max-enum <n>` | Max unique values for enum detection (default: 10) |
 | `--typescript` | Generate TypeScript definitions alongside output |
 | `--ts-only` | Generate only TypeScript definitions (no .vague) |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
@@ -443,6 +469,13 @@ Auto-detection maps collection names to schema names (e.g., `invoices` → `Invo
 | `--oas-external` | Use external file references instead of inline |
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results (includes hints) |
+| `--serve [port]` | Start HTTP mock server (default: 3000) |
+| `--report <file>` | Generate enterprise report (JSON/HTML/Markdown by extension) |
+| `--report-format <fmt>` | Report format override: `json`, `html`, `markdown` |
+| `--audit-log <file>` | Append audit log entry to JSONL file |
+| `--baseline <file>` | Compare against baseline report for distribution drift |
+| `-c, --config <file>` | Use specific config file (default: auto-detect `vague.config.js`) |
+| `--no-config` | Skip loading config file |
 | `--plugins <dir>` | Load plugins from directory (can be used multiple times) |
 | `--no-auto-plugins` | Disable automatic plugin discovery |
 | `--debug` | Enable debug logging |

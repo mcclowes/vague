@@ -169,6 +169,31 @@ Options:
 - `--lint-spec <file>`: OpenAPI spec file to lint
 - `--lint-verbose`: Show detailed lint results including hints
 
+## Mock Server
+
+Serve generated data over HTTP (`GET /{collection}`, `GET /{collection}/{index}`):
+
+```bash
+node dist/cli.js schema.vague --serve          # http://localhost:3000
+node dist/cli.js schema.vague --serve 8080     # Custom port
+```
+
+## Enterprise Reporting
+
+Generate reports and audit trails for compliance:
+
+```bash
+node dist/cli.js schema.vague -o data.json --report report.html   # Also .md, .json
+node dist/cli.js schema.vague --audit-log audit.jsonl             # Append JSONL audit entry
+node dist/cli.js schema.vague --report new.json --baseline old.json  # Distribution drift
+```
+
+Options:
+- `--report <file>`: Report path; format auto-detected from extension
+- `--report-format <fmt>`: Override format: `json`, `html`, `markdown`
+- `--audit-log <file>`: Append audit log entry to JSONL file
+- `--baseline <file>`: Baseline report for drift comparison
+
 ## Watch Mode
 
 Regenerate output when input file changes:

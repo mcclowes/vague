@@ -758,6 +758,15 @@ VAGUE_DEBUG=generator,constraint node dist/cli.js file.vague
 
 # Load custom plugins
 node dist/cli.js file.vague --plugins ./my-plugins
+
+# Mock server (GET /{collection}, GET /{collection}/{index})
+node dist/cli.js file.vague --serve
+node dist/cli.js file.vague --serve 8080
+
+# Enterprise reporting and audit trails
+node dist/cli.js file.vague -o data.json --report report.html
+node dist/cli.js file.vague --audit-log audit.jsonl
+node dist/cli.js file.vague --report new.json --baseline old.json
 ```
 
 ---
