@@ -4,15 +4,7 @@
  */
 
 export type InferredType =
-  | 'int'
-  | 'decimal'
-  | 'string'
-  | 'date'
-  | 'boolean'
-  | 'null'
-  | 'object'
-  | 'array'
-  | 'unknown';
+  'int' | 'decimal' | 'string' | 'date' | 'boolean' | 'null' | 'object' | 'array' | 'unknown';
 
 /**
  * Detect the type of a single value
