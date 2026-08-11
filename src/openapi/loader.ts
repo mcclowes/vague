@@ -1,6 +1,4 @@
-import SwaggerParser from '@apidevtools/swagger-parser';
-import { readFileSync } from 'node:fs';
-import type { OpenAPIV3 } from 'openapi-types';
+import $RefParser from '@apidevtools/json-schema-ref-parser';
 
 export interface ImportedSchema {
   name: string;
@@ -14,106 +12,164 @@ export interface ImportedField {
   required: boolean;
   enum?: (string | number)[];
   description?: string;
-  format?: string; // OpenAPI format hint (uuid, email, date-time, etc.)
+  format?: string;
+}
+
+interface ImportedValueConstraints {
+  enum?: unknown[];
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
 }
 
 export type ImportedFieldType =
-  | { kind: 'primitive'; type: 'string' | 'number' | 'integer' | 'boolean' }
-  | { kind: 'array'; items: ImportedFieldType }
-  | { kind: 'object'; schema: string }
-  | { kind: 'ref'; ref: string };
+  | (ImportedValueConstraints & {
+      kind: 'primitive';
+      type: 'string' | 'number' | 'integer' | 'boolean';
+    })
+  | { kind: 'array'; items: ImportedFieldType; minItems?: number; maxItems?: number }
+  | { kind: 'object'; fields: ImportedField[] }
+  | { kind: 'union'; variants: ImportedFieldType[] };
+
+interface SchemaObject {
+  type?: string | string[];
+  properties?: Record<string, SchemaObject>;
+  required?: string[];
+  items?: SchemaObject;
+  allOf?: SchemaObject[];
+  oneOf?: SchemaObject[];
+  anyOf?: SchemaObject[];
+  enum?: unknown[];
+  description?: string;
+  format?: string;
+  minimum?: number;
+  maximum?: number;
+  minLength?: number;
+  maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  pattern?: string;
+}
+
+interface OpenAPIDocument {
+  components?: { schemas?: Record<string, SchemaObject> };
+}
 
 export class OpenAPILoader {
   private schemas: Map<string, ImportedSchema> = new Map();
 
   async load(path: string): Promise<Map<string, ImportedSchema>> {
-    let api: OpenAPIV3.Document;
+    this.schemas = new Map();
 
-    try {
-      // Try swagger-parser first (works for 3.0.x)
-      api = (await SwaggerParser.dereference(path)) as OpenAPIV3.Document;
-    } catch (err) {
-      // Fall back to direct JSON parsing for 3.1.x
-      const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes('Unsupported OpenAPI version')) {
-        api = JSON.parse(readFileSync(path, 'utf-8')) as OpenAPIV3.Document;
-      } else {
-        throw err;
-      }
-    }
+    const api = (await $RefParser.dereference(path, {
+      dereference: { circular: false },
+    })) as OpenAPIDocument;
 
     if (!api.components?.schemas) {
       return this.schemas;
     }
 
     for (const [name, schema] of Object.entries(api.components.schemas)) {
-      if (this.isSchemaObject(schema)) {
-        this.schemas.set(name, this.parseSchema(name, schema));
-      }
+      this.schemas.set(name, this.parseSchema(name, schema));
     }
 
     return this.schemas;
   }
 
-  private parseSchema(name: string, schema: OpenAPIV3.SchemaObject): ImportedSchema {
-    const required = schema.required ?? [];
-    const fields: ImportedField[] = [];
+  private parseSchema(name: string, schema: SchemaObject): ImportedSchema {
+    const normalized = this.mergeAllOf(schema);
+    const required = normalized.required ?? [];
+    return {
+      name,
+      fields: this.parseObjectFields(normalized),
+      required,
+    };
+  }
 
-    if (schema.properties) {
-      for (const [fieldName, fieldSchema] of Object.entries(schema.properties)) {
-        if (this.isSchemaObject(fieldSchema)) {
-          fields.push({
-            name: fieldName,
-            type: this.parseFieldType(fieldSchema),
-            required: required.includes(fieldName),
-            enum: fieldSchema.enum as (string | number)[] | undefined,
-            description: fieldSchema.description,
-            format: fieldSchema.format,
-          });
-        }
+  private parseObjectFields(schema: SchemaObject): ImportedField[] {
+    const normalized = this.mergeAllOf(schema);
+    const required = normalized.required ?? [];
+
+    return Object.entries(normalized.properties ?? {}).map(([name, fieldSchema]) => ({
+      name,
+      type: this.parseFieldType(fieldSchema),
+      required: required.includes(name),
+      ...(fieldSchema.enum ? { enum: fieldSchema.enum as (string | number)[] } : {}),
+      ...(fieldSchema.description ? { description: fieldSchema.description } : {}),
+      ...(fieldSchema.format ? { format: fieldSchema.format } : {}),
+    }));
+  }
+
+  private parseFieldType(schema: SchemaObject): ImportedFieldType {
+    if (schema.oneOf || schema.anyOf) {
+      const variants = schema.oneOf ?? schema.anyOf ?? [];
+      if (variants.length === 0) {
+        throw new Error('OpenAPI composition must contain at least one schema');
       }
+      return { kind: 'union', variants: variants.map((variant) => this.parseFieldType(variant)) };
     }
 
-    return { name, fields, required };
+    const normalized = this.mergeAllOf(schema);
+
+    if (normalized.type === 'array' || normalized.items) {
+      if (!normalized.items) {
+        throw new Error('OpenAPI array schema is missing items');
+      }
+      return {
+        kind: 'array',
+        items: this.parseFieldType(normalized.items),
+        ...(normalized.minItems !== undefined ? { minItems: normalized.minItems } : {}),
+        ...(normalized.maxItems !== undefined ? { maxItems: normalized.maxItems } : {}),
+      };
+    }
+
+    if (normalized.type === 'object' || normalized.properties) {
+      return { kind: 'object', fields: this.parseObjectFields(normalized) };
+    }
+
+    const type = Array.isArray(normalized.type)
+      ? normalized.type.find((candidate) => candidate !== 'null')
+      : normalized.type;
+    if (type && !['string', 'number', 'integer', 'boolean', 'null'].includes(type)) {
+      throw new Error(`Unsupported OpenAPI schema type: ${type}`);
+    }
+    const primitiveType =
+      type === 'number' || type === 'integer' || type === 'boolean' ? type : 'string';
+
+    return {
+      kind: 'primitive',
+      type: primitiveType,
+      ...(normalized.enum ? { enum: normalized.enum } : {}),
+      ...(normalized.format ? { format: normalized.format } : {}),
+      ...(normalized.minimum !== undefined ? { minimum: normalized.minimum } : {}),
+      ...(normalized.maximum !== undefined ? { maximum: normalized.maximum } : {}),
+      ...(normalized.minLength !== undefined ? { minLength: normalized.minLength } : {}),
+      ...(normalized.maxLength !== undefined ? { maxLength: normalized.maxLength } : {}),
+      ...(normalized.pattern ? { pattern: normalized.pattern } : {}),
+    };
   }
 
-  private parseFieldType(schema: OpenAPIV3.SchemaObject): ImportedFieldType {
-    if (schema.type === 'array' && schema.items) {
-      const items = this.isSchemaObject(schema.items)
-        ? this.parseFieldType(schema.items)
-        : { kind: 'primitive' as const, type: 'string' as const };
-      return { kind: 'array', items };
+  private mergeAllOf(schema: SchemaObject): SchemaObject {
+    if (!schema.allOf) {
+      return schema;
     }
 
-    if (schema.type === 'object') {
-      // Inline object - we'd need to handle this specially
-      return { kind: 'primitive', type: 'string' };
-    }
-
-    if (schema.type === 'string') {
-      return { kind: 'primitive', type: 'string' };
-    }
-
-    if (schema.type === 'integer') {
-      return { kind: 'primitive', type: 'integer' };
-    }
-
-    if (schema.type === 'number') {
-      return { kind: 'primitive', type: 'number' };
-    }
-
-    if (schema.type === 'boolean') {
-      return { kind: 'primitive', type: 'boolean' };
-    }
-
-    // Default fallback
-    return { kind: 'primitive', type: 'string' };
-  }
-
-  private isSchemaObject(
-    schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject
-  ): schema is OpenAPIV3.SchemaObject {
-    return !('$ref' in schema);
+    return schema.allOf.reduce<SchemaObject>(
+      (merged, part) => {
+        const normalized = this.mergeAllOf(part);
+        return {
+          ...merged,
+          ...normalized,
+          properties: { ...merged.properties, ...normalized.properties },
+          required: [...new Set([...(merged.required ?? []), ...(normalized.required ?? [])])],
+          allOf: undefined,
+        };
+      },
+      { ...schema, properties: { ...schema.properties }, allOf: undefined }
+    );
   }
 
   getSchema(name: string): ImportedSchema | undefined {

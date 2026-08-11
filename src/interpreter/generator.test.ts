@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import Ajv from 'ajv';
 import { compile } from '../index.js';
 
 describe('Generator', () => {
@@ -1129,6 +1130,64 @@ describe('Generator', () => {
         }
       } finally {
         // Cleanup temp file
+        fs.unlinkSync(tempSpec);
+      }
+    });
+
+    it('generates nested OpenAPI objects, arrays, and compositions', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const tempDir = path.join(__dirname, '../../examples/openapi-examples-generation');
+      const tempSpec = path.join(tempDir, 'nested-test.json');
+      const schema = {
+        allOf: [
+          {
+            type: 'object',
+            required: ['id'],
+            properties: { id: { type: 'integer', minimum: 10, maximum: 20 } },
+          },
+          {
+            type: 'object',
+            required: ['profile', 'tags', 'choice'],
+            properties: {
+              profile: {
+                type: 'object',
+                required: ['name'],
+                properties: { name: { type: 'string', minLength: 4, maxLength: 8 } },
+              },
+              tags: {
+                type: 'array',
+                minItems: 2,
+                maxItems: 3,
+                items: { type: 'string', enum: ['red', 'blue'] },
+              },
+              choice: { oneOf: [{ type: 'boolean' }, { type: 'integer' }] },
+            },
+          },
+        ],
+      };
+      const spec = {
+        openapi: '3.1.0',
+        info: { title: 'Nested test', version: '1.0.0' },
+        paths: {},
+        components: { schemas: { Record: schema } },
+      };
+
+      fs.writeFileSync(tempSpec, JSON.stringify(spec));
+
+      try {
+        const result = await compile(`
+          import nested from "examples/openapi-examples-generation/nested-test.json"
+          schema TestRecord from nested.Record { }
+          dataset TestData { records: 10 of TestRecord }
+        `);
+        const validate = new Ajv({ strict: false }).compile(schema);
+
+        expect(result.records).toHaveLength(10);
+        for (const record of result.records) {
+          expect(validate(record), JSON.stringify(validate.errors)).toBe(true);
+        }
+      } finally {
         fs.unlinkSync(tempSpec);
       }
     });

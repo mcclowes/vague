@@ -85,6 +85,68 @@ describe('OpenAPILoader', () => {
       expect(schemas.has('Product')).toBe(true);
     });
 
+    it('dereferences local, nested, array-item, and external OpenAPI 3.1 schemas', async () => {
+      const externalPath = join(TMP_DIR, 'external.json');
+      const specPath = join(TMP_DIR, 'referenced-3.1.json');
+      writeFileSync(
+        externalPath,
+        JSON.stringify({
+          $defs: {
+            Owner: {
+              type: 'object',
+              required: ['name'],
+              properties: { name: { type: 'string' } },
+            },
+          },
+        })
+      );
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.1.0',
+          info: { title: 'Referenced API', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              Tag: { type: 'string', enum: ['one', 'two'] },
+              Item: {
+                type: 'object',
+                properties: {
+                  owner: { $ref: './external.json#/$defs/Owner' },
+                  tags: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Tag' },
+                  },
+                  nested: {
+                    type: 'object',
+                    properties: {
+                      tag: { $ref: '#/components/schemas/Tag' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      const schemas = await new OpenAPILoader().load(specPath);
+      const item = schemas.get('Item');
+
+      expect(item?.fields.find((field) => field.name === 'owner')?.type).toMatchObject({
+        kind: 'object',
+        fields: [{ name: 'name', required: true }],
+      });
+      expect(item?.fields.find((field) => field.name === 'tags')?.type).toEqual({
+        kind: 'array',
+        items: { kind: 'primitive', type: 'string', enum: ['one', 'two'] },
+      });
+      expect(item?.fields.find((field) => field.name === 'nested')?.type).toMatchObject({
+        kind: 'object',
+        fields: [{ name: 'tag', type: { enum: ['one', 'two'] } }],
+      });
+    });
+
     it('returns empty map when no schemas defined', async () => {
       const specPath = join(TMP_DIR, 'no-schemas.json');
       writeFileSync(
@@ -341,7 +403,7 @@ describe('OpenAPILoader', () => {
       });
     });
 
-    it('parses object fields as string (fallback)', async () => {
+    it('preserves object fields', async () => {
       const specPath = join(TMP_DIR, 'object-field.json');
       writeFileSync(
         specPath,
@@ -366,11 +428,10 @@ describe('OpenAPILoader', () => {
       const schemas = await loader.load(specPath);
       const field = schemas.get('Test')?.fields.find((f) => f.name === 'metadata');
 
-      // Object type falls back to string
-      expect(field?.type).toEqual({ kind: 'primitive', type: 'string' });
+      expect(field?.type).toEqual({ kind: 'object', fields: [] });
     });
 
-    it('handles unknown type as string fallback', async () => {
+    it('reports an unsupported field type', async () => {
       const specPath = join(TMP_DIR, 'unknown-type.json');
       writeFileSync(
         specPath,
@@ -391,11 +452,9 @@ describe('OpenAPILoader', () => {
         })
       );
 
-      const loader = new OpenAPILoader();
-      const schemas = await loader.load(specPath);
-      const field = schemas.get('Test')?.fields.find((f) => f.name === 'weird');
-
-      expect(field?.type).toEqual({ kind: 'primitive', type: 'string' });
+      await expect(new OpenAPILoader().load(specPath)).rejects.toThrow(
+        'Unsupported OpenAPI schema type: unknown_type'
+      );
     });
   });
 

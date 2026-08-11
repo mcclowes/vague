@@ -8,7 +8,8 @@
  * - DatasetGenerator: Generates datasets and collections
  */
 import { Program, SchemaDefinition, Expression } from '../ast/index.js';
-import { OpenAPILoader } from '../openapi/index.js';
+import RandExp from 'randexp';
+import { OpenAPILoader, type ImportedFieldType } from '../openapi/index.js';
 import { warningCollector, createUnknownFieldWarning } from '../warnings.js';
 import { isRecord, getProperty } from '../utils/type-guards.js';
 
@@ -239,35 +240,93 @@ export class Generator {
    */
   private generateFromImportedField(field: unknown, fieldName?: string): unknown {
     const f = field as {
-      type: { kind: string; type?: string };
+      type: ImportedFieldType;
       enum?: unknown[];
       name?: string;
       format?: string;
     };
 
-    if (f.enum && f.enum.length > 0) {
-      return f.enum[Math.floor(this.ctx.rng.random() * f.enum.length)];
+    return this.generateFromImportedType(f.type, fieldName ?? f.name, f.enum, f.format);
+  }
+
+  private generateFromImportedType(
+    type: ImportedFieldType,
+    fieldName?: string,
+    fieldEnum?: unknown[],
+    fieldFormat?: string
+  ): unknown {
+    const enumValues = fieldEnum ?? ('enum' in type ? type.enum : undefined);
+    if (enumValues && enumValues.length > 0) {
+      return enumValues[Math.floor(this.ctx.rng.random() * enumValues.length)];
     }
 
-    switch (f.type.kind) {
+    switch (type.kind) {
       case 'primitive':
-        switch (f.type.type) {
+        switch (type.type) {
           case 'string':
-            return this.fieldGenerator.generateStringFromFormat(f.format, fieldName ?? f.name);
-          case 'integer':
-            return Math.floor(this.ctx.rng.random() * 1000);
+            return this.generateImportedString(type, fieldFormat ?? type.format, fieldName);
+          case 'integer': {
+            const minimum = Math.ceil(type.minimum ?? 0);
+            const maximum = Math.floor(type.maximum ?? Math.max(minimum, 999));
+            return minimum + Math.floor(this.ctx.rng.random() * (maximum - minimum + 1));
+          }
           case 'number':
-            return this.ctx.rng.random() * 1000;
+            return (
+              (type.minimum ?? 0) +
+              this.ctx.rng.random() *
+                ((type.maximum ?? Math.max(type.minimum ?? 0, 1000)) - (type.minimum ?? 0))
+            );
           case 'boolean':
             return this.ctx.rng.random() > 0.5;
           default:
             return null;
         }
-      case 'array':
-        return [];
+      case 'array': {
+        const minimum = Math.max(0, type.minItems ?? 1);
+        const maximum = Math.max(minimum, type.maxItems ?? minimum);
+        const length = minimum + Math.floor(this.ctx.rng.random() * (maximum - minimum + 1));
+        return Array.from({ length }, () => this.generateFromImportedType(type.items, fieldName));
+      }
+      case 'object':
+        return Object.fromEntries(
+          type.fields.map((field) => [
+            field.name,
+            this.generateFromImportedType(field.type, field.name, field.enum, field.format),
+          ])
+        );
+      case 'union':
+        return this.generateFromImportedType(
+          type.variants[Math.floor(this.ctx.rng.random() * type.variants.length)],
+          fieldName
+        );
       default:
         return null;
     }
+  }
+
+  private generateImportedString(
+    type: Extract<ImportedFieldType, { kind: 'primitive' }>,
+    format?: string,
+    fieldName?: string
+  ): unknown {
+    if (format) {
+      return this.fieldGenerator.generateStringFromFormat(format, fieldName);
+    }
+
+    if (type.pattern) {
+      const generator = new RandExp(type.pattern);
+      generator.randInt = (from, to) => from + Math.floor(this.ctx.rng.random() * (to - from + 1));
+      return generator.gen();
+    }
+
+    const minimum = Math.max(0, type.minLength ?? 1);
+    const maximum = Math.max(minimum, type.maxLength ?? Math.max(minimum, 12));
+    const length = minimum + Math.floor(this.ctx.rng.random() * (maximum - minimum + 1));
+    const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+    return Array.from(
+      { length },
+      () => alphabet[Math.floor(this.ctx.rng.random() * alphabet.length)]
+    ).join('');
   }
 
   /**
