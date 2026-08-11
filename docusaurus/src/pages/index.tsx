@@ -34,8 +34,13 @@ function HomepageHeader() {
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className={clsx('container', styles.heroContent)}>
+        <div className={styles.eyebrow}>
+          <span className={styles.eyebrowDot} aria-hidden="true" />
+          Test data, described precisely
+        </div>
         <Heading as="h1" className={clsx('hero__title', styles.heroTitle)}>
-          {siteConfig.title}
+          Realistic test data,
+          <span> without the fixture sprawl.</span>
         </Heading>
         <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
           {siteConfig.tagline}
@@ -44,7 +49,7 @@ function HomepageHeader() {
           <Link
             className={clsx('button button--lg', styles.primaryButton)}
             to="/docs">
-            Get Started
+            Get started
           </Link>
           <Link
             className={clsx('button button--lg', styles.secondaryButton)}
@@ -63,10 +68,11 @@ function HomepageExample() {
       <div className="container">
         <div className="row">
           <div className={clsx('col col--6', styles.exampleText)}>
-            <Heading as="h2">Declarative Data Generation</Heading>
+            <span className={styles.sectionLabel}>A language for valid data</span>
+            <Heading as="h2">Declare the shape. Vague handles the rest.</Heading>
             <p>
-              Describe the shape of valid data — structure, constraints,
-              distributions, and relationships — and Vague generates it.
+              Describe structure, constraints, distributions, and relationships.
+              Vague generates data that follows the rules.
             </p>
             <ul>
               <li><strong>Weighted distributions:</strong> <code>0.8: "active" | 0.2: "inactive"</code></li>

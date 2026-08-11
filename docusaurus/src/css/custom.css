@@ -43,8 +43,9 @@
   --docusaurus-highlighted-code-line-bg: rgba(99, 102, 241, 0.1);
 
   /* Background */
-  --ifm-background-color: #fafaff;
+  --ifm-background-color: #f7f7fb;
   --ifm-background-surface-color: #ffffff;
+  --ifm-font-color-secondary: #5f6070;
 }
 
 /* Dark mode palette */
@@ -70,8 +71,9 @@
 
   --docusaurus-highlighted-code-line-bg: rgba(129, 140, 248, 0.2);
 
-  --ifm-background-color: #0f0d1a;
-  --ifm-background-surface-color: #1a1625;
+  --ifm-background-color: #100e17;
+  --ifm-background-surface-color: #17141f;
+  --ifm-font-color-secondary: #aaa4b6;
 }
 
 /* ============================================
@@ -79,9 +81,10 @@
    ============================================ */
 
 .navbar {
-  box-shadow: 0 1px 2px rgba(99, 102, 241, 0.08);
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.95);
+  box-shadow: none;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 /* Mobile navbar sidebar fixes */
@@ -116,7 +119,8 @@
 }
 
 [data-theme='dark'] .navbar {
-  background: rgba(15, 13, 26, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: rgba(13, 11, 20, 0.9);
 }
 
 /* ============================================
@@ -213,13 +217,15 @@ code {
 }
 
 div[class*='codeBlockContainer'] {
-  border-radius: var(--ifm-card-border-radius);
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.16);
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(36, 24, 75, 0.13);
   overflow: hidden;
 }
 
 [data-theme='dark'] div[class*='codeBlockContainer'] {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(167, 139, 250, 0.18);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
 }
 
 div[class*='codeBlockTitle'] {

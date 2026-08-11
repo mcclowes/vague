@@ -1,202 +1,207 @@
-/**
- * Vague Homepage Styles
- * Inspired by the logo's connected nodes and gradient aesthetic
- */
-
-/* ============================================
-   HERO BANNER
-   ============================================ */
-
 .heroBanner {
-  padding: 6rem 0 5rem;
-  text-align: center;
+  min-height: 560px;
+  padding: 7.5rem 0 7rem;
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 78% 24%, rgba(139, 92, 246, 0.34), transparent 28rem),
+    radial-gradient(circle at 18% 120%, rgba(79, 70, 229, 0.26), transparent 32rem),
+    #0d0b14;
+  color: #f8f7ff;
 }
 
-/* Floating node decorations - inspired by the logo */
-.heroBanner::after {
+.heroBanner::before {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: -1;
   background-image:
-    /* Large node - top left */
-    radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.12) 40px, transparent 40px),
-    /* Medium node - top right */
-    radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.08) 25px, transparent 25px),
-    /* Small node - bottom left */
-    radial-gradient(circle at 15% 80%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.06) 15px, transparent 15px),
-    /* Medium node - right side */
-    radial-gradient(circle at 92% 60%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.1) 30px, transparent 30px),
-    /* Small node - bottom center-right */
-    radial-gradient(circle at 75% 85%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.07) 18px, transparent 18px),
-    /* Tiny node - left side */
-    radial-gradient(circle at 5% 50%, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.05) 10px, transparent 10px);
-  pointer-events: none;
-  animation: floatNodes 8s ease-in-out infinite;
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
-@keyframes floatNodes {
-  0%, 100% {
-    transform: translateY(0) translateX(0);
-  }
-  25% {
-    transform: translateY(-8px) translateX(4px);
-  }
-  50% {
-    transform: translateY(-4px) translateX(-4px);
-  }
-  75% {
-    transform: translateY(-12px) translateX(2px);
-  }
+.heroBanner::after {
+  content: '';
+  position: absolute;
+  right: -8rem;
+  bottom: -20rem;
+  width: 46rem;
+  height: 46rem;
+  z-index: -1;
+  border: 1px solid rgba(196, 181, 253, 0.14);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 6rem rgba(139, 92, 246, 0.035),
+    0 0 0 12rem rgba(139, 92, 246, 0.025);
+  pointer-events: none;
 }
 
 .heroContent {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.6rem;
+  color: #d8d2e8;
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.eyebrowDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a78bfa;
+  box-shadow: 0 0 0 5px rgba(167, 139, 250, 0.14);
 }
 
 .heroTitle {
-  font-size: 4rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin-bottom: 1rem;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 880px;
+  margin: 0 0 1.5rem;
+  color: #fbfaff;
+  font-size: clamp(3.4rem, 6.5vw, 5.8rem);
+  font-weight: 760;
+  letter-spacing: -0.065em;
+  line-height: 0.98;
+  text-wrap: balance;
+  text-shadow: none;
+}
+
+.heroTitle span {
+  color: #a89cbf;
 }
 
 .heroSubtitle {
-  font-size: 1.5rem;
-  opacity: 0.95;
   max-width: 600px;
-  margin: 0 auto 2rem;
-  line-height: 1.5;
+  margin: 0 0 2.25rem;
+  color: #c5bfd2;
+  font-size: 1.18rem;
+  line-height: 1.65;
 }
 
 @media screen and (max-width: 996px) {
   .heroBanner {
-    padding: 3rem 1.5rem;
+    min-height: auto;
+    padding: 5.5rem 1.5rem;
   }
 
   .heroTitle {
-    font-size: 2.5rem;
+    max-width: 720px;
+    font-size: clamp(3rem, 10vw, 4.6rem);
   }
 
   .heroSubtitle {
-    font-size: 1.2rem;
-  }
-
-  .heroBanner::after {
-    background-image:
-      radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.1) 25px, transparent 25px),
-      radial-gradient(circle at 90% 15%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.07) 15px, transparent 15px),
-      radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.06) 12px, transparent 12px);
+    font-size: 1.08rem;
   }
 }
-
-/* ============================================
-   BUTTONS
-   ============================================ */
 
 .buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .primaryButton {
-  background: rgba(255, 255, 255, 0.95);
-  color: #4f46e5;
-  border: none;
-  padding: 0.85rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 10px;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 0.85rem 1.35rem;
+  border: 1px solid #f7f4ff;
+  border-radius: 8px;
+  background: #f7f4ff;
+  color: #24164a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 8px 28px rgba(8, 5, 15, 0.28);
+  transition: transform 160ms ease, background 160ms ease;
 }
 
 .primaryButton:hover {
-  background: #ffffff;
-  color: #3730a3;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: #fff;
+  color: #24164a;
+  transform: translateY(-2px);
 }
 
 .secondaryButton {
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  padding: 0.8rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 10px;
-  transition: all 0.25s ease;
+  padding: 0.85rem 1.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f7f4ff;
+  font-size: 0.95rem;
+  font-weight: 650;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
 }
 
 .secondaryButton:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: white;
-  color: white;
-  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
-/* ============================================
-   EXAMPLE SECTION
-   ============================================ */
-
 .example {
-  padding: 5rem 0;
-  background: var(--ifm-background-surface-color);
+  padding: 7rem 0;
+  background: var(--ifm-background-color);
   position: relative;
 }
 
-/* Subtle gradient separator line */
 .example::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80%;
-  max-width: 800px;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3), transparent);
-}
-
-.exampleContent {
-  display: flex;
-  align-items: flex-start;
-  gap: 3rem;
+  inset-inline: 0;
+  height: 1px;
+  background: rgba(99, 102, 241, 0.14);
 }
 
 .exampleText {
-  flex: 1;
+  padding-right: 4rem;
+  padding-top: 1rem;
+}
+
+.sectionLabel {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-primary);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
 .exampleText h2 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  max-width: 560px;
+  margin-bottom: 1.25rem;
+  color: var(--ifm-heading-color);
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-weight: 730;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
 }
 
 .exampleText p {
-  font-size: 1.15rem;
+  max-width: 560px;
+  margin-bottom: 2.25rem;
   color: var(--ifm-font-color-secondary);
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
+  font-size: 1.08rem;
+  line-height: 1.65;
 }
 
 .exampleCode {
-  flex: 1;
+  position: relative;
 }
 
-/* Feature list with node-style bullets */
 .example ul {
   list-style: none;
   padding-left: 0;
@@ -204,46 +209,64 @@
 }
 
 .example ul li {
-  margin-bottom: 1.25rem;
-  padding-left: 2rem;
+  margin-bottom: 1rem;
+  padding-left: 1.8rem;
   position: relative;
-  line-height: 1.6;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.65;
 }
 
-/* Node-style bullet points */
 .example ul li::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 0.55em;
-  width: 10px;
-  height: 10px;
+  top: 0.65em;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  background: #8b5cf6;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
 }
 
-/* Connection line between bullets */
 .example ul li:not(:last-child)::after {
   content: "";
   position: absolute;
-  left: 4px;
-  top: 1.4em;
-  width: 2px;
-  height: calc(100% + 0.5rem);
-  background: linear-gradient(180deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.1));
+  left: 3px;
+  top: 1.5em;
+  width: 1px;
+  height: calc(100% + 0.35rem);
+  background: rgba(139, 92, 246, 0.22);
 }
 
 @media screen and (max-width: 996px) {
   .example {
-    padding: 3rem 1.5rem;
+    padding: 5rem 1.5rem;
   }
 
-  .exampleContent {
+  .exampleText {
+    padding: 0 0 2.5rem;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .heroBanner {
+    padding: 4.5rem 1.25rem;
+  }
+
+  .heroTitle {
+    font-size: 3rem;
+  }
+
+  .buttons {
+    align-items: stretch;
     flex-direction: column;
   }
 
-  .exampleText h2 {
-    font-size: 1.8rem;
+  .buttons a {
+    width: 100%;
+  }
+
+  .example {
+    padding: 4rem 0.25rem;
   }
 }

@@ -7,8 +7,8 @@
    ============================================ */
 
 .features {
-  padding: 5rem 0;
-  background: var(--ifm-background-color);
+  padding: 7rem 0 8rem;
+  background: var(--ifm-background-surface-color);
   position: relative;
 }
 
@@ -30,25 +30,35 @@
 }
 
 .sectionTitle {
-  text-align: center;
-  margin-bottom: 3rem;
+  max-width: 680px;
+  margin-bottom: 3.5rem;
 }
 
 .sectionTitle h2 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-bottom: 1rem;
+  color: var(--ifm-heading-color);
+  font-size: clamp(2.2rem, 4vw, 3.4rem);
+  font-weight: 730;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
 }
 
 .sectionTitle p {
   font-size: 1.15rem;
   color: var(--ifm-font-color-secondary);
-  max-width: 600px;
-  margin: 0 auto;
+  max-width: 560px;
+  margin: 0;
+  line-height: 1.65;
+}
+
+.sectionLabel {
+  display: block;
+  margin-bottom: 1rem;
+  color: var(--ifm-color-primary);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
 /* ============================================
@@ -56,18 +66,18 @@
    ============================================ */
 
 .featureCard {
-  padding: 1.5rem;
+  padding: 0.6rem;
   height: 100%;
 }
 
 .featureCardInner {
-  background: var(--ifm-background-surface-color);
-  border-radius: 16px;
-  padding: 2rem 1.5rem;
+  background: var(--ifm-background-color);
+  border-radius: 12px;
+  padding: 1.75rem;
   height: 100%;
   position: relative;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(99, 102, 241, 0.1);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  border: 1px solid rgba(99, 102, 241, 0.12);
   overflow: hidden;
 }
 
@@ -88,9 +98,9 @@
 }
 
 .featureCardInner:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 50px rgba(99, 102, 241, 0.12);
-  border-color: transparent;
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(48, 36, 94, 0.1);
+  border-color: rgba(99, 102, 241, 0.32);
 }
 
 .featureCardInner:hover::before {
@@ -112,14 +122,17 @@
    ============================================ */
 
 .featureIcon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
-  margin: 0 auto 1.25rem;
+  color: var(--ifm-color-primary);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin: 0 0 2.5rem;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%);
   position: relative;
   transition: all 0.3s ease;
@@ -153,7 +166,7 @@
   font-size: 1.15rem;
   font-weight: 700;
   margin-bottom: 0.75rem;
-  text-align: center;
+  text-align: left;
   color: var(--ifm-heading-color);
 }
 
@@ -161,7 +174,7 @@
   font-size: 0.95rem;
   line-height: 1.6;
   color: var(--ifm-font-color-secondary);
-  text-align: center;
+  text-align: left;
   margin: 0;
 }
 

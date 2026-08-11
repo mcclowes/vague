@@ -11,8 +11,8 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Declarative Schemas',
-    emoji: '📝',
+    title: 'Declarative schemas',
+    emoji: '01',
     description: (
       <>
         Define the shape of your data once. Schemas describe structure, types,
@@ -21,8 +21,8 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Realistic Distributions',
-    emoji: '🎲',
+    title: 'Realistic distributions',
+    emoji: '02',
     description: (
       <>
         Express intent with weighted choices: <code>0.8: "active" | 0.2: "inactive"</code>.
@@ -31,8 +31,8 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Constraints That Work',
-    emoji: '✓',
+    title: 'Constraints that work',
+    emoji: '03',
     description: (
       <>
         Hard constraints like <code>assume due_date {'>='} issued_date</code> are enforced.
@@ -41,8 +41,8 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Cross-Record References',
-    emoji: '🔗',
+    title: 'Cross-record references',
+    emoji: '04',
     description: (
       <>
         Reference other records naturally: <code>customer: any of customers where .status == "active"</code>.
@@ -51,8 +51,8 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'OpenAPI Integration',
-    emoji: '📄',
+    title: 'OpenAPI integration',
+    emoji: '05',
     description: (
       <>
         Import schemas from OpenAPI specs. Validate generated data. Populate specs with realistic examples.
@@ -60,8 +60,8 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Edge Case Testing',
-    emoji: '🔬',
+    title: 'Edge-case testing',
+    emoji: '06',
     description: (
       <>
         Built-in generators for Unicode exploits, SQL injection patterns, and boundary values.
@@ -90,7 +90,8 @@ export default function HomepageFeatures(): ReactNode {
     <section className={styles.features}>
       <div className={clsx('container', styles.featuresContainer)}>
         <div className={styles.sectionTitle}>
-          <Heading as="h2">Why Vague?</Heading>
+          <span className={styles.sectionLabel}>Built for test suites</span>
+          <Heading as="h2">Useful data, not random noise.</Heading>
           <p>
             Generate realistic test data that respects your constraints and relationships.
           </p>
