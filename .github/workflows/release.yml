@@ -65,32 +65,3 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
-
-  publish-vscode:
-    name: Publish VSCode Extension
-    runs-on: ubuntu-latest
-    needs: release
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install root dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Install extension dependencies
-        run: cd vscode-vague && npm ci --ignore-scripts
-
-      - name: Build extension
-        run: cd vscode-vague && npm run build
-
-      - name: Publish to VS Code Marketplace
-        run: cd vscode-vague && npx vsce publish
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
