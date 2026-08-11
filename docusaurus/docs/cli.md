@@ -20,7 +20,7 @@ Control where and how Vague writes generated data:
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
-| `-f, --format <fmt>` | Output format: `json` (default), `csv` |
+| `-f, --format <fmt>` | Output format: `json` (default), `csv`, `ndjson` |
 | `-p, --pretty` | Pretty-print JSON output |
 
 ```bash
@@ -32,6 +32,9 @@ vague data.vague -p
 
 # CSV format
 vague data.vague -f csv -o data.csv
+
+# NDJSON format (newline-delimited JSON)
+vague data.vague -f ndjson -o data.ndjson
 ```
 
 ## Reproducibility
@@ -41,7 +44,7 @@ Generate consistent output across runs:
 | Option | Description |
 |--------|-------------|
 | `-s, --seed <number>` | Seed for reproducible generation |
-| `-w, --watch` | Watch input file and regenerate on changes |
+| `-w, --watch` | Watch input file and regenerate on changes (requires `-o`) |
 
 ```bash
 # Reproducible output
@@ -132,8 +135,11 @@ Reverse-engineer Vague schemas from existing data:
 |--------|-------------|
 | `--infer <file>` | Infer schema from JSON/CSV |
 | `--collection-name <name>` | Collection name for CSV |
-| `--dataset-name <name>` | Dataset name for inference |
+| `--dataset-name <name>` | Dataset name for inference (default: `Generated`) |
 | `--infer-delimiter <char>` | CSV delimiter (default: `,`) |
+| `--no-formats` | Disable format detection (uuid, email, etc.) |
+| `--no-weights` | Disable weighted superpositions |
+| `--max-enum <n>` | Max unique values for enum detection (default: 10) |
 
 ```bash
 # Infer from JSON
@@ -149,8 +155,9 @@ Validate external JSON data against Vague schema constraints:
 
 | Option | Description |
 |--------|-------------|
-| `--validate-data <file>` | Validate JSON against Vague schema |
+| `--validate-data <file>` | Validate JSON against Vague schema (requires `--schema`) |
 | `--schema <file>` | Schema file for data validation |
+| `--dataset <name>` | Dataset name for `validate {}` block constraints |
 
 ```bash
 # Validate external data
@@ -163,8 +170,8 @@ Generate TypeScript type definitions from schemas:
 
 | Option | Description |
 |--------|-------------|
-| `--typescript` | Generate TypeScript definitions |
-| `--ts-only` | Only TypeScript (no .vague) |
+| `--typescript` | Generate TypeScript definitions (inference mode only) |
+| `--ts-only` | Only TypeScript (no .vague, inference mode only) |
 
 ```bash
 # Generate TypeScript
@@ -191,14 +198,46 @@ vague data.vague --plugins ./custom-plugins
 vague data.vague --no-auto-plugins --plugins ./plugins
 ```
 
+## Mock Server
+
+Serve generated data over HTTP instead of writing files:
+
+| Option | Description |
+|--------|-------------|
+| `--serve [port]` | Start HTTP mock server (default port: 3000) |
+
+```bash
+vague data.vague --serve          # http://localhost:3000
+vague data.vague --serve 8080    # Custom port
+```
+
+Each collection becomes an endpoint (`GET /invoices`, `GET /invoices/:index`).
+
+## Enterprise Reporting
+
+Generate audit trails and reports for compliance:
+
+| Option | Description |
+|--------|-------------|
+| `--report <file>` | Generate report (`.html` and `.md` detected by extension; anything else gets JSON) |
+| `--report-format <fmt>` | Report format override: `json`, `html`, `markdown` |
+| `--audit-log <file>` | Append audit log entry to JSONL file |
+| `--baseline <file>` | Compare against baseline report for distribution drift (requires `--report`) |
+
+```bash
+vague data.vague -o data.json --report report.html
+vague data.vague --audit-log audit.jsonl
+vague data.vague --report new.json --baseline old.json
+```
+
 ## Debugging
 
 Enable detailed logging for troubleshooting:
 
 | Option | Description |
 |--------|-------------|
-| `--debug` | Enable debug logging |
-| `--log-level <level>` | Set log level |
+| `-d, --debug` | Enable debug logging |
+| `--log-level <level>` | Set log level: `none`, `error`, `warn`, `info`, `debug` |
 | `--verbose` | Show verbose output |
 
 ```bash
@@ -270,6 +309,11 @@ vague examples.vague \
 
 Create `vague.config.js` for default options:
 
+| Option | Description |
+|--------|-------------|
+| `-c, --config <file>` | Use specific config file (default: auto-detect `vague.config.js`) |
+| `--no-config` | Skip loading config file |
+
 ```javascript
 // vague.config.js
 export default {
@@ -284,5 +328,4 @@ export default {
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | Validation or generation error |
-| 2 | Invalid arguments |
+| 1 | Validation, generation, or argument error |

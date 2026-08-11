@@ -35,8 +35,11 @@ examples/              # Example .vague files
 
 ```bash
 npm run build    # Compile TypeScript
-npm test         # Run tests (vitest)
+npm run test:run # Run tests once (vitest run)
+npm test         # Run tests in watch mode (vitest)
 npm run dev      # Watch mode compilation
+npm run lint     # Lint with eslint
+npm run format:check  # Check formatting with prettier
 node dist/cli.js <file.vague>  # Run CLI
 node dist/cli.js <file.vague> -o output.json -w  # Watch mode
 node dist/cli.js <file.vague> --debug  # Enable debug logging
@@ -88,6 +91,13 @@ display: match status {
 // Conditional fields
 companyNumber: string when type == "business"
 
+// Annotations (metadata on schemas/fields, preserved in the AST)
+#description: "Customer-facing invoice"
+schema Invoice {
+  #indexed
+  invoice_number: string
+}
+
 // Side effects
 schema Payment { invoice: any of invoices, amount: int }
 then { invoice.amount_paid += amount }
@@ -107,7 +117,7 @@ schema Payment { amount: int, invariant amount > 0 "Payment must be positive" }
 ## Built-in Plugins
 
 ### Faker Plugin
-Common shorthand generators: `uuid()`, `email()`, `phone()`, `firstName()`, `lastName()`, `fullName()`, `companyName()`, `city()`, `country()`, `sentence()`, `paragraph()`
+Common shorthand generators: `uuid()`, `email()`, `phone()`, `firstName()`, `lastName()`, `fullName()`, `companyName()`, `streetAddress()`, `city()`, `country()`, `countryCode()`, `zipCode()`, `url()`, `avatar()`, `iban()`, `currencyCode()`, `pastDate()`, `futureDate()`, `recentDate()`, `sentence()`, `paragraph()`
 
 Full namespace: `faker.person.firstName()`, `faker.internet.email()`, `faker.lorem.paragraph()`, etc.
 
@@ -119,8 +129,9 @@ Generates problematic but valid values for testing edge cases:
 - Dates: `issuer.leapDay()`, `issuer.y2k()`, `issuer.epoch()`, `issuer.farFuture()`
 - Formats: `issuer.weirdEmail()`, `issuer.weirdUrl()`, `issuer.specialUuid()`
 
-### Dates Plugin
+### Date Plugin
 Day-of-week filtering: `date.weekday(2024, 2025)`, `date.weekend(2024, 2025)`, `date.dayOfWeek(1, 2024, 2025)`
+Durations for date arithmetic: `date.days(n)`, `date.weeks(n)`, `date.months(n)`, `date.years(n)`, `date.hours(n)`, `date.minutes(n)` — e.g. `due_date: issued_date + date.days(30)`
 
 ### Regex Plugin
 Pattern generation: `regex("[A-Z]{3}-[0-9]{4}")`, `alphanumeric(32)`, `digits(6)`, `semver()`
@@ -183,40 +194,40 @@ Run `node dist/cli.js --help` for full usage. Key options:
 | Option | Description |
 |--------|-------------|
 | `-o, --output <file>` | Write output to file |
-| `-f, --format <fmt>` | Output format: `json`, `csv`, `ndjson` |
+| `-f, --format <fmt>` | Output format: `json` (default), `csv`, `ndjson` |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
-| `-w, --watch` | Watch input file and regenerate |
+| `-w, --watch` | Watch input file and regenerate (requires `-o`) |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping |
 | `--validate-only` | Only validate, don't output data |
 | `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
 | `--csv-no-header` | Omit CSV header row |
-| `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
-| `--csv-nested <mode>` | Nested objects: `flatten`, `json` |
+| `--csv-arrays <mode>` | Array handling: `json` (default), `first`, `count` |
+| `--csv-nested <mode>` | Nested objects: `flatten` (default), `json` |
 | `--infer <file>` | Infer schema from JSON/CSV |
-| `--dataset-name <name>` | Dataset name for inference |
+| `--dataset-name <name>` | Dataset name for inference (default: `Generated`) |
 | `--collection-name <name>` | Collection name for CSV inference |
-| `--infer-delimiter <char>` | CSV delimiter for inference |
+| `--infer-delimiter <char>` | CSV delimiter for inference (default: `,`) |
 | `--no-formats` | Disable format detection (uuid, email, etc.) |
 | `--no-weights` | Disable weighted superpositions |
-| `--max-enum <n>` | Max unique values for enum detection |
-| `--typescript` | Generate TypeScript definitions |
-| `--ts-only` | Generate only TypeScript (no .vague) |
+| `--max-enum <n>` | Max unique values for enum detection (default: 10) |
+| `--typescript` | Generate TypeScript definitions (inference mode only) |
+| `--ts-only` | Generate only TypeScript, no .vague (inference mode only) |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
 | `--oas-output <file>` | Write OpenAPI spec with examples to file |
 | `--oas-external` | Use external file references instead of inline |
 | `--oas-example-count <n>` | Examples per schema (default: 1) |
-| `--validate-data <file>` | Validate JSON against Vague schema |
+| `--validate-data <file>` | Validate JSON against Vague schema (requires `--schema`) |
 | `--schema <file>` | Schema file for data validation |
 | `--dataset <name>` | Dataset name for `validate {}` block constraints |
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results |
 | `--serve [port]` | Start HTTP mock server (default: 3000) |
-| `--report <file>` | Generate enterprise report (JSON/HTML/Markdown by extension) |
+| `--report <file>` | Generate enterprise report (`.html`/`.md` by extension, otherwise JSON) |
 | `--report-format <fmt>` | Report format override: `json`, `html`, `markdown` |
 | `--audit-log <file>` | Append audit log entry to JSONL file |
-| `--baseline <file>` | Compare against baseline report for distribution drift |
+| `--baseline <file>` | Compare against baseline report for distribution drift (requires `--report`) |
 | `-c, --config <file>` | Use specific config file |
 | `--no-config` | Skip loading config file |
 | `-d, --debug` | Enable debug logging |
@@ -224,6 +235,7 @@ Run `node dist/cli.js --help` for full usage. Key options:
 | `--plugins <dir>` | Load plugins from directory (repeatable) |
 | `--no-auto-plugins` | Disable automatic plugin discovery |
 | `--verbose` | Show verbose output (e.g., discovered plugins) |
+| `-h, --help` | Show help |
 
 ## OpenAPI Integration
 
@@ -232,6 +244,11 @@ Run `node dist/cli.js --help` for full usage. Key options:
 import petstore from "petstore.json"
 schema Pet from petstore.Pet { age: int in 1..15 }
 ```
+
+Import behavior:
+- Input documents are validated on import; malformed specs fail with a clear error.
+- `oneOf`/`anyOf`/`allOf` compositions (including at the top level of a schema) become variants; one variant is picked at random per generated instance.
+- Unsupported keywords produce an `OpenAPIImport` warning (the import is approximate); validation described only in prose produces an `OpenAPIValidationGap` warning.
 
 ```bash
 # Validate generated data
@@ -301,7 +318,7 @@ Components: `lexer`, `parser`, `generator`, `constraint`, `validator`, `plugin`,
 
 ## Testing
 
-Tests colocated with source (`*.test.ts`). Run with `npm test`.
+Tests colocated with source (`*.test.ts`). Run once with `npm run test:run`; `npm test` starts vitest in watch mode.
 
 ## Architecture
 
@@ -373,7 +390,7 @@ node dist/cli.js schema.vague --audit-log audit.jsonl             # Append JSONL
 node dist/cli.js schema.vague --report new.json --baseline old.json  # Drift detection
 ```
 
-Reports include synthetic data attestation, per-field statistics (types, null %, cardinality, numeric stats), value distributions, warnings, and performance metrics. Drift is measured with Jensen-Shannon divergence (flagged significant above 15%).
+Reports include synthetic data attestation, per-field statistics (types, null %, cardinality, numeric stats), value distributions, warnings, and performance metrics. Drift on fields with value distributions is measured with Jensen-Shannon divergence (flagged significant above 15%); fields with only numeric stats use a mean-difference-over-stddev ratio (flagged above 20%).
 
 Programmatic API:
 
@@ -408,9 +425,10 @@ import {
 const result = compareDatasets(golden, actual, {
   numericTolerance: 0.01,      // Allow small float differences
   ignoreFields: ['timestamp'], // Skip certain fields
-  orderSensitive: true,        // Record order matters (default: true)
   maxDiffsPerCollection: 10,   // Limit reported differences
 });
+// Note: records are always compared in order (the declared orderSensitive
+// option is not implemented yet)
 if (!result.identical) console.log(formatComparisonResult(result));
 
 // Detect breaking changes between schema versions

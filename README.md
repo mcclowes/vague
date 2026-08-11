@@ -63,12 +63,34 @@ dataset TestData {
 Generate JSON:
 
 ```bash
-node dist/cli.js your-file.vague
+npx vague your-file.vague       # Local install
+vague your-file.vague           # Global install
 ```
+
+(Working from a clone of this repo? Use `node dist/cli.js` instead of `vague` after `npm run build`.)
 
 ## Syntax Cheat Sheet
 
 For a quick reference of all syntax, see **[SYNTAX.md](SYNTAX.md)**.
+
+## Library Usage
+
+Vague also works as a TypeScript/JavaScript library:
+
+```typescript
+import { fromFile, vague } from 'vague-lang';
+
+// File-based (recommended)
+const data = await fromFile('./fixtures.vague', { seed: 42 });
+
+// Tagged template
+const data = await vague`
+  schema Person { name: string, age: int in 18..65 }
+  dataset Test { people: 10 of Person }
+`;
+```
+
+See [CLAUDE.md](CLAUDE.md) for the full programmatic API, including validation, reporting, dataset comparison, and schema diff.
 
 ## Language Features
 
@@ -360,10 +382,19 @@ The `examples/` directory contains organized examples for learning and reference
 - `twilio/` - Communications platform
 - `graphql/` - GraphQL-specific patterns
 
+**Schema Inference:**
+- `codegen-inference/` - Generating Vague schemas from JSON data
+- `wine-inference/` - Inferring a schema from a real dataset
+
 **Advanced Topics:**
 - `http-testing/` - HTTP request/response patterns
 - `custom-plugins/` - Creating custom plugins
 - `vitest-fixtures/` - Test data for Vitest
+- `multiple-schemas/` - Composing several schemas
+- `graphs/` - Graph-shaped data
+- `fpl/` - Fantasy football data
+- `music/` - Generative music data
+- `contracts.vague`, `match-expressions.vague` - Single-file feature demos
 
 ## CLI Usage
 
@@ -443,17 +474,17 @@ node dist/cli.js file.vague --report new.json --baseline old.json  # Distributio
 | `-f, --format <fmt>` | Output format: `json` (default), `csv`, `ndjson` |
 | `-p, --pretty` | Pretty-print JSON |
 | `-s, --seed <number>` | Seed for reproducible generation |
-| `-w, --watch` | Watch input file and regenerate on changes |
+| `-w, --watch` | Watch input file and regenerate on changes (requires `-o`) |
 | `-v, --validate <spec>` | Validate against OpenAPI spec |
 | `-m, --mapping <json>` | Schema mapping `{"collection": "SchemaName"}` |
 | `--validate-only` | Only validate, don't output data |
-| `--validate-data <file>` | Validate external JSON data against Vague schema |
+| `--validate-data <file>` | Validate external JSON data against Vague schema (requires `--schema`) |
 | `--schema <file>` | Schema file for data validation |
 | `--dataset <name>` | Dataset name for `validate {}` block constraints |
 | `--csv-delimiter <char>` | CSV field delimiter (default: `,`) |
 | `--csv-no-header` | Omit CSV header row |
-| `--csv-arrays <mode>` | Array handling: `json`, `first`, `count` |
-| `--csv-nested <mode>` | Nested objects: `flatten`, `json` |
+| `--csv-arrays <mode>` | Array handling: `json` (default), `first`, `count` |
+| `--csv-nested <mode>` | Nested objects: `flatten` (default), `json` |
 | `--infer <file>` | Infer Vague schema from JSON or CSV data |
 | `--collection-name <name>` | Collection name for CSV inference |
 | `--infer-delimiter <char>` | CSV delimiter for inference (default: `,`) |
@@ -461,8 +492,8 @@ node dist/cli.js file.vague --report new.json --baseline old.json  # Distributio
 | `--no-formats` | Disable format detection during inference (uuid, email, etc.) |
 | `--no-weights` | Disable weighted superpositions during inference |
 | `--max-enum <n>` | Max unique values for enum detection (default: 10) |
-| `--typescript` | Generate TypeScript definitions alongside output |
-| `--ts-only` | Generate only TypeScript definitions (no .vague) |
+| `--typescript` | Generate TypeScript definitions (inference mode only) |
+| `--ts-only` | Generate only TypeScript definitions, no .vague (inference mode only) |
 | `--oas-source <spec>` | Source OpenAPI spec to populate with examples |
 | `--oas-output <file>` | Output path for populated OpenAPI spec |
 | `--oas-example-count <n>` | Number of examples per schema (default: 1) |
@@ -470,15 +501,15 @@ node dist/cli.js file.vague --report new.json --baseline old.json  # Distributio
 | `--lint-spec <file>` | Lint OpenAPI spec with Spectral |
 | `--lint-verbose` | Show detailed lint results (includes hints) |
 | `--serve [port]` | Start HTTP mock server (default: 3000) |
-| `--report <file>` | Generate enterprise report (JSON/HTML/Markdown by extension) |
+| `--report <file>` | Generate enterprise report (`.html`/`.md` by extension, otherwise JSON) |
 | `--report-format <fmt>` | Report format override: `json`, `html`, `markdown` |
 | `--audit-log <file>` | Append audit log entry to JSONL file |
-| `--baseline <file>` | Compare against baseline report for distribution drift |
+| `--baseline <file>` | Compare against baseline report for distribution drift (requires `--report`) |
 | `-c, --config <file>` | Use specific config file (default: auto-detect `vague.config.js`) |
 | `--no-config` | Skip loading config file |
 | `--plugins <dir>` | Load plugins from directory (can be used multiple times) |
 | `--no-auto-plugins` | Disable automatic plugin discovery |
-| `--debug` | Enable debug logging |
+| `-d, --debug` | Enable debug logging |
 | `--log-level <level>` | Set log level: `none`, `error`, `warn`, `info`, `debug` |
 | `--verbose` | Show verbose output (e.g., discovered plugins) |
 | `-h, --help` | Show help |
@@ -576,8 +607,9 @@ VAGUE_DEBUG=generator,constraint node dist/cli.js file.vague
 
 ```bash
 npm run build     # Compile TypeScript
-npm test          # Run tests
-npm run dev       # Watch mode
+npm run test:run  # Run tests once
+npm test          # Run tests in watch mode
+npm run dev       # Watch mode compilation
 ```
 
 ## Project Structure
@@ -591,6 +623,8 @@ src/
 ├── validator/         # Schema validation (Ajv)
 ├── openapi/           # OpenAPI import support
 ├── infer/             # Schema inference from data
+├── compare/           # Golden dataset comparison and schema diff
+├── reporting/         # Enterprise reporting and audit trails
 ├── csv/               # CSV input/output formatting
 ├── ndjson/            # NDJSON (newline-delimited JSON) formatting
 ├── config/            # Configuration file loading (vague.config.js)
@@ -623,6 +657,7 @@ This project includes Claude Code skills that help Claude assist you more effect
 | Skill | Description |
 |-------|-------------|
 | `vague` | Writing Vague (.vague) files - syntax, constraints, cross-references |
+| `vague-plugin-faker` | Using faker generators in .vague files |
 | `openapi` | Working with OpenAPI specs - validation, schemas, best practices |
 
 ### Installation via OpenSkills

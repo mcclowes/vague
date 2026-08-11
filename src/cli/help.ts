@@ -12,7 +12,7 @@ Usage:
 
 Options:
   -o, --output <file>      Write output to file (default: stdout)
-  -f, --format <fmt>       Output format: json (default), csv
+  -f, --format <fmt>       Output format: json (default), csv, ndjson
   -p, --pretty             Pretty-print JSON output
   -s, --seed <number>      Seed for reproducible random generation
   -w, --watch              Watch input file and regenerate on changes
@@ -52,7 +52,7 @@ Data Validation:
 
 OpenAPI Example Population:
   --oas-output <file>      Write OpenAPI spec with examples to file
-  --oas-source <spec>      Source OpenAPI spec to populate (auto-detected if using import)
+  --oas-source <spec>      Source OpenAPI spec to populate (required with --oas-output)
   --oas-external           Use external file references instead of inline examples
   --oas-example-count <n>  Number of examples per schema (default: 1)
 

@@ -112,6 +112,7 @@ Options:
 - `--dataset-name <name>`: Name for generated dataset (default: `Generated`)
 - `--no-formats`: Disable format detection (uuid, email, etc.)
 - `--no-weights`: Disable weighted superpositions
+- `--max-enum <n>`: Max unique values for enum detection (default: 10)
 
 ## Auto-Detection
 
@@ -133,8 +134,9 @@ node dist/cli.js --validate-data data.json --schema schema.vague -m '{"invoices"
 ```
 
 Options:
-- `--validate-data <file>`: JSON data file to validate
+- `--validate-data <file>`: JSON data file to validate (requires `--schema`)
 - `--schema <file>`: Vague schema file with constraints
+- `--dataset <name>`: Dataset name for `validate {}` block constraints
 
 ## TypeScript Generation
 
@@ -192,7 +194,7 @@ Options:
 - `--report <file>`: Report path; format auto-detected from extension
 - `--report-format <fmt>`: Override format: `json`, `html`, `markdown`
 - `--audit-log <file>`: Append audit log entry to JSONL file
-- `--baseline <file>`: Baseline report for drift comparison
+- `--baseline <file>`: Baseline report for drift comparison (requires `--report`)
 
 ## Watch Mode
 
@@ -201,6 +203,17 @@ Regenerate output when input file changes:
 ```bash
 node dist/cli.js data.vague -o output.json -w
 ```
+
+## Configuration File
+
+```bash
+node dist/cli.js schema.vague -c ./custom-config.js   # Specific config file
+node dist/cli.js schema.vague --no-config             # Skip config loading
+```
+
+Options:
+- `-c, --config <file>`: Use specific config file (default: auto-detect `vague.config.js`)
+- `--no-config`: Skip loading config file
 
 ## Debug Mode
 

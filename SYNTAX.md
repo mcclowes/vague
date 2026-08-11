@@ -5,35 +5,42 @@ Quick reference for all Vague language syntax.
 ## Primitives
 
 ```vague
-name: string          # Random string
-age: int              # Random integer
-price: decimal        # Random decimal
-active: boolean       # true or false
-joined: date          # ISO date (YYYY-MM-DD)
+name: string          // Random string
+age: int              // Random integer
+price: decimal        // Random decimal
+active: boolean       // true or false
+joined: date          // ISO date (YYYY-MM-DD)
 ```
 
 ## Ranges
 
 ```vague
-age: int in 18..65              # Integer range
-price: decimal in 0.01..999.99  # Decimal range
-founded: date in 2000..2023     # Date range (years)
+age: int in 18..65              // Integer range
+price: decimal in 0.01..999.99  // Decimal range
+founded: date in 2000..2023     // Date range (years)
+
+// Decimal with explicit precision
+score: decimal(1) in 0..10      // 1 decimal place
+amount: decimal(2) in 10..100   // 2 decimal places
+
+// Open-ended (no upper bound)
+retries: int in 18..
 ```
 
 ## Superposition (Random Choice)
 
 ```vague
-# Equal probability
+// Equal probability
 status: "draft" | "sent" | "paid"
 
-# Weighted probability
+// Weighted probability
 status: 0.6: "paid" | 0.3: "pending" | 0.1: "draft"
 
-# Mixed: unweighted options share remaining probability
-status: 0.85: "Active" | "Archived"         # "Archived" gets 15%
-category: 0.6: "main" | "side" | "dessert"  # "side" and "dessert" get 20% each
+// Mixed: unweighted options share remaining probability
+status: 0.85: "Active" | "Archived"         // "Archived" gets 15%
+category: 0.6: "main" | "side" | "dessert"  // "side" and "dessert" get 20% each
 
-# Mixed types (range OR reference)
+// Mixed types (range OR reference)
 amount: int in 10..500 | invoice.total
 amount: 0.7: int in 10..500 | 0.3: invoice.total
 ```
@@ -41,8 +48,8 @@ amount: 0.7: int in 10..500 | 0.3: invoice.total
 ## Nullable Fields
 
 ```vague
-nickname: string?        # Preferred: shorthand syntax
-notes: string | null     # Alternative: explicit null
+nickname: string?        // Preferred: shorthand syntax
+notes: string | null     // Alternative: explicit null
 ```
 
 ## Annotations
@@ -66,40 +73,61 @@ Annotation values may be strings, integers, or booleans. An annotation without a
 
 ```vague
 schema Person {
-  # Generated but excluded from output
+  // Generated but excluded from output
   age: private int in 0..105,
-  age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior"
-}
-# Output: { "age_bracket": "adult" } -- no "age" field
+  age_bracket: age < 18 ? "minor" : age < 65 ? "adult" : "senior",
 
-# Can combine with unique
-internal_id: unique private int in 1..10000
+  // Can combine with unique
+  internal_id: unique private int in 1..10000
+}
+// Output: { "age_bracket": "adult", "internal_id": ... } -- no "age" field
 ```
 
 ## Ordered Sequences (Cycling Lists)
 
 ```vague
-# Cycles through values in order
-pitch: [48, 52, 55, 60]           # C-E-G-C arpeggio
-color: ["red", "green", "blue"]   # Cycles: red, green, blue, red...
-value: [1+1, 2+2, 3+3]            # Cycles: 2, 4, 6, 2, 4, 6...
+// Cycles through values in order
+pitch: [48, 52, 55, 60]           // C-E-G-C arpeggio
+color: ["red", "green", "blue"]   // Cycles: red, green, blue, red...
+value: [1+1, 2+2, 3+3]            // Cycles: 2, 4, 6, 2, 4, 6...
 ```
 
 ## Collections (Cardinality)
 
 ```vague
-items: 5 of LineItem           # Exactly 5
-items: 1..5 of LineItem        # 1 to 5 (random)
+items: 5 of LineItem           // Exactly 5
+items: 1..5 of LineItem        // 1 to 5 (random)
 
-# Dynamic cardinality
+// Dynamic cardinality
 items: (size == "large" ? 5..10 : 1..3) of LineItem
 ```
 
 ## Unique Values
 
 ```vague
-id: unique int in 1000..9999        # No duplicate IDs
-code: unique "A" | "B" | "C" | "D"  # No duplicate codes
+id: unique int in 1000..9999        // No duplicate IDs
+code: unique "A" | "B" | "C" | "D"  // No duplicate codes
+```
+
+## Conditional Fields
+
+```vague
+schema Account {
+  type: "personal" | "business",
+  companyNumber: string when type == "business"  // Only exists when condition holds
+}
+```
+
+## Let Bindings
+
+```vague
+// Top-level constants usable in any expression
+let tax_rate = 0.2
+
+schema Invoice {
+  subtotal: decimal in 100..1000,
+  tax: round(subtotal * tax_rate, 2)
+}
 ```
 
 ---
@@ -107,15 +135,15 @@ code: unique "A" | "B" | "C" | "D"  # No duplicate codes
 ## Constraints
 
 ```vague
-# Simple constraint
+// Simple constraint
 assume due_date >= issued_date
 
-# Conditional constraint
+// Conditional constraint
 assume if status == "paid" {
   amount > 0
 }
 
-# Logical operators: and, or, not
+// Logical operators: and, or, not
 assume price > 50 or category == "budget"
 assume not discount > 40
 assume status == "active" and verified == true
@@ -124,13 +152,13 @@ assume status == "active" and verified == true
 ## Cross-Record References
 
 ```vague
-# Random item from collection
+// Random item from collection
 customer: any of customers
 
-# Filtered reference (. = current item being tested)
+// Filtered reference (. = current item being tested)
 customer: any of customers where .status == "active"
 
-# Multiple conditions
+// Multiple conditions
 charge: any of charges where .status == "succeeded" and .amount > 0
 ```
 
@@ -140,12 +168,12 @@ charge: any of charges where .status == "succeeded" and .amount > 0
 
 ```vague
 schema LineItem {
-  currency: ^base_currency    # ^ = parent schema's field
+  currency: ^base_currency    // ^ = parent schema's field
 }
 
 schema Invoice {
   base_currency: "USD" | "EUR",
-  items: 1..5 of LineItem        # LineItem inherits currency
+  items: 1..5 of LineItem        // LineItem inherits currency
 }
 ```
 
@@ -154,7 +182,7 @@ schema Invoice {
 ## Computed Fields
 
 ```vague
-# Aggregates
+// Aggregates
 total: sum(items.amount)
 count: count(items)
 average: avg(items.price)
@@ -165,12 +193,12 @@ first_item: first(items.price)
 last_item: last(items.price)
 multiplied: product(items.quantity)
 
-# Arithmetic
+// Arithmetic
 tax: total * 0.2
 grand_total: sum(items.amount) * 1.2
 
-# Rounding
-tax: round(subtotal * 0.2, 2)    # 2 decimal places
+// Rounding
+tax: round(subtotal * 0.2, 2)    // 2 decimal places
 floored: floor(value, 1)
 ceiled: ceil(value, 0)
 ```
@@ -178,13 +206,13 @@ ceiled: ceil(value, 0)
 ## Ternary Expressions
 
 ```vague
-# Simple conditional
+// Simple conditional
 status: amount_paid >= total ? "paid" : "pending"
 
-# Nested ternary
+// Nested ternary
 grade: score >= 90 ? "A" : score >= 70 ? "B" : "C"
 
-# With logical operators
+// With logical operators
 discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 ```
 
@@ -193,14 +221,14 @@ discount: (total >= 100 and is_member) or has_coupon ? 0.15 : 0
 Pattern matching for cleaner multi-way branching:
 
 ```vague
-# Map values to display text
+// Map values to display text
 display_status: match status {
   "pending" => "Awaiting shipment",
   "shipped" => "On the way",
   "delivered" => "Complete"
 }
 
-# Match on numeric values
+// Match on numeric values
 label: match stars {
   1 => "terrible",
   2 => "poor",
@@ -209,7 +237,7 @@ label: match stars {
   5 => "excellent"
 }
 
-# Match with computed results
+// Match with computed results
 final_price: match tier {
   "basic" => base_price,
   "standard" => base_price * 1.5,
@@ -222,20 +250,20 @@ final_price: match tier {
 ## String Transformations
 
 ```vague
-# Case transformations
-upper: uppercase(name)         # "HELLO WORLD"
-lower: lowercase(name)         # "hello world"
-cap: capitalize(name)          # "Hello World"
+// Case transformations
+upper: uppercase(name)         // "HELLO WORLD"
+lower: lowercase(name)         // "hello world"
+cap: capitalize(name)          // "Hello World"
 
-# Case style conversions
-slug: kebabCase(title)         # "hello-world"
-snake: snakeCase(title)        # "hello_world"
-camel: camelCase(title)        # "helloWorld"
+// Case style conversions
+slug: kebabCase(title)         // "hello-world"
+snake: snakeCase(title)        // "hello_world"
+camel: camelCase(title)        // "helloWorld"
 
-# String manipulation
-trimmed: trim("  hello  ")     # "hello"
-combined: concat(a, " ", b)    # "John Doe"
-part: substring(name, 0, 5)    # First 5 chars
+// String manipulation
+trimmed: trim("  hello  ")     // "hello"
+combined: concat(a, " ", b)    // "John Doe"
+part: substring(name, 0, 5)    // First 5 chars
 replaced: replace(s, "a", "b")
 len: length(name)
 ```
@@ -247,11 +275,27 @@ len: length(name)
 id: uuid()
 email: email()
 phone: phone()
-name: firstName() | lastName() | fullName()
+first: firstName()
+last: lastName()
+name: fullName()
 company: companyName()
 address: streetAddress()
-location: city() | state() | zipCode()
+city_name: city()
+country_name: country()
+country_code: countryCode()
+zip: zipCode()
+website: url()
+avatar_url: avatar()
+bank_account: iban()
+currency: currencyCode()
+joined: pastDate()
+renewal: futureDate()
+seen: recentDate()
 text: sentence()
+bio: paragraph()
+
+// Note: generator calls can't be combined in a superposition
+// (uuid() | email() does not parse); use one generator per field
 ```
 
 ### Faker Integration
@@ -259,228 +303,234 @@ text: sentence()
 product: faker.commerce.productName()
 bio: faker.lorem.paragraph()
 avatar: faker.image.avatar()
-version: faker.system.semver()
+job: faker.person.jobTitle()
 commit: faker.git.commitSha()
 url: faker.internet.url()
 ```
 
 ### Dates Plugin
 ```vague
-# Weekday dates only (Monday-Friday)
+// Weekday dates only (Monday-Friday)
 meeting_date: date.weekday(2024, 2025)
 
-# Weekend dates only
+// Weekend dates only
 party_date: date.weekend(2024, 2025)
 
-# Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
+// Specific day of week (0=Sun, 1=Mon, ..., 6=Sat)
 monday: date.dayOfWeek(1, 2024, 2025)
 
-# ISO string ranges also work
+// ISO string ranges also work
 q1: date.weekday("2024-01-01", "2024-03-31")
 
-# Shorthand (no namespace)
+// Shorthand (no namespace)
 meeting: weekday(2024, 2025)
 party: weekend(2024, 2025)
+
+// Durations (for date arithmetic: date + duration = new date)
+due_date: issued_date + date.days(30)
+expires: today() + date.years(1)
+// Also: date.weeks(n), date.months(n), date.hours(n), date.minutes(n)
 ```
 
 ### Regex Plugin
 Generate strings from regex patterns and validate with pattern matching.
 
 ```vague
-# Generate strings matching a pattern
+// Generate strings matching a pattern
 sku: regex("[A-Z]{3}-[0-9]{4}")
-code: pattern("[A-Z]{2}[0-9]{6}")        # alias for regex()
+code: pattern("[A-Z]{2}[0-9]{6}")        // alias for regex()
 
-# Pattern testing in constraints
+// Pattern testing in constraints
 assume matches("^[A-Z]{3}-[0-9]+$", custom_id)
 
-# Common pattern shortcuts
-alphanumeric_code: alphanumeric(8)        # 8 alphanumeric chars
-numeric_code: digits(6)                   # 6 digits
-alpha_code: alpha(4)                      # 4 letters
-hex_code: hexString(8)                    # 8 hex chars
-url_slug: slug(2, 4)                      # slug with 2-4 words
-version: semver()                         # semantic version "1.2.3"
-color: colorHex()                         # "#a1b2c3"
-tag: hashtag(1, 3)                        # "#camelCaseTag"
-handle: mention(3, 15)                    # "@username123"
-plate: licensePlate("us")                 # "ABC-1234"
-zip: postalCode("us")                     # "12345" or "12345-6789"
-ipv4: regex.ip("v4")                      # "192.168.1.1"
-macAddr: regex.mac()                      # "AB:CD:EF:12:34:56"
+// Common pattern shortcuts
+alphanumeric_code: alphanumeric(8)        // 8 alphanumeric chars
+numeric_code: digits(6)                   // 6 digits
+alpha_code: alpha(4)                      // 4 letters
+hex_code: hexString(8)                    // 8 hex chars
+url_slug: slug(2, 4)                      // slug with 2-4 words
+version: semver()                         // semantic version "1.2.3"
+color: colorHex()                         // "#a1b2c3"
+tag: hashtag(1, 3)                        // "#camelCaseTag"
+handle: mention(3, 15)                    // "@username123"
+plate: licensePlate("us")                 // "ABC-1234"
+zip: postalCode("us")                     // "12345" or "12345-6789"
+ipv4: regex.ip("v4")                      // "192.168.1.1"
+macAddr: regex.mac()                      // "AB:CD:EF:12:34:56"
 ```
 
 ### Issuer Plugin (Edge Case Testing)
 Generate problematic but valid values for testing edge cases and system limits.
 
 ```vague
-# Unicode edge cases
-invisible: issuer.zeroWidth()             # Strings with zero-width chars
-reversed: issuer.rtl()                    # Right-to-left override text
-lookalike: issuer.homoglyph("admin")      # Lookalike chars (аdmin vs admin)
-complex_emoji: issuer.emoji()             # Multi-codepoint emoji 👨‍👩‍👧‍👦
-stacked: issuer.combining()               # Characters with stacked diacritics
-wide: issuer.fullWidth()                  # Full-width ASCII "Ｈｅｌｌｏ"
-confusable: issuer.mixedScript()          # Mixed Cyrillic/Latin "pаypal"
+// Unicode edge cases
+invisible: issuer.zeroWidth()             // Strings with zero-width chars
+reversed: issuer.rtl()                    // Right-to-left override text
+lookalike: issuer.homoglyph("admin")      // Lookalike chars (аdmin vs admin)
+complex_emoji: issuer.emoji()             // Multi-codepoint emoji 👨‍👩‍👧‍👦
+stacked: issuer.combining()               // Characters with stacked diacritics
+wide: issuer.fullWidth()                  // Full-width ASCII "Ｈｅｌｌｏ"
+confusable: issuer.mixedScript()          // Mixed Cyrillic/Latin "pаypal"
 
-# String edge cases
-blank: issuer.empty()                     # Empty string ""
-spaces: issuer.whitespace()               # Whitespace-only strings
-huge: issuer.long(10000)                  # Very long strings
-sql_attempt: issuer.sqlLike()             # SQL injection-like text
-html_attempt: issuer.htmlSpecial()        # HTML/XSS-like text
-json_special: issuer.jsonSpecial()        # JSON special characters
-multiline: issuer.newlines()              # Embedded newlines/tabs
-null_byte: issuer.nullChar()              # Embedded null character
-path_attack: issuer.pathTraversal()       # Path traversal patterns
-cmd_attack: issuer.commandInjection()     # Command injection patterns
+// String edge cases
+blank: issuer.empty()                     // Empty string ""
+spaces: issuer.whitespace()               // Whitespace-only strings
+huge: issuer.long(10000)                  // Very long strings
+sql_attempt: issuer.sqlLike()             // SQL injection-like text
+html_attempt: issuer.htmlSpecial()        // HTML/XSS-like text
+json_special: issuer.jsonSpecial()        // JSON special characters
+multiline: issuer.newlines()              // Embedded newlines/tabs
+null_byte: issuer.nullChar()              // Embedded null character
+path_attack: issuer.pathTraversal()       // Path traversal patterns
+cmd_attack: issuer.commandInjection()     // Command injection patterns
 
-# Numeric edge cases
-big: issuer.maxInt()                      # 9007199254740991
-small: issuer.minInt()                    # -9007199254740991
-tiny: issuer.tinyDecimal()                # Very small decimals
-precision_issue: issuer.floatPrecision()  # 0.1 + 0.2 = 0.30000000000000004
-neg_zero: issuer.negativeZero()           # -0
-boundary: issuer.boundaryInt()            # 127, 255, 32767, etc.
+// Numeric edge cases
+big: issuer.maxInt()                      // 9007199254740991
+small: issuer.minInt()                    // -9007199254740991
+tiny: issuer.tinyDecimal()                // Very small decimals
+precision_issue: issuer.floatPrecision()  // 0.1 + 0.2 = 0.30000000000000004
+neg_zero: issuer.negativeZero()           // -0
+big_decimal: issuer.largeDecimal()        // Very large decimals
+boundary: issuer.boundaryInt()            // 127, 255, 32767, etc.
 
-# Date edge cases
-feb29: issuer.leapDay()                   # "2024-02-29"
-millennium: issuer.y2k()                  # Y2K boundary dates
-unix_epoch: issuer.epoch()                # Unix epoch boundaries
-year9999: issuer.farFuture()              # "9999-12-31"
-year0001: issuer.farPast()                # "0001-01-01"
+// Date edge cases
+feb29: issuer.leapDay()                   // "2024-02-29"
+millennium: issuer.y2k()                  // Y2K boundary dates
+unix_epoch: issuer.epoch()                // Unix epoch boundaries
+year9999: issuer.farFuture()              // "9999-12-31"
+year0001: issuer.farPast()                // "0001-01-01"
 
-# Format edge cases
-odd_email: issuer.weirdEmail()            # Valid but unusual emails
-odd_url: issuer.weirdUrl()                # Valid but unusual URLs
-special_uuid: issuer.specialUuid()        # Edge case UUIDs (nil, max)
+// Format edge cases
+odd_email: issuer.weirdEmail()            // Valid but unusual emails
+odd_url: issuer.weirdUrl()                // Valid but unusual URLs
+special_uuid: issuer.specialUuid()        // Edge case UUIDs (nil, max)
 ```
 
 ### HTTP Plugin
 Generate HTTP-related test data for API testing and webhook payloads.
 
 ```vague
-# HTTP methods (weighted distribution)
-method: http.method()                     # GET, POST, PUT, PATCH, DELETE...
+// HTTP methods (weighted distribution)
+method: http.method()                     // GET, POST, PUT, PATCH, DELETE...
 
-# Status codes
-status: http.statusCode()                 # Weighted realistic status codes
-text: http.statusText(404)                # "Not Found"
-success: http.successCode()               # 200, 201, 202, 204
-client_err: http.clientErrorCode()        # 400, 401, 403, 404, 422, 429
-server_err: http.serverErrorCode()        # 500, 501, 502, 503, 504
+// Status codes
+status: http.statusCode()                 // Weighted realistic status codes
+text: http.statusText(404)                // "Not Found"
+success: http.successCode()               // 200, 201, 202, 204
+client_err: http.clientErrorCode()        // 400, 401, 403, 404, 422, 429
+server_err: http.serverErrorCode()        // 500, 501, 502, 503, 504
 
-# Headers
-content: http.contentType()               # "application/json", "text/html"...
-agent: http.userAgent()                   # Browser/bot user agent strings
-accept: http.accept()                     # Accept header values
-cache: http.cacheControl()                # "no-cache", "max-age=3600"...
+// Headers
+content: http.contentType()               // "application/json", "text/html"...
+agent: http.userAgent()                   // Browser/bot user agent strings
+accept: http.accept()                     // Accept header values
+cache: http.cacheControl()                // "no-cache", "max-age=3600"...
 
-# CORS
-origin: http.corsOrigin()                 # CORS origin values
-cors_methods: http.corsMethods()          # "GET, POST, OPTIONS"
-cors_headers: http.corsHeaders()          # "Content-Type, Authorization"
+// CORS
+origin: http.corsOrigin()                 // CORS origin values
+cors_methods: http.corsMethods()          // "GET, POST, OPTIONS"
+cors_headers: http.corsHeaders()          // "Content-Type, Authorization"
 
-# Authorization
-bearer: http.bearerToken()                # "Bearer abc123..."
-basic: http.basicAuth()                   # "Basic dXNlcjpwYXNz"
-key: http.apiKey()                        # "sk_live_abc123..."
+// Authorization
+bearer: http.bearerToken()                // "Bearer abc123..."
+basic: http.basicAuth()                   // "Basic dXNlcjpwYXNz"
+key: http.apiKey()                        // "sk_live_abc123..."
 
-# Webhooks
-event: http.webhookEvent()                # "payment.succeeded", "order.created"
+// Webhooks
+event: http.webhookEvent()                // "payment.succeeded", "order.created"
 
-# Environment variables
-api_url: env("API_URL")                   # Read from environment
-api_key: env("API_KEY", "default-key")    # With default value
+// Environment variables
+api_url: env("API_URL")                   // Read from environment
+api_key: env("API_KEY", "default-key")    // With default value
 ```
 
 ### SQL Plugin
 Generate SQL-related test data for database testing.
 
 ```vague
-# Identifiers
-table: sql.tableName()                    # "users", "order_items"
-column: sql.columnName()                  # "created_at", "user_id"
-schema_name: sql.schemaName()             # "public", "analytics"
-alias: sql.alias()                        # "t1", "src", "tmp"
+// Identifiers
+table: sql.tableName()                    // "users", "order_items"
+column: sql.columnName()                  // "created_at", "user_id"
+schema_name: sql.schemaName()             // "public", "analytics"
+alias: sql.alias()                        // "t1", "src", "tmp"
 
-# Quoted identifiers (for reserved words)
-quoted_col: sql.quoted("user")            # "\"user\"" (ANSI)
-mysql_col: sql.quoted("user", "mysql")    # "`user`"
+// Quoted identifiers (for reserved words)
+quoted_col: sql.quoted("user")            // "\"user\"" (ANSI)
+mysql_col: sql.quoted("user", "mysql")    // "`user`"
 
-# SQL values (properly escaped)
-str_val: sql.string("O'Brien")            # "'O''Brien'"
-date_val: sql.dateValue("2024-01-15")     # "DATE '2024-01-15'"
-ts_val: sql.timestamp()                   # "TIMESTAMP '2024-01-15 10:30:00'"
-null_val: sql.nullValue()                 # "NULL"
-bool_val: sql.boolean(true)               # "TRUE"
-int_val: sql.integer(0, 100)              # "42"
-dec_val: sql.decimalValue(2)              # "123.45"
+// SQL values (properly escaped)
+str_val: sql.string("O'Brien")            // "'O''Brien'"
+date_val: sql.dateValue("2024-01-15")     // "DATE '2024-01-15'"
+ts_val: sql.timestamp()                   // "TIMESTAMP '2024-01-15 10:30:00'"
+null_val: sql.nullValue()                 // "NULL"
+bool_val: sql.boolean(true)               // "TRUE"
+int_val: sql.integer(0, 100)              // "42"
+dec_val: sql.decimalValue(2)              // "123.45"
 
-# Data types
-type: sql.dataType()                      # "VARCHAR(255)", "INTEGER"
-col_def: sql.columnDefinition()           # "name VARCHAR(255) NOT NULL"
+// Data types
+type: sql.dataType()                      // "VARCHAR(255)", "INTEGER"
+col_def: sql.columnDefinition()           // "name VARCHAR(255) NOT NULL"
 
-# Connection strings
-pg_conn: sql.connectionString("postgres") # "postgresql://user:pass@host:5432/db"
-mysql_conn: sql.connectionString("mysql") # "mysql://user:pass@host:3306/db"
+// Connection strings
+pg_conn: sql.connectionString("postgres") // "postgresql://user:pass@host:5432/db"
+mysql_conn: sql.connectionString("mysql") // "mysql://user:pass@host:3306/db"
 
-# Query fragments
-select_stmt: sql.select()                 # "SELECT id, name FROM users"
-where_stmt: sql.whereClause()             # "WHERE status = 'active'"
-order_stmt: sql.orderBy()                 # "ORDER BY created_at DESC"
-limit_stmt: sql.limit(100)                # "LIMIT 50 OFFSET 10"
-group_stmt: sql.groupBy()                 # "GROUP BY category"
-join_stmt: sql.join("left")               # "LEFT JOIN orders o ON..."
+// Query fragments
+select_stmt: sql.select()                 // "SELECT id, name FROM users"
+where_stmt: sql.whereClause()             // "WHERE status = 'active'"
+order_stmt: sql.orderBy()                 // "ORDER BY created_at DESC"
+limit_stmt: sql.limit(100)                // "LIMIT 50 OFFSET 10"
+group_stmt: sql.groupBy()                 // "GROUP BY category"
+join_stmt: sql.join("left")               // "LEFT JOIN orders o ON..."
 
-# Full statements
-insert_stmt: sql.insert()                 # "INSERT INTO users (...)"
-update_stmt: sql.update()                 # "UPDATE users SET ... WHERE ..."
-delete_stmt: sql.delete()                 # "DELETE FROM users WHERE ..."
-create_stmt: sql.createTable()            # "CREATE TABLE users (...)"
+// Full statements
+insert_stmt: sql.insert()                 // "INSERT INTO users (...)"
+update_stmt: sql.update()                 // "UPDATE users SET ... WHERE ..."
+delete_stmt: sql.delete()                 // "DELETE FROM users WHERE ..."
+create_stmt: sql.createTable()            // "CREATE TABLE users (...)"
 
-# Placeholders
-pg_param: sql.placeholder("postgres", 1)  # "$1"
-mysql_param: sql.placeholder("mysql")     # "?"
+// Placeholders
+pg_param: sql.placeholder("postgres", 1)  // "$1"
+mysql_param: sql.placeholder("mysql")     // "?"
 ```
 
 ### GraphQL Plugin
 Generate GraphQL-related test data for API testing.
 
 ```vague
-# Identifiers
-field: graphql.fieldName()                # "id", "createdAt", "fetchUsers"
-type: graphql.typeName()                  # "User", "OrderPayload"
-op_name: graphql.operationName()          # "GetUser", "CreateOrder"
-enum_val: graphql.enumValue()             # "ACTIVE", "PENDING"
-directive: graphql.directiveName()        # "@deprecated", "@auth"
+// Identifiers
+field: graphql.fieldName()                // "id", "createdAt", "fetchUsers"
+type: graphql.typeName()                  // "User", "OrderPayload"
+op_name: graphql.operationName()          // "GetUser", "CreateOrder"
+enum_val: graphql.enumValue()             // "ACTIVE", "PENDING"
+directive: graphql.directiveName()        // "@deprecated", "@auth"
 
-# Scalar values
-gql_id: graphql.id()                      # UUID or prefixed ID
-gql_str: graphql.string()                 # GraphQL string with escaping
-gql_int: graphql.integer()                # 32-bit signed integer
-gql_float: graphql.float()                # GraphQL Float
-gql_bool: graphql.boolean()               # true or false
+// Scalar values
+gql_id: graphql.id()                      // UUID or prefixed ID
+gql_str: graphql.string()                 // GraphQL string with escaping
+gql_int: graphql.integer()                // 32-bit signed integer
+gql_float: graphql.float()                // GraphQL Float
+gql_bool: graphql.boolean()               // true or false
 
-# Operations
-query: graphql.query()                    # "query { user(id: \"1\") {...} }"
-mutation: graphql.mutation()              # "mutation { createUser(...) {...} }"
-subscription: graphql.subscription()      # "subscription { messageAdded {...} }"
-fragment: graphql.fragment()              # "fragment UserFields on User {...}"
+// Operations
+query: graphql.query()                    // "query { user(id: \"1\") {...} }"
+mutation: graphql.mutation()              // "mutation { createUser(...) {...} }"
+subscription: graphql.subscription()      // "subscription { messageAdded {...} }"
+fragment: graphql.fragment()              // "fragment UserFields on User {...}"
 
-# Errors
-error: graphql.error()                    # Full GraphQL error object
-error_msg: graphql.errorMessage()         # Error message string
-error_code: graphql.errorCode()           # "UNAUTHENTICATED", "NOT_FOUND"
+// Errors
+error: graphql.error()                    // Full GraphQL error object
+error_msg: graphql.errorMessage()         // Error message string
+error_code: graphql.errorCode()           // "UNAUTHENTICATED", "NOT_FOUND"
 
-# Variables
-var_name: graphql.variableName()          # "$id", "$input"
-vars: graphql.variables()                 # Variables object
+// Variables
+var_name: graphql.variableName()          // "$id", "$input"
+vars: graphql.variables()                 // Variables object
 
-# Schema
-schema_def: graphql.schemaDefinition()    # Type definition snippet
+// Schema
+schema_def: graphql.schemaDefinition()    // Type definition snippet
 
-# Shorthand (prefixed with 'gql')
+// Shorthand (prefixed with 'gql')
 field2: gqlFieldName()
 type2: gqlTypeName()
 query2: gqlQuery()
@@ -490,33 +540,33 @@ mutation2: gqlMutation()
 ## Statistical Distributions
 
 ```vague
-# Normal/Gaussian (mean, stddev, min, max)
+// Normal/Gaussian (mean, stddev, min, max)
 age: gaussian(35, 10, 18, 65)
 
-# Log-normal (mu, sigma, min, max)
+// Log-normal (mu, sigma, min, max)
 income: lognormal(10.5, 0.5, 20000, 500000)
 
-# Exponential (rate, min, max)
+// Exponential (rate, min, max)
 wait_time: exponential(0.5, 0, 60)
 
-# Poisson (lambda)
+// Poisson (lambda)
 daily_orders: poisson(5)
 
-# Beta (alpha, beta) - returns 0-1
+// Beta (alpha, beta) - returns 0-1
 conversion_rate: beta(2, 5)
 
-# Uniform (min, max)
+// Uniform (min, max)
 random_value: uniform(0, 100)
 ```
 
 ## Date Functions
 
 ```vague
-created_at: now()                    # Current ISO timestamp
-created_date: today()                # Current date (YYYY-MM-DD)
-past_event: daysAgo(30)              # 30 days ago
-future_event: daysFromNow(90)        # 90 days from now
-timestamp: datetime(2020, 2024)      # Random in year range
+created_at: now()                    // Current ISO timestamp
+created_date: today()                // Current date (YYYY-MM-DD)
+past_event: daysAgo(30)              // 30 days ago
+future_event: daysFromNow(90)        // 90 days from now
+timestamp: datetime(2020, 2024)      // Random in year range
 event_date: dateBetween("2023-01-01", "2023-12-31")
 formatted: formatDate(now(), "YYYY-MM-DD HH:mm")
 ```
@@ -524,13 +574,13 @@ formatted: formatDate(now(), "YYYY-MM-DD HH:mm")
 ## Sequential Generation
 
 ```vague
-# String sequence: "INV-1001", "INV-1002", ...
+// String sequence: "INV-1001", "INV-1002", ...
 id: sequence("INV-", 1001)
 
-# Integer sequence: 100, 101, 102, ...
+// Integer sequence: 100, 101, 102, ...
 order_num: sequenceInt("orders", 100)
 
-# Previous record's value (null for first)
+// Previous record's value (null for first)
 prev_amount: previous("amount")
 ```
 
@@ -576,6 +626,18 @@ dataset TestData {
 }
 ```
 
+### Collection Overrides
+
+```vague
+// Override fields for a specific collection
+dataset TestData {
+  accounts: 100 of Account,
+  business_accounts: 20 of Account {
+    type: "business"
+  }
+}
+```
+
 ## Dataset Validation
 
 ```vague
@@ -588,10 +650,10 @@ dataset TestData {
     sum(invoices.total) <= 500000,
     count(payments) <= count(invoices),
 
-    # Collection predicates
-    all(invoices, .amount_paid <= .total),   # All must satisfy
-    some(invoices, .status == "paid"),       # At least one
-    none(invoices, .total < 0)               # None should satisfy
+    // Collection predicates
+    all(invoices, .amount_paid <= .total),   // All must satisfy
+    some(invoices, .status == "paid"),       // At least one
+    none(invoices, .total < 0)               // None should satisfy
   }
 }
 ```
@@ -599,12 +661,12 @@ dataset TestData {
 ## Negative Testing (Violating Data)
 
 ```vague
-# Normal dataset - satisfies constraints
+// Normal dataset - satisfies constraints
 dataset Valid {
   invoices: 100 of Invoice
 }
 
-# Violating dataset - intentionally breaks constraints
+// Violating dataset - intentionally breaks constraints
 dataset Invalid violating {
   bad_invoices: 100 of Invoice
 }
@@ -615,17 +677,17 @@ dataset Invalid violating {
 Invariants are constraints that can NEVER be violated — unlike `assume`, they hold even in `violating` mode.
 
 ```vague
-# Reusable contract
+// Reusable contract
 contract PositiveAmount {
   invariant amount > 0 "Amount must be positive"
 
-  # Conditional invariant
+  // Conditional invariant
   invariant if status == "paid" {
     amount_paid >= total
   }
 }
 
-# Apply with 'implements' (comma-separate multiple contracts)
+// Apply with 'implements' (comma-separate multiple contracts)
 schema Invoice implements PositiveAmount {
   amount: decimal in 1..1000,
   status: "draft" | "paid",
@@ -633,7 +695,7 @@ schema Invoice implements PositiveAmount {
   amount_paid: decimal in 0..600
 }
 
-# Or declare invariants inline in a schema
+// Or declare invariants inline in a schema
 schema Payment {
   amount: int in 1..1000,
   invariant amount > 0 "Payment must be positive"
@@ -648,21 +710,26 @@ The error message string after an invariant is optional and improves diagnostics
 import petstore from "petstore.json"
 
 schema Pet from petstore.Pet {
-  # Override or add fields
+  // Override or add fields
   age: int in 1..15
 }
 ```
+
+Specs are validated on import. `oneOf`/`anyOf`/`allOf` compositions become variants, with one picked
+at random per instance. Unsupported keywords and prose-only validation raise warnings
+(`OpenAPIImport`, `OpenAPIValidationGap`). `from` works with imported OpenAPI schemas only, not
+local Vague schemas.
 
 ## Schema Definition
 
 ```vague
 schema Invoice {
-  # Fields
+  // Fields
   id: uuid(),
   amount: decimal in 100..10000,
   status: "draft" | "sent" | "paid",
 
-  # Constraints
+  // Constraints
   assume amount > 0
 }
 ```
@@ -703,7 +770,10 @@ schema Payment {
   invoice: any of invoices where .status == "pending",
   amount: int in 50..500
 } then {
-  invoice.amount_paid += amount,
+  // Cap at the invoice total so payments never overshoot
+  invoice.amount_paid = invoice.amount_paid + amount > invoice.total
+    ? invoice.total
+    : invoice.amount_paid + amount,
   invoice.status = invoice.amount_paid >= invoice.total ? "paid" : "partial"
 }
 
@@ -798,7 +868,7 @@ export default {
   // Reproducible output with fixed seed
   seed: 42,
 
-  // Output format: 'json' or 'csv'
+  // Output format: 'json', 'csv', or 'ndjson'
   format: 'json',
 
   // Pretty-print JSON output
