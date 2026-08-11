@@ -217,6 +217,43 @@ describe('OpenAPILoader', () => {
   });
 
   describe('field type parsing', () => {
+    it('preserves top-level oneOf object variants', async () => {
+      const specPath = join(TMP_DIR, 'top-level-one-of.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              Event: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    required: ['email'],
+                    properties: { email: { type: 'string', format: 'email' } },
+                  },
+                  {
+                    type: 'object',
+                    required: ['phone'],
+                    properties: { phone: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          },
+        })
+      );
+
+      const event = (await new OpenAPILoader().load(specPath)).get('Event');
+
+      expect(event?.variants).toHaveLength(2);
+      expect(event?.variants?.[0].map((field) => field.name)).toEqual(['email']);
+      expect(event?.variants?.[1].map((field) => field.name)).toEqual(['phone']);
+      expect(event?.fields.map((field) => field.name)).toEqual(['email', 'phone']);
+    });
+
     it('parses string fields', async () => {
       const specPath = join(TMP_DIR, 'string-field.json');
       writeFileSync(

@@ -4,6 +4,7 @@ export interface ImportedSchema {
   name: string;
   fields: ImportedField[];
   required: string[];
+  variants?: ImportedField[][];
 }
 
 export interface ImportedField {
@@ -80,6 +81,25 @@ export class OpenAPILoader {
   }
 
   private parseSchema(name: string, schema: SchemaObject): ImportedSchema {
+    if (schema.oneOf || schema.anyOf) {
+      const variants = schema.oneOf ?? schema.anyOf ?? [];
+      if (variants.length === 0) {
+        throw new Error(`OpenAPI schema '${name}' composition must contain at least one variant`);
+      }
+
+      const parsedVariants = variants.map((variant) => this.parseObjectFields(variant));
+      if (parsedVariants.some((fields) => fields.length === 0)) {
+        throw new Error(`OpenAPI schema '${name}' has a non-object composition variant`);
+      }
+
+      return {
+        name,
+        fields: this.mergeVariantFields(parsedVariants),
+        required: [],
+        variants: parsedVariants,
+      };
+    }
+
     const normalized = this.mergeAllOf(schema);
     const required = normalized.required ?? [];
     return {
@@ -87,6 +107,16 @@ export class OpenAPILoader {
       fields: this.parseObjectFields(normalized),
       required,
     };
+  }
+
+  private mergeVariantFields(variants: ImportedField[][]): ImportedField[] {
+    const fields = new Map<string, ImportedField>();
+    for (const variant of variants) {
+      for (const field of variant) {
+        fields.set(field.name, field);
+      }
+    }
+    return [...fields.values()];
   }
 
   private parseObjectFields(schema: SchemaObject): ImportedField[] {

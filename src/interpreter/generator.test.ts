@@ -1166,11 +1166,27 @@ describe('Generator', () => {
           },
         ],
       };
+      const unionSchema = {
+        oneOf: [
+          {
+            type: 'object',
+            required: ['email'],
+            additionalProperties: false,
+            properties: { email: { type: 'string', format: 'email' } },
+          },
+          {
+            type: 'object',
+            required: ['code'],
+            additionalProperties: false,
+            properties: { code: { type: 'integer', minimum: 1, maximum: 5 } },
+          },
+        ],
+      };
       const spec = {
         openapi: '3.1.0',
         info: { title: 'Nested test', version: '1.0.0' },
         paths: {},
-        components: { schemas: { Record: schema } },
+        components: { schemas: { Record: schema, UnionRecord: unionSchema } },
       };
 
       fs.writeFileSync(tempSpec, JSON.stringify(spec));
@@ -1179,13 +1195,24 @@ describe('Generator', () => {
         const result = await compile(`
           import nested from "examples/openapi-examples-generation/nested-test.json"
           schema TestRecord from nested.Record { }
-          dataset TestData { records: 10 of TestRecord }
+          schema TestUnion from nested.UnionRecord { }
+          dataset TestData {
+            records: 10 of TestRecord,
+            unions: 20 of TestUnion
+          }
         `);
         const validate = new Ajv({ strict: false }).compile(schema);
+        const validateUnion = new Ajv({ strict: false, formats: { email: true } }).compile(
+          unionSchema
+        );
 
         expect(result.records).toHaveLength(10);
         for (const record of result.records) {
           expect(validate(record), JSON.stringify(validate.errors)).toBe(true);
+        }
+        expect(result.unions).toHaveLength(20);
+        for (const record of result.unions) {
+          expect(validateUnion(record), JSON.stringify(validateUnion.errors)).toBe(true);
         }
       } finally {
         fs.unlinkSync(tempSpec);

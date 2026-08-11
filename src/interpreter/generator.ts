@@ -200,7 +200,10 @@ export class Generator {
       if (importedSchemas) {
         const imported = importedSchemas.get(schemaName);
         if (imported) {
-          for (const field of imported.fields) {
+          const importedFields = imported.variants
+            ? imported.variants[Math.floor(this.ctx.rng.random() * imported.variants.length)]
+            : imported.fields;
+          for (const field of importedFields) {
             fields.set(field.name, field);
           }
         }
