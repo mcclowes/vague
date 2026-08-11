@@ -8,7 +8,8 @@ export type WarningType =
   | 'ConstraintEvaluationError'
   | 'MutationTargetNotFound'
   | 'UnknownFieldInImportedSchema'
-  | 'OpenAPIImport';
+  | 'OpenAPIImport'
+  | 'OpenAPIValidationGap';
 
 export interface VagueWarning {
   type: WarningType;
@@ -69,6 +70,12 @@ export interface OpenAPIImportWarning extends VagueWarning {
   type: 'OpenAPIImport';
   path: string;
   unsupportedKeywords: string[];
+}
+
+export interface OpenAPIValidationGapWarning extends VagueWarning {
+  type: 'OpenAPIValidationGap';
+  path: string;
+  description: string;
 }
 
 /**
@@ -234,5 +241,17 @@ export function createOpenAPIImportWarning(
     message: `OpenAPI schema at '${path}' uses unsupported keywords (${unsupportedKeywords.join(', ')}). Generation will use the supported parts of the schema.`,
     path,
     unsupportedKeywords,
+  };
+}
+
+export function createOpenAPIValidationGapWarning(
+  path: string,
+  description: string
+): OpenAPIValidationGapWarning {
+  return {
+    type: 'OpenAPIValidationGap',
+    message: `OpenAPI description at '${path}' appears to contain validation that cannot be enforced automatically: ${description}`,
+    path,
+    description,
   };
 }

@@ -2,7 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { OpenAPILoader } from './loader.js';
 import { writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { warningCollector, type OpenAPIImportWarning } from '../warnings.js';
+import {
+  warningCollector,
+  type OpenAPIImportWarning,
+  type OpenAPIValidationGapWarning,
+} from '../warnings.js';
 
 const TMP_DIR = join(__dirname, '..', '..', '.test-tmp-loader');
 
@@ -539,6 +543,61 @@ describe('OpenAPILoader', () => {
         'additionalProperties',
         'prefixItems',
         'not',
+      ]);
+    });
+
+    it('exposes validation constraints and warns about prose-only rules', async () => {
+      const specPath = join(TMP_DIR, 'validation-metadata.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              Payment: {
+                type: 'object',
+                properties: {
+                  sortCode: {
+                    type: 'string',
+                    minLength: 6,
+                    maxLength: 6,
+                    pattern: '^[0-9]{6}$',
+                    description: 'Must identify a UK branch.',
+                  },
+                  amount: { type: 'number', minimum: 0.01, maximum: 1000 },
+                  states: {
+                    type: 'array',
+                    minItems: 1,
+                    maxItems: 4,
+                    items: { type: 'string', enum: ['pending', 'paid'] },
+                  },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      const payment = (await new OpenAPILoader().load(specPath)).get('Payment');
+      const sortCode = payment?.fields.find((field) => field.name === 'sortCode');
+      const amount = payment?.fields.find((field) => field.name === 'amount');
+      const states = payment?.fields.find((field) => field.name === 'states');
+      const warnings =
+        warningCollector.getWarningsByType<OpenAPIValidationGapWarning>('OpenAPIValidationGap');
+
+      expect(sortCode).toMatchObject({
+        sourcePath: 'components.schemas.Payment.properties.sortCode',
+        constraints: { minLength: 6, maxLength: 6, pattern: '^[0-9]{6}$' },
+      });
+      expect(amount?.constraints).toEqual({ minimum: 0.01, maximum: 1000 });
+      expect(states?.constraints).toEqual({ minItems: 1, maxItems: 4 });
+      expect(warnings).toMatchObject([
+        {
+          path: 'components.schemas.Payment.properties.sortCode',
+          description: 'Must identify a UK branch.',
+        },
       ]);
     });
   });

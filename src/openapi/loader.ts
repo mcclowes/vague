@@ -1,5 +1,9 @@
 import $RefParser from '@apidevtools/json-schema-ref-parser';
-import { createOpenAPIImportWarning, warningCollector } from '../warnings.js';
+import {
+  createOpenAPIImportWarning,
+  createOpenAPIValidationGapWarning,
+  warningCollector,
+} from '../warnings.js';
 
 export interface ImportedSchema {
   name: string;
@@ -15,16 +19,23 @@ export interface ImportedField {
   enum?: (string | number)[];
   description?: string;
   format?: string;
+  constraints?: ImportedFieldConstraints;
+  sourcePath?: string;
 }
 
-interface ImportedValueConstraints {
+export interface ImportedFieldConstraints {
   enum?: unknown[];
-  format?: string;
   minimum?: number;
   maximum?: number;
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  minItems?: number;
+  maxItems?: number;
+}
+
+interface ImportedValueConstraints extends ImportedFieldConstraints {
+  format?: string;
 }
 
 export type ImportedFieldType =
@@ -135,14 +146,21 @@ export class OpenAPILoader {
     const normalized = this.mergeAllOf(schema);
     const required = normalized.required ?? [];
 
-    return Object.entries(normalized.properties ?? {}).map(([name, fieldSchema]) => ({
-      name,
-      type: this.parseFieldType(fieldSchema, `${path}.properties.${name}`),
-      required: required.includes(name),
-      ...(fieldSchema.enum ? { enum: fieldSchema.enum as (string | number)[] } : {}),
-      ...(fieldSchema.description ? { description: fieldSchema.description } : {}),
-      ...(fieldSchema.format ? { format: fieldSchema.format } : {}),
-    }));
+    return Object.entries(normalized.properties ?? {}).map(([name, fieldSchema]) => {
+      const sourcePath = `${path}.properties.${name}`;
+      this.warnForDescriptionValidation(fieldSchema, sourcePath);
+      const constraints = this.extractConstraints(fieldSchema);
+      return {
+        name,
+        type: this.parseFieldType(fieldSchema, sourcePath),
+        required: required.includes(name),
+        ...(fieldSchema.enum ? { enum: fieldSchema.enum as (string | number)[] } : {}),
+        ...(fieldSchema.description ? { description: fieldSchema.description } : {}),
+        ...(fieldSchema.format ? { format: fieldSchema.format } : {}),
+        ...(Object.keys(constraints).length > 0 ? { constraints } : {}),
+        sourcePath,
+      };
+    });
   }
 
   private parseFieldType(schema: SchemaObject, path = 'schema'): ImportedFieldType {
@@ -216,6 +234,30 @@ export class OpenAPILoader {
 
     if (unsupported.length > 0) {
       warningCollector.add(createOpenAPIImportWarning(path, unsupported));
+    }
+  }
+
+  private extractConstraints(schema: SchemaObject): ImportedFieldConstraints {
+    return {
+      ...(schema.enum ? { enum: schema.enum } : {}),
+      ...(schema.minimum !== undefined ? { minimum: schema.minimum } : {}),
+      ...(schema.maximum !== undefined ? { maximum: schema.maximum } : {}),
+      ...(schema.minLength !== undefined ? { minLength: schema.minLength } : {}),
+      ...(schema.maxLength !== undefined ? { maxLength: schema.maxLength } : {}),
+      ...(schema.pattern ? { pattern: schema.pattern } : {}),
+      ...(schema.minItems !== undefined ? { minItems: schema.minItems } : {}),
+      ...(schema.maxItems !== undefined ? { maxItems: schema.maxItems } : {}),
+    };
+  }
+
+  private warnForDescriptionValidation(schema: SchemaObject, path: string): void {
+    if (
+      schema.description &&
+      /\b(must|shall|required to|at least|at most|exactly|cannot|only if)\b/i.test(
+        schema.description
+      )
+    ) {
+      warningCollector.add(createOpenAPIValidationGapWarning(path, schema.description));
     }
   }
 
