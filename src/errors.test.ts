@@ -110,8 +110,8 @@ describe('Error handling', () => {
       expect(() => lexer.tokenize()).toThrow(/[Uu]nexpected character/);
     });
 
-    it('throws on hash character', () => {
-      const lexer = new Lexer('# comment');
+    it('throws on unsupported characters', () => {
+      const lexer = new Lexer('@decorator');
       expect(() => lexer.tokenize()).toThrow(/[Uu]nexpected character/);
     });
 
