@@ -1,5 +1,5 @@
-import SwaggerParser from '@apidevtools/swagger-parser';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import $RefParser from '@apidevtools/json-schema-ref-parser';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { OpenAPIV3 } from 'openapi-types';
 
@@ -27,17 +27,7 @@ export class OpenAPIExamplePopulator {
   private reverseMapping: Record<string, string> = {};
 
   async loadDocument(path: string): Promise<OpenAPIV3.Document> {
-    try {
-      // Try swagger-parser first (works for 3.0.x)
-      return (await SwaggerParser.parse(path)) as OpenAPIV3.Document;
-    } catch (err) {
-      // Fall back to direct JSON parsing for 3.1.x
-      const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes('Unsupported OpenAPI version')) {
-        return JSON.parse(readFileSync(path, 'utf-8')) as OpenAPIV3.Document;
-      }
-      throw err;
-    }
+    return (await $RefParser.parse(path)) as unknown as OpenAPIV3.Document;
   }
 
   detectMapping(collections: string[], schemaNames: string[]): Record<string, string> {

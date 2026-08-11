@@ -1,7 +1,6 @@
 import { Ajv, type ErrorObject as AjvErrorObject } from 'ajv';
 import addFormats, { type FormatsPlugin } from 'ajv-formats';
-import SwaggerParser from '@apidevtools/swagger-parser';
-import { readFileSync } from 'node:fs';
+import $RefParser from '@apidevtools/json-schema-ref-parser';
 import type { OpenAPIV3 } from 'openapi-types';
 
 // `ajv-formats` ships as CJS and exposes the plugin only as a default export.
@@ -50,23 +49,12 @@ export class SchemaValidator {
 
   /**
    * Load schemas from an OpenAPI spec file
-   * Supports OpenAPI 3.0.x via swagger-parser and 3.1.x via direct JSON parsing
+   * Supports OpenAPI 3.0.x and 3.1.x, including external references
    */
   async loadOpenAPISchemas(specPath: string): Promise<string[]> {
-    let api: OpenAPIV3.Document;
-
-    try {
-      // Try swagger-parser first (works for 3.0.x)
-      api = (await SwaggerParser.dereference(specPath)) as OpenAPIV3.Document;
-    } catch (err) {
-      // Fall back to direct JSON parsing for 3.1.x
-      const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes('Unsupported OpenAPI version')) {
-        api = JSON.parse(readFileSync(specPath, 'utf-8')) as OpenAPIV3.Document;
-      } else {
-        throw err;
-      }
-    }
+    const api = (await $RefParser.dereference(specPath, {
+      dereference: { circular: 'ignore' },
+    })) as unknown as OpenAPIV3.Document;
 
     this.openApiDoc = api;
 
@@ -76,7 +64,6 @@ export class SchemaValidator {
       return loadedSchemas;
     }
 
-    // For 3.1.x, we need to resolve $ref manually
     const allSchemas = api.components.schemas;
 
     for (const [name, schema] of Object.entries(allSchemas)) {
