@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { OpenAPILoader } from './loader.js';
 import { writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { warningCollector, type OpenAPIImportWarning } from '../warnings.js';
 
 const TMP_DIR = join(__dirname, '..', '..', '.test-tmp-loader');
 
 describe('OpenAPILoader', () => {
   beforeEach(() => {
+    warningCollector.clear();
     if (!existsSync(TMP_DIR)) {
       mkdirSync(TMP_DIR, { recursive: true });
     }
@@ -492,6 +494,52 @@ describe('OpenAPILoader', () => {
       await expect(new OpenAPILoader().load(specPath)).rejects.toThrow(
         'Unsupported OpenAPI schema type: unknown_type'
       );
+    });
+
+    it('warns when generation can only approximate unsupported schema keywords', async () => {
+      const specPath = join(TMP_DIR, 'unsupported-keywords.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '3.1.0',
+          info: { title: 'Test', version: '1.0.0' },
+          paths: {},
+          components: {
+            schemas: {
+              Test: {
+                type: 'object',
+                properties: {
+                  metadata: {
+                    type: 'object',
+                    additionalProperties: { type: 'string' },
+                  },
+                  values: {
+                    type: 'array',
+                    prefixItems: [{ type: 'string' }, { type: 'integer' }],
+                  },
+                  positive: { type: 'integer', not: { maximum: 0 } },
+                },
+              },
+            },
+          },
+        })
+      );
+
+      const schemas = await new OpenAPILoader().load(specPath);
+      const warnings = warningCollector.getWarningsByType<OpenAPIImportWarning>('OpenAPIImport');
+
+      expect(schemas.get('Test')?.fields).toHaveLength(3);
+      expect(warnings).toHaveLength(3);
+      expect(warnings.map((warning) => warning.path)).toEqual([
+        'components.schemas.Test.properties.metadata',
+        'components.schemas.Test.properties.values',
+        'components.schemas.Test.properties.positive',
+      ]);
+      expect(warnings.flatMap((warning) => warning.unsupportedKeywords)).toEqual([
+        'additionalProperties',
+        'prefixItems',
+        'not',
+      ]);
     });
   });
 

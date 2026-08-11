@@ -1,4 +1,5 @@
 import $RefParser from '@apidevtools/json-schema-ref-parser';
+import { createOpenAPIImportWarning, warningCollector } from '../warnings.js';
 
 export interface ImportedSchema {
   name: string;
@@ -53,6 +54,12 @@ interface SchemaObject {
   minItems?: number;
   maxItems?: number;
   pattern?: string;
+  not?: SchemaObject;
+  if?: SchemaObject;
+  then?: SchemaObject;
+  else?: SchemaObject;
+  additionalProperties?: boolean | SchemaObject;
+  prefixItems?: SchemaObject[];
 }
 
 interface OpenAPIDocument {
@@ -81,13 +88,18 @@ export class OpenAPILoader {
   }
 
   private parseSchema(name: string, schema: SchemaObject): ImportedSchema {
+    const path = `components.schemas.${name}`;
+    this.warnForUnsupportedKeywords(schema, path);
+
     if (schema.oneOf || schema.anyOf) {
       const variants = schema.oneOf ?? schema.anyOf ?? [];
       if (variants.length === 0) {
         throw new Error(`OpenAPI schema '${name}' composition must contain at least one variant`);
       }
 
-      const parsedVariants = variants.map((variant) => this.parseObjectFields(variant));
+      const parsedVariants = variants.map((variant, index) =>
+        this.parseObjectFields(variant, `${path}.${schema.oneOf ? 'oneOf' : 'anyOf'}[${index}]`)
+      );
       if (parsedVariants.some((fields) => fields.length === 0)) {
         throw new Error(`OpenAPI schema '${name}' has a non-object composition variant`);
       }
@@ -104,7 +116,7 @@ export class OpenAPILoader {
     const required = normalized.required ?? [];
     return {
       name,
-      fields: this.parseObjectFields(normalized),
+      fields: this.parseObjectFields(normalized, path),
       required,
     };
   }
@@ -119,13 +131,13 @@ export class OpenAPILoader {
     return [...fields.values()];
   }
 
-  private parseObjectFields(schema: SchemaObject): ImportedField[] {
+  private parseObjectFields(schema: SchemaObject, path = 'schema'): ImportedField[] {
     const normalized = this.mergeAllOf(schema);
     const required = normalized.required ?? [];
 
     return Object.entries(normalized.properties ?? {}).map(([name, fieldSchema]) => ({
       name,
-      type: this.parseFieldType(fieldSchema),
+      type: this.parseFieldType(fieldSchema, `${path}.properties.${name}`),
       required: required.includes(name),
       ...(fieldSchema.enum ? { enum: fieldSchema.enum as (string | number)[] } : {}),
       ...(fieldSchema.description ? { description: fieldSchema.description } : {}),
@@ -133,31 +145,41 @@ export class OpenAPILoader {
     }));
   }
 
-  private parseFieldType(schema: SchemaObject): ImportedFieldType {
+  private parseFieldType(schema: SchemaObject, path = 'schema'): ImportedFieldType {
+    this.warnForUnsupportedKeywords(schema, path);
+
     if (schema.oneOf || schema.anyOf) {
       const variants = schema.oneOf ?? schema.anyOf ?? [];
       if (variants.length === 0) {
         throw new Error('OpenAPI composition must contain at least one schema');
       }
-      return { kind: 'union', variants: variants.map((variant) => this.parseFieldType(variant)) };
+      return {
+        kind: 'union',
+        variants: variants.map((variant, index) =>
+          this.parseFieldType(variant, `${path}.${schema.oneOf ? 'oneOf' : 'anyOf'}[${index}]`)
+        ),
+      };
     }
 
     const normalized = this.mergeAllOf(schema);
 
-    if (normalized.type === 'array' || normalized.items) {
-      if (!normalized.items) {
+    if (normalized.type === 'array' || normalized.items || normalized.prefixItems) {
+      const items =
+        normalized.items ??
+        (normalized.prefixItems?.length ? { oneOf: normalized.prefixItems } : undefined);
+      if (!items) {
         throw new Error('OpenAPI array schema is missing items');
       }
       return {
         kind: 'array',
-        items: this.parseFieldType(normalized.items),
+        items: this.parseFieldType(items, `${path}.items`),
         ...(normalized.minItems !== undefined ? { minItems: normalized.minItems } : {}),
         ...(normalized.maxItems !== undefined ? { maxItems: normalized.maxItems } : {}),
       };
     }
 
     if (normalized.type === 'object' || normalized.properties) {
-      return { kind: 'object', fields: this.parseObjectFields(normalized) };
+      return { kind: 'object', fields: this.parseObjectFields(normalized, path) };
     }
 
     const type = Array.isArray(normalized.type)
@@ -180,6 +202,21 @@ export class OpenAPILoader {
       ...(normalized.maxLength !== undefined ? { maxLength: normalized.maxLength } : {}),
       ...(normalized.pattern ? { pattern: normalized.pattern } : {}),
     };
+  }
+
+  private warnForUnsupportedKeywords(schema: SchemaObject, path: string): void {
+    const unsupported = [
+      schema.not ? 'not' : undefined,
+      schema.if ? 'if/then/else' : undefined,
+      schema.additionalProperties !== undefined && schema.additionalProperties !== false
+        ? 'additionalProperties'
+        : undefined,
+      schema.prefixItems ? 'prefixItems' : undefined,
+    ].filter((keyword): keyword is string => keyword !== undefined);
+
+    if (unsupported.length > 0) {
+      warningCollector.add(createOpenAPIImportWarning(path, unsupported));
+    }
   }
 
   private mergeAllOf(schema: SchemaObject): SchemaObject {

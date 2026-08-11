@@ -7,7 +7,8 @@ export type WarningType =
   | 'ConstraintRetryLimit'
   | 'ConstraintEvaluationError'
   | 'MutationTargetNotFound'
-  | 'UnknownFieldInImportedSchema';
+  | 'UnknownFieldInImportedSchema'
+  | 'OpenAPIImport';
 
 export interface VagueWarning {
   type: WarningType;
@@ -62,6 +63,12 @@ export interface UnknownFieldInImportedSchemaWarning extends VagueWarning {
   schema: string;
   field: string;
   importedFrom: string;
+}
+
+export interface OpenAPIImportWarning extends VagueWarning {
+  type: 'OpenAPIImport';
+  path: string;
+  unsupportedKeywords: string[];
 }
 
 /**
@@ -215,5 +222,17 @@ export function createUnknownFieldWarning(
     schema,
     field,
     importedFrom,
+  };
+}
+
+export function createOpenAPIImportWarning(
+  path: string,
+  unsupportedKeywords: string[]
+): OpenAPIImportWarning {
+  return {
+    type: 'OpenAPIImport',
+    message: `OpenAPI schema at '${path}' uses unsupported keywords (${unsupportedKeywords.join(', ')}). Generation will use the supported parts of the schema.`,
+    path,
+    unsupportedKeywords,
   };
 }
