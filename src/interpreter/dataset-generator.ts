@@ -71,8 +71,16 @@ export class DatasetGenerator {
       }
 
       // Check dataset-level constraints
-      const constraintsPass =
-        !dataset.validation || this.validateConstraints(dataset.validation, result);
+      if (!dataset.validation) {
+        generatorLog.debug('Dataset generated successfully', {
+          dataset: dataset.name,
+          attempts: attempt + 1,
+          collections: Object.keys(result).length,
+        });
+        return result;
+      }
+
+      const constraintsPass = this.validateConstraints(dataset.validation, result);
       if (dataset.violating ? !constraintsPass : constraintsPass) {
         generatorLog.debug('Dataset generated successfully', {
           dataset: dataset.name,

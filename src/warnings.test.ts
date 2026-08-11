@@ -173,6 +173,24 @@ describe('Warnings', () => {
       expect(retryWarning).toBeDefined();
       expect(retryWarning!.message).toContain('violating');
     });
+
+    it('does not warn for a violating dataset without dataset validation', async () => {
+      const source = `
+        schema Invoice {
+          issued_date: int in 1..20,
+          due_date: int in 1..30,
+          assume due_date >= issued_date
+        }
+        dataset Invalid violating {
+          invoices: 5 of Invoice
+        }
+      `;
+
+      const result = await compile(source);
+
+      expect(result.invoices).toHaveLength(5);
+      expect(warningCollector.getWarningsByType('ConstraintRetryLimit')).toHaveLength(0);
+    });
   });
 
   describe('getWarningsByType', () => {
