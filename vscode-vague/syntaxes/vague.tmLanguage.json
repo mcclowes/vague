@@ -4,6 +4,7 @@
   "scopeName": "source.vague",
   "patterns": [
     { "include": "#comments" },
+    { "include": "#annotations" },
     { "include": "#strings" },
     { "include": "#numbers" },
     { "include": "#keywords" },
@@ -19,6 +20,14 @@
         {
           "name": "comment.line.double-slash.vague",
           "match": "//.*$"
+        }
+      ]
+    },
+    "annotations": {
+      "patterns": [
+        {
+          "name": "meta.annotation.vague",
+          "match": "#[A-Za-z_][A-Za-z0-9_]*"
         }
       ]
     },

@@ -66,6 +66,7 @@ export enum TokenType {
   GTE = 'GTE', // >=
   QUESTION = 'QUESTION', // ?
   COMMA = 'COMMA', // ,
+  HASH = 'HASH', // #
 
   // Delimiters
   LPAREN = 'LPAREN', // (

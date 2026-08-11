@@ -72,6 +72,17 @@ describe('Lexer', () => {
     expect(tokens[4]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'AgeStructure' });
   });
 
+  it('tokenizes annotations', () => {
+    const tokens = new Lexer('#description: "Customer ID"').tokenize();
+
+    expect(tokens.slice(0, 4)).toMatchObject([
+      { type: TokenType.HASH },
+      { type: TokenType.IDENTIFIER, value: 'description' },
+      { type: TokenType.COLON },
+      { type: TokenType.STRING, value: 'Customer ID' },
+    ]);
+  });
+
   it('tokenizes parent reference', () => {
     const lexer = new Lexer('currency: ^company.currency');
     const tokens = lexer.tokenize();

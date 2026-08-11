@@ -45,6 +45,23 @@ nickname: string?        # Preferred: shorthand syntax
 notes: string | null     # Alternative: explicit null
 ```
 
+## Annotations
+
+Annotations attach metadata to schemas or fields. The generator preserves them in the AST but does
+not change generated values.
+
+```vague
+#description: "Customer-facing invoice"
+schema Invoice {
+  #example: "INV-1001"
+  #deprecated: false
+  #indexed
+  invoice_number: string
+}
+```
+
+Annotation values may be strings, integers, or booleans. An annotation without a value is `true`.
+
 ## Private Fields
 
 ```vague

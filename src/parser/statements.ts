@@ -24,6 +24,7 @@ import {
   RefineCondition,
   ThenBlock,
   Mutation,
+  Annotation,
 } from '../ast/index.js';
 import { TypeParser } from './types.js';
 import type { ParserContext, StatementParserFunction } from '../interpreter/plugin.js';
@@ -81,6 +82,13 @@ export class StatementParser extends TypeParser {
   // ============================================
 
   parseStatement(): Statement | null {
+    if (this.check(TokenType.HASH)) {
+      const annotations = this.parseAnnotations();
+      if (!this.check(TokenType.SCHEMA)) {
+        throw this.error('Top-level annotations must precede a schema');
+      }
+      return this.parseSchema(annotations);
+    }
     // Check built-in statements first
     if (this.check(TokenType.IMPORT)) return this.parseImport();
     if (this.check(TokenType.LET)) return this.parseLet();
@@ -143,7 +151,7 @@ export class StatementParser extends TypeParser {
   // Schema definitions
   // ============================================
 
-  private parseSchema(): SchemaDefinition {
+  private parseSchema(annotations?: Annotation[]): SchemaDefinition {
     this.consume(TokenType.SCHEMA, "Expected 'schema'");
     const name = this.consume(TokenType.IDENTIFIER, 'Expected schema name').value;
 
@@ -177,6 +185,7 @@ export class StatementParser extends TypeParser {
     return {
       type: 'SchemaDefinition',
       name,
+      annotations,
       base,
       contracts: contracts && contracts.length > 0 ? contracts : undefined,
       contexts,
@@ -246,6 +255,7 @@ export class StatementParser extends TypeParser {
   }
 
   parseFieldDefinition(): FieldDefinition {
+    const annotations = this.parseAnnotations();
     const name = this.consume(TokenType.IDENTIFIER, 'Expected field name').value;
     this.consume(TokenType.COLON, "Expected ':'");
 
@@ -279,6 +289,7 @@ export class StatementParser extends TypeParser {
       return {
         type: 'FieldDefinition',
         name,
+        annotations,
         fieldType: { type: 'ReferenceType', path: { type: 'QualifiedName', parts: ['computed'] } },
         optional,
         computed: true,
@@ -293,6 +304,7 @@ export class StatementParser extends TypeParser {
     return {
       type: 'FieldDefinition',
       name,
+      annotations,
       fieldType,
       optional,
       computed: false,
@@ -302,6 +314,38 @@ export class StatementParser extends TypeParser {
       distribution,
       constraints,
     };
+  }
+
+  private parseAnnotations(): Annotation[] | undefined {
+    const annotations: Annotation[] = [];
+
+    while (this.match(TokenType.HASH)) {
+      const name = this.consume(TokenType.IDENTIFIER, 'Expected annotation name').value;
+      let value: string | number | boolean = true;
+
+      if (this.match(TokenType.COLON)) {
+        if (this.match(TokenType.STRING)) {
+          value = this.tokens[this.pos - 1].value;
+        } else if (this.match(TokenType.NUMBER)) {
+          const raw = this.tokens[this.pos - 1].value;
+          const parsed = Number(raw);
+          if (!Number.isInteger(parsed)) {
+            throw this.error('Annotation numbers must be integers');
+          }
+          value = parsed;
+        } else if (this.match(TokenType.TRUE)) {
+          value = true;
+        } else if (this.match(TokenType.FALSE)) {
+          value = false;
+        } else {
+          throw this.error('Expected string, integer, or boolean annotation value');
+        }
+      }
+
+      annotations.push({ name, value });
+    }
+
+    return annotations.length > 0 ? annotations : undefined;
   }
 
   /**

@@ -207,6 +207,48 @@ describe('Parser', () => {
     });
   });
 
+  describe('annotations', () => {
+    it('stores schema and field metadata in the AST', () => {
+      const ast = parse(`
+        #description: "An invoice"
+        #deprecated: false
+        schema Invoice {
+          #example: "INV-1001"
+          #position: 3
+          #indexed
+          invoice_number: string
+        }
+      `);
+
+      const schema = ast.statements[0];
+      expect(schema).toMatchObject({
+        type: 'SchemaDefinition',
+        annotations: [
+          { name: 'description', value: 'An invoice' },
+          { name: 'deprecated', value: false },
+        ],
+      });
+      if (schema.type === 'SchemaDefinition') {
+        expect(schema.fields[0].annotations).toEqual([
+          { name: 'example', value: 'INV-1001' },
+          { name: 'position', value: 3 },
+          { name: 'indexed', value: true },
+        ]);
+      }
+    });
+
+    it('rejects decimal annotation values', () => {
+      expect(() =>
+        parse(`
+          schema Invoice {
+            #example: 1.5
+            amount: decimal
+          }
+        `)
+      ).toThrow('Annotation numbers must be integers');
+    });
+  });
+
   describe('distribution definitions', () => {
     it('parses distribution', () => {
       const ast = parse(`

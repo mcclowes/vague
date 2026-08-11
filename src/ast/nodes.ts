@@ -43,6 +43,7 @@ export interface LetStatement {
 export interface SchemaDefinition {
   type: 'SchemaDefinition';
   name: string;
+  annotations?: Annotation[];
   base?: QualifiedName; // from codat.Invoice
   contracts?: string[]; // applied contracts: with InvoiceContract, PaymentContract
   contexts?: ContextApplication[];
@@ -138,6 +139,7 @@ export interface DatasetDefinition {
 export interface FieldDefinition {
   type: 'FieldDefinition';
   name: string;
+  annotations?: Annotation[];
   fieldType: FieldType;
   optional?: boolean; // ?
   computed?: boolean; // = prefix
@@ -146,6 +148,11 @@ export interface FieldDefinition {
   condition?: Expression; // when clause
   distribution?: Expression; // ~ clause
   constraints?: Expression; // where clause
+}
+
+export interface Annotation {
+  name: string;
+  value: string | number | boolean;
 }
 
 export type FieldType =

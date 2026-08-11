@@ -182,6 +182,7 @@ export class Lexer {
       '>': TokenType.GT,
       '?': TokenType.QUESTION,
       ',': TokenType.COMMA,
+      '#': TokenType.HASH,
       '(': TokenType.LPAREN,
       ')': TokenType.RPAREN,
       '{': TokenType.LBRACE,
