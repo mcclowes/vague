@@ -91,6 +91,38 @@ describe('OpenAPILoader', () => {
       expect(schemas.has('Product')).toBe(true);
     });
 
+    it('loads and dereferences YAML OpenAPI documents', async () => {
+      const specPath = join(TMP_DIR, 'api.yaml');
+      writeFileSync(
+        specPath,
+        `openapi: 3.1.0
+info:
+  title: YAML API
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Identifier:
+      type: string
+      pattern: "^[A-Z]{2}[0-9]{4}$"
+    Account:
+      type: object
+      required: [id]
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+`
+      );
+
+      const account = (await new OpenAPILoader().load(specPath)).get('Account');
+
+      expect(account?.fields[0]).toMatchObject({
+        name: 'id',
+        required: true,
+        constraints: { pattern: '^[A-Z]{2}[0-9]{4}$' },
+      });
+    });
+
     it('dereferences local, nested, array-item, and external OpenAPI 3.1 schemas', async () => {
       const externalPath = join(TMP_DIR, 'external.json');
       const specPath = join(TMP_DIR, 'referenced-3.1.json');
@@ -219,6 +251,36 @@ describe('OpenAPILoader', () => {
       const loader = new OpenAPILoader();
 
       await expect(loader.load(specPath)).rejects.toThrow();
+    });
+
+    it('rejects JSON that is not a valid OpenAPI document', async () => {
+      const specPath = join(TMP_DIR, 'not-openapi.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          components: { schemas: { User: { type: 'object', properties: {} } } },
+        })
+      );
+
+      await expect(new OpenAPILoader().load(specPath)).rejects.toThrow(
+        'expected an OpenAPI 3.0 or 3.1 version'
+      );
+    });
+
+    it('rejects unsupported OpenAPI versions', async () => {
+      const specPath = join(TMP_DIR, 'unsupported-version.json');
+      writeFileSync(
+        specPath,
+        JSON.stringify({
+          openapi: '4.0.0',
+          info: { title: 'Future API', version: '1.0.0' },
+          paths: {},
+        })
+      );
+
+      await expect(new OpenAPILoader().load(specPath)).rejects.toThrow(
+        'expected an OpenAPI 3.0 or 3.1 version'
+      );
     });
   });
 

@@ -74,6 +74,9 @@ interface SchemaObject {
 }
 
 interface OpenAPIDocument {
+  openapi?: string;
+  info?: unknown;
+  paths?: unknown;
   components?: { schemas?: Record<string, SchemaObject> };
 }
 
@@ -87,6 +90,8 @@ export class OpenAPILoader {
       dereference: { circular: false },
     })) as OpenAPIDocument;
 
+    this.validateDocument(api, path);
+
     if (!api.components?.schemas) {
       return this.schemas;
     }
@@ -96,6 +101,18 @@ export class OpenAPILoader {
     }
 
     return this.schemas;
+  }
+
+  private validateDocument(api: OpenAPIDocument, path: string): void {
+    if (typeof api.openapi !== 'string' || !/^3\.(0|1)\.\d+(?:-.+)?$/.test(api.openapi)) {
+      throw new Error(`Invalid OpenAPI document '${path}': expected an OpenAPI 3.0 or 3.1 version`);
+    }
+    if (!api.info || typeof api.info !== 'object' || Array.isArray(api.info)) {
+      throw new Error(`Invalid OpenAPI document '${path}': missing info object`);
+    }
+    if (!api.paths || typeof api.paths !== 'object' || Array.isArray(api.paths)) {
+      throw new Error(`Invalid OpenAPI document '${path}': missing paths object`);
+    }
   }
 
   private parseSchema(name: string, schema: SchemaObject): ImportedSchema {
