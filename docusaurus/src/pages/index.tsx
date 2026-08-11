@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
@@ -30,20 +29,20 @@ dataset TestData {
 }`;
 
 function HomepageHeader() {
-  const {siteConfig} = useDocusaurusContext();
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className={clsx('container', styles.heroContent)}>
         <div className={styles.eyebrow}>
           <span className={styles.eyebrowDot} aria-hidden="true" />
-          Test data, described precisely
+          A declarative data language
         </div>
         <Heading as="h1" className={clsx('hero__title', styles.heroTitle)}>
-          Realistic test data,
-          <span> without the fixture sprawl.</span>
+          Data that follows
+          <span> the rules.</span>
         </Heading>
         <p className={clsx('hero__subtitle', styles.heroSubtitle)}>
-          {siteConfig.tagline}
+          Generate realistic datasets, validate relationships, and build
+          domain-specific workflows on the same language core.
         </p>
         <div className={styles.buttons}>
           <Link
@@ -59,6 +58,48 @@ function HomepageHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function HomepageExtension() {
+  return (
+    <section className={styles.extension}>
+      <div className={clsx('container', styles.extensionGrid)}>
+        <div className={styles.extensionText}>
+          <span className={styles.sectionLabel}>Built to extend</span>
+          <Heading as="h2">The language core goes further than fixtures.</Heading>
+          <p>
+            Vague exposes its lexer, expression system, schemas, constraints,
+            and plugin hooks for specialized declarative languages.
+          </p>
+          <p>
+            Reqon uses that foundation to define durable API synchronization
+            pipelines with validation, concurrency, scheduling, and resumable
+            execution.
+          </p>
+          <Link
+            className={styles.textLink}
+            href="https://github.com/mcclowes/reqon">
+            Explore Reqon <span aria-hidden="true">→</span>
+          </Link>
+        </div>
+        <div className={styles.proofCard}>
+          <div className={styles.proofHeader}>
+            <span>Built on Vague</span>
+            <strong>Reqon</strong>
+          </div>
+          <p>
+            A declarative language for fetching, transforming, validating,
+            and storing API data.
+          </p>
+          <div className={styles.proofLayers} aria-label="Reqon language layers">
+            <span>Durable API workflows</span>
+            <span>Reqon syntax and runtime</span>
+            <span>Vague language core</span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -93,14 +134,14 @@ function HomepageExample() {
 }
 
 export default function Home(): ReactNode {
-  const {siteConfig} = useDocusaurusContext();
   return (
     <Layout
-      title="Declarative Test Data Generation"
-      description="A declarative language for generating realistic test data with constraints, relationships, and distributions">
+      title="Data that follows the rules"
+      description="A declarative language for realistic datasets, relationship validation, and domain-specific data workflows">
       <HomepageHeader />
       <main>
         <HomepageExample />
+        <HomepageExtension />
         <HomepageFeatures />
       </main>
     </Layout>

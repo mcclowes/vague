@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'Vague',
-  tagline: 'A declarative language for generating realistic test data',
+  tagline: 'A declarative language for data that follows the rules',
   favicon: 'img/favicon.ico',
 
 
@@ -71,13 +71,13 @@ const config: Config = {
   themeConfig: {
     image: 'img/vague-social-card.png',
     metadata: [
-      {name: 'description', content: 'Vague is a declarative language for generating realistic test data. Create mock data, fixtures, and test datasets with superposition, constraints, and cross-references.'},
-      {name: 'og:title', content: 'Vague - Declarative Test Data Generation'},
-      {name: 'og:description', content: 'A declarative language for generating realistic test data with TypeScript/JavaScript integration, OpenAPI support, and powerful constraint systems.'},
+      {name: 'description', content: 'Vague is a declarative language for generating realistic datasets, validating relationships, and building domain-specific data workflows.'},
+      {name: 'og:title', content: 'Vague - Data that follows the rules'},
+      {name: 'og:description', content: 'Generate realistic datasets, validate relationships, and build domain-specific workflows on one declarative language core.'},
       {name: 'og:type', content: 'website'},
       {name: 'twitter:card', content: 'summary_large_image'},
-      {name: 'twitter:title', content: 'Vague - Declarative Test Data Generation'},
-      {name: 'twitter:description', content: 'Generate realistic test data with a declarative language. Supports TypeScript, OpenAPI, constraints, and more.'},
+      {name: 'twitter:title', content: 'Vague - Data that follows the rules'},
+      {name: 'twitter:description', content: 'Generate realistic datasets, validate relationships, and build domain-specific workflows on one declarative language core.'},
     ],
     colorMode: {
       defaultMode: 'light',
