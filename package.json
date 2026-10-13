@@ -32,7 +32,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "dev": "tsc --watch",
-    "examples": "for f in examples/*.vague; do echo \"\\n=== $f ===\" && node dist/cli.js \"$f\"; done",
+    "examples": "for f in examples/*.vague; do printf '\\n=== %s ===\\n' \"$f\" && node dist/cli.js \"$f\" || exit $?; done",
     "example": "f() { node dist/cli.js \"examples/$1\"; }; f",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
